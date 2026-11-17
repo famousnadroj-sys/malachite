@@ -12,7 +12,8 @@
 - Signalements : motif demandé, longueur contrôlée, identité du déclarant transmise, erreurs d'insertion affichées ; interface Admin pour examiner ou classer les signalements.
 - Blocage : table dédiée, politiques RLS, liste personnelle des membres bloqués, blocage depuis la conversation et la fiche profil, filtrage mutuel des profils, messages et rendez-vous.
 - Confidentialité des préférences : transfert de `profiles.prefs` vers `prives.prefs`, requête frontend limitée aux colonnes publiques, droits SQL limités aux colonnes réellement publiques.
-- Blocage : fonction de contrôle déplacée dans le schéma non exposé `private`, plutôt que publiée comme RPC dans `public`.
+- Présence : ajout de la colonne `profiles.derniere_vue` utilisée par le heartbeat et la lecture de présence, avec droit SELECT explicite.
+- Blocage : fonction de contrôle déplacée dans un schéma distinct `private`, plutôt que publiée comme RPC dans `public` ; l'exposition effective de ce schéma devra être confirmée dans la configuration Data API du staging.
 - Paiements : offres autorisées, cible Contact validée, code de transaction unique, verrouillage de la demande pendant son traitement.
 - Quota : trigger de messages gratuits aligné sur les 15 messages/jour annoncés.
 - Fonctions privilégiées : retrait de l'exécution anonyme et limitation des droits EXECUTE selon les usages.
