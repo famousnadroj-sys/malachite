@@ -20,4 +20,5 @@ if (!html.includes("insert({de:me.id,profil:id,motif:motif})")) throw new Error(
 if (!html.includes("from('prives').upsert({id:me.id,prefs:pr})")) throw new Error('Search preferences must be stored in the private table.');
 const migration = fs.readFileSync('supabase/migrations/202611180002_moderation_and_blocking.sql', 'utf8');
 if (!migration.includes('add column if not exists derniere_vue timestamptz')) throw new Error('Presence timestamp column is missing from the migration.');
+if (!migration.includes('create or replace function public.is_blocked_with(p_other uuid)')) throw new Error('Authenticated block-check RPC wrapper is missing.');
 console.log('JavaScript syntax and privacy guard checks passed.');
