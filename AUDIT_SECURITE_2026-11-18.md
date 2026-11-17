@@ -23,7 +23,7 @@
 ## Vérifications exécutées
 - Schéma Supabase interrogé en lecture seule : tables, colonnes, politiques RLS, fonctions SECURITY DEFINER, triggers, droits et bucket Storage.
 - Aucun doublon de code de paiement observé au moment du contrôle.
-- La CI GitHub a réussi les contrôles JavaScript et PostgreSQL sur les commits de préparation précédents. Le dernier commit contenant la désactivation des appels est encore en cours de validation au moment de cette mise à jour.
+- La CI GitHub a réussi les contrôles JavaScript et le parsing PostgreSQL sur la tête de branche `f609b1cb7c4750f3c9fb0b65972dfda940571c85`. Ce sont des contrôles statiques ; ils ne remplacent pas les tests d'intégration et les parcours réels.
 - Aucun parcours fonctionnel complet n'a été testé avec deux comptes réels.
 - Aucune migration n'a été appliquée à Supabase de production.
 - Aucun changement n'a été poussé sur `main` et aucun déploiement n'a été effectué.
