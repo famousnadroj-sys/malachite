@@ -1,69 +1,51 @@
 # Audit de sécurité Malachite — 18 novembre 2026
 
-## Périmètre examiné
-- Dépôt GitHub : `famousnadroj-sys/malachite`
-- Branche de production observée : `main`
-- Projet Supabase : `tscsmemsvgacqioncash`
-- Fichiers examinés : `index.html`, `sw.js`
-- Schéma examiné : tables publiques, colonnes, contraintes, politiques RLS, fonctions SECURITY DEFINER, déclencheurs, bucket Storage, Security Advisor et Performance Advisor.
+## Périmètre et références vérifiés
+- Dépôt : `famousnadroj-sys/malachite`.
+- Production : branche `main`, commit de référence `0491156daf13f6e7caa6d1e3411f1792981b8b7e`.
+- Sauvegarde : branche `backup/pre-audit-2026-11-18`, présente et pointant sur le commit de production.
+- Correctifs isolés : `fix/security-hardening`.
+- Projet Supabase : `tscsmemsvgacqioncash`.
+- La comparaison Git confirme que `main` n'a pas avancé depuis le point de sauvegarde ; les correctifs restent hors production.
 
-## État de référence
-- Commit de production observé au début de l'audit : `0491156daf13f6e7caa6d1e3411f1792981b8b7e`
-- SHA initial de `index.html` : `349929b298a92f01daf96ee93fc46d0ebb22398b`
-- SHA initial de `sw.js` : `c42f0b9e96f80c61306694cfb75a963d120ca89f`
-- Une branche de sauvegarde a été créée : `backup/pre-audit-2026-11-18`.
-- Les modifications préparées sont isolées dans `fix/security-hardening`; aucune mise à jour de `main` ni déploiement n'a été effectué.
+## Corrections préparées dans la branche isolée
+- Signalements : motif demandé, longueur contrôlée, identité du déclarant transmise, erreurs d'insertion affichées ; interface Admin pour examiner ou classer les signalements.
+- Blocage : table dédiée, politiques RLS, liste personnelle des membres bloqués, blocage depuis la conversation et la fiche profil, filtrage mutuel des profils, messages et rendez-vous.
+- Confidentialité des préférences : transfert de `profiles.prefs` vers `prives.prefs`, requête frontend limitée aux colonnes publiques, droits SQL limités aux colonnes réellement publiques.
+- Blocage : fonction de contrôle déplacée dans le schéma non exposé `private`, plutôt que publiée comme RPC dans `public`.
+- Paiements : offres autorisées, cible Contact validée, code de transaction unique, verrouillage de la demande pendant son traitement.
+- Quota : trigger de messages gratuits aligné sur les 15 messages/jour annoncés.
+- Fonctions privilégiées : retrait de l'exécution anonyme et limitation des droits EXECUTE selon les usages.
+- Appels vidéo : désactivés dans la branche de préparation ; les salons publics Jitsi prévisibles ne sont pas conservés comme fonctionnalité de lancement.
+- Contrôles automatiques ajoutés : syntaxe JavaScript (Node) et parsing PostgreSQL des migrations (pglast).
 
-## Constats confirmés
+## Vérifications exécutées
+- Schéma Supabase interrogé en lecture seule : tables, colonnes, politiques RLS, fonctions SECURITY DEFINER, triggers, droits et bucket Storage.
+- Aucun doublon de code de paiement observé au moment du contrôle.
+- La CI GitHub a réussi les contrôles JavaScript et PostgreSQL sur les commits de préparation précédents. Le dernier commit contenant la désactivation des appels est encore en cours de validation au moment de cette mise à jour.
+- Aucun parcours fonctionnel complet n'a été testé avec deux comptes réels.
+- Aucune migration n'a été appliquée à Supabase de production.
+- Aucun changement n'a été poussé sur `main` et aucun déploiement n'a été effectué.
 
-### Sécurité / RLS
-- RLS est activé sur les 11 tables publiques examinées.
-- Les rôles `anon` et `authenticated` possèdent des privilèges SQL de table trop larges (notamment des privilèges DML et TRUNCATE au niveau des ACL). L'absence de policy RLS bloque de nombreuses opérations via PostgREST, mais les privilèges SQL doivent tout de même être réduits.
-- Sept fonctions SECURITY DEFINER sont exécutables par `anon` et `authenticated` selon le Security Advisor : `contact_de`, `est_match`, `est_premium`, `limite_messages`, `limite_rdv`, `rls_auto_enable`, `traiter_paiement`.
-- Les fonctions utilisent un search_path fixé, mais les droits EXECUTE doivent être limités selon leur usage.
-- Le Security Advisor signale aussi la protection contre les mots de passe compromis désactivée.
+## Bloqueurs de lancement encore ouverts
 
-### Signalements
-- La table `signalements` existe et accepte l'insertion par un utilisateur connecté si `de = auth.uid()`.
-- Aucune policy de lecture ni de traitement par l'administrateur n'était présente.
-- Le frontend utilisait un motif fixe `signalé` et affichait un succès sans vérifier le résultat de l'insertion.
+### 1. Médias de conversation publics
+Le bucket `photos` est public, sans limite de taille ni liste MIME autorisée. Il contient 9 objets : 8 objets identifiés comme médias de chat (photos/vocaux) et 1 autre objet. La table `messages` contient 5 messages image/audio et 2 messages d'appel vidéo. Les médias de conversation stockés dans ce bucket sont accessibles par URL publique.
 
-### Blocage
-- La table `deblocages` est utilisée par l'achat de déblocage de contact ; elle ne doit pas être réutilisée comme liste de blocage.
-- Aucun système de blocage mutuel n'était présent dans le frontend ou le schéma.
+Il faut créer un bucket privé dédié aux pièces jointes, migrer les 8 objets existants avec un accès Storage administrateur, remplacer les URL publiques par des chemins privés et générer des URL signées uniquement pour les participants. Il faut ensuite supprimer les anciennes copies publiques. Ce chantier n'est pas fait et ne doit pas être simulé par une simple modification SQL.
 
-### Fichiers et médias
-- Le bucket `photos` est public, sans limite de taille ni liste MIME autorisée.
-- Le même bucket sert aux photos de profil, aux images de chat et aux messages vocaux. Les pièces jointes de conversation peuvent donc être accessibles par URL publique : c'est un bloqueur de confidentialité avant lancement. Le rendre privé ou limiter son MIME aux seules images casserait des fonctions existantes. Il faut séparer les photos de profil publiques des médias de conversation privés et migrer les anciens objets.
-- La table `profiles` autorise la lecture de toutes les colonnes pour tout membre connecté. Cela inclut `prefs` (préférences de recherche), en plus des champs de profil et des questions-réponses. La confidentialité des préférences doit être décidée et corrigée avant publication ; ne pas supposer qu'elles sont privées.
+### 2. Authentification
+Le contrôle Supabase signale que la protection contre les mots de passe compromis est désactivée. Elle doit être activée et vérifiée.
 
-### Autres risques à traiter
-- L'administration frontend est affichée selon une comparaison d'e-mail ; les contrôles serveur doivent rester l'autorité.
-- La fonction `traiter_paiement` contrôle l'e-mail administrateur. La migration préparée ajoute aussi une validation des offres et de la cible de l'offre Contact, et interdit la réutilisation d'un code de transaction. Le contrôle de l'e-mail administrateur reste à remplacer à terme par un rôle serveur géré dans `app_metadata`.
-- Le code annonce 15 messages gratuits par jour, tandis que le trigger SQL observé applique une limite de 5. La migration préparée aligne le trigger sur les 15 messages annoncés.
-- Les appels vidéo utilisent des salons Jitsi construits de manière prévisible, sans jeton d'accès observé dans le code. Ce n'est pas une preuve qu'un tiers a rejoint un appel, mais l'accès doit être repensé avant un lancement public.
-- Le frontend charge `profiles.select('*')`, qui expose aussi `prefs` et `prompts` aux utilisateurs autorisés à lire les profils. Il faut décider si les préférences de recherche doivent être privées.
+### 3. Appels vidéo
+Les salons Jitsi utilisés par l'ancienne version ont des noms prévisibles et ne disposent pas de jeton d'accès observé. Les nouveaux appels sont désactivés dans la branche de préparation. Les deux anciens messages d'appel restent des données historiques ; il faut vérifier leur traitement et décider de leur suppression ou de leur archivage sécurisé avant lancement.
 
-## Corrections préparées sur la branche isolée
-- Demande de motif de signalement et vérification des erreurs d'insertion.
-- Vue Admin pour consulter les signalements et les marquer examinés / classés sans suite.
-- Table séparée `blocages`, policies RLS, fonction de liste personnelle des blocages et vérification mutuelle.
-- Filtrage des profils et conversations bloqués dans le frontend.
-- Réduction des privilèges anonymes, retrait des privilèges TRUNCATE/REFERENCES/TRIGGER des utilisateurs connectés et limitation de l'exécution des fonctions SECURITY DEFINER.
+### 4. Environnement de test et non-régression
+La création d'une branche Supabase de test a été refusée par le forfait actuel. Le coût annoncé était de 0,01344 USD/heure. Aucun environnement de staging n'a donc été créé. Les migrations doivent être exécutées et testées sur une base jetable/staging avant toute application en production.
 
-## Ce qui n'a PAS été fait
-- Aucune migration SQL appliquée à Supabase.
-- Aucun changement dans la branche `main`.
-- Aucun déploiement GitHub Pages.
-- Aucun paiement, profil ou message modifié.
-- Aucun test de bout en bout exécuté sur des comptes réels.
+Parcours obligatoires : inscription/connexion, création et modification du profil, recherche, likes/matchs, messages texte, médias privés, blocage/déblocage dans les deux sens, signalement et modération Admin, rendez-vous, paiements Airtel de test et contrôle des droits.
 
-## Validation obligatoire avant production
-1. Créer une copie de staging de la base Supabase et y restaurer un jeu de données non sensible.
-2. Appliquer les migrations sur staging uniquement.
-3. Tester deux comptes ordinaires, un compte bloqué dans chaque sens et le compte administrateur.
-4. Vérifier inscription, connexion, découverte, likes, messages, médias, rendez-vous, paiements de test et signalements.
-5. Corriger les risques restants (paiements, médias privés, appels, confidentialité des préférences).
-6. Refaire Security Advisor et Performance Advisor.
-7. N'envisager le merge vers `main` qu'après réussite des tests et validation explicite du propriétaire.
+## Décision actuelle
+**Malachite n'est pas encore prêt pour un lancement public responsable.**
 
+La branche `main` et le site public restent inchangés. Les migrations de sécurité et de modération sont préparées mais non appliquées. Le PR #1 reste en brouillon. Ne pas fusionner ni déployer avant la migration des médias, la configuration Auth, la validation en staging et la réussite des tests de non-régression.
