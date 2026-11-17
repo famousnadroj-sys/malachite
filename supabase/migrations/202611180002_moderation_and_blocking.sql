@@ -92,8 +92,7 @@ for delete to authenticated using (user_id = (select auth.uid()));
 
 create index if not exists blocages_cible_idx on public.blocages(cible);
 
--- Ne révèle pas la liste des bloqueurs : renvoie uniquement les identifiants
--- que l'utilisateur courant doit masquer (blocage dans un sens ou l'autre).
+-- Renvoie uniquement les identifiants des membres que l'utilisateur courant a bloqués.
 create or replace function public.blocked_user_ids()
 returns setof uuid
 language sql
@@ -251,7 +250,8 @@ begin
 
   select * into p
   from public.paiements
-  where id = pid and statut = 'attente';
+  where id = pid and statut = 'attente'
+  for update;
 
   if not found then return 'introuvable'; end if;
 
@@ -260,6 +260,7 @@ begin
   end if;
   if p.offre = 'Contact' and (
     p.cible is null
+    or p.cible = p.user_id
     or not exists (select 1 from public.profiles where id = p.cible)
   ) then
     raise exception 'cible_invalide';
