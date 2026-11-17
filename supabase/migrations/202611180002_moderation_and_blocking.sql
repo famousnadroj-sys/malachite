@@ -104,7 +104,11 @@ as $$
 $$;
 
 -- Vérifie un blocage sans exposer la table privée à l'appelant.
-create or replace function public.is_blocked_with(p_other uuid)
+create schema if not exists private;
+revoke all on schema private from public, anon;
+grant usage on schema private to authenticated;
+
+create or replace function private.is_blocked_with(p_other uuid)
 returns boolean
 language sql
 stable
@@ -120,8 +124,8 @@ $$;
 
 revoke all on function public.blocked_user_ids() from public, anon;
 grant execute on function public.blocked_user_ids() to authenticated;
-revoke all on function public.is_blocked_with(uuid) from public, anon;
-grant execute on function public.is_blocked_with(uuid) to authenticated;
+revoke all on function private.is_blocked_with(uuid) from public, anon;
+grant execute on function private.is_blocked_with(uuid) to authenticated;
 
 -- Liste limitée aux membres que l'utilisateur courant a lui-même bloqués,
 -- afin de lui permettre de les débloquer sans exposer les blocages des autres.
@@ -131,12 +135,12 @@ language sql
 stable
 security definer
 set search_path = ''
-as $
+as $$
   select p.id, p.prenom, p.commune
   from public.blocages b
   join public.profiles p on p.id = b.cible
   where b.user_id = (select auth.uid());
-$;
+$$;
 revoke all on function public.my_blocked_profiles() from public, anon;
 grant execute on function public.my_blocked_profiles() to authenticated;
 
@@ -146,7 +150,17 @@ create policy "voir profils" on public.profiles
 for select to authenticated
 using (
   id = (select auth.uid())
-  or not public.is_blocked_with(id)
+  or not private.is_blocked_with(id)
+);
+
+drop policy if exists "lire ses messages" on public.messages;
+create policy "lire ses messages" on public.messages
+for select to authenticated
+using (
+  (de = (select auth.uid()) or a = (select auth.uid()))
+  and not private.is_blocked_with(
+    case when de = (select auth.uid()) then a else de end
+  )
 );
 
 drop policy if exists "envoyer un message" on public.messages;
@@ -155,7 +169,7 @@ for insert to authenticated
 with check (
   de = (select auth.uid())
   and a <> (select auth.uid())
-  and not public.is_blocked_with(a)
+  and not private.is_blocked_with(a)
   and exists (select 1 from public.profiles p where p.id = a)
 );
 
@@ -165,7 +179,7 @@ for insert to authenticated
 with check (
   user_id = (select auth.uid())
   and autre <> (select auth.uid())
-  and not public.is_blocked_with(autre)
+  and not private.is_blocked_with(autre)
 );
 
 drop policy if exists "changer son avis" on public.avis_match;
@@ -175,7 +189,17 @@ using (user_id = (select auth.uid()))
 with check (
   user_id = (select auth.uid())
   and autre <> (select auth.uid())
-  and not public.is_blocked_with(autre)
+  and not private.is_blocked_with(autre)
+);
+
+drop policy if exists "voir ses rdv" on public.rendez_vous;
+create policy "voir ses rdv" on public.rendez_vous
+for select to authenticated
+using (
+  (de = (select auth.uid()) or a = (select auth.uid()))
+  and not private.is_blocked_with(
+    case when de = (select auth.uid()) then a else de end
+  )
 );
 
 drop policy if exists "creer un rdv" on public.rendez_vous;
@@ -185,7 +209,7 @@ with check (
   de = (select auth.uid())
   and a <> (select auth.uid())
   and statut = 'attente'
-  and not public.is_blocked_with(a)
+  and not private.is_blocked_with(a)
 );
 
 drop policy if exists "repondre a un rdv" on public.rendez_vous;
@@ -194,7 +218,7 @@ for update to authenticated
 using (a = (select auth.uid()))
 with check (
   a = (select auth.uid())
-  and not public.is_blocked_with(de)
+  and not private.is_blocked_with(de)
 );
 
 -- D. Réduire les privilèges inutiles des rôles exposés
