@@ -50,3 +50,20 @@ Parcours obligatoires : inscription/connexion, création et modification du prof
 **Malachite n'est pas encore prêt pour un lancement public responsable.**
 
 La branche `main` et le site public restent inchangés. Les migrations de sécurité et de modération sont préparées mais non appliquées. Le PR #1 reste en brouillon. Ne pas fusionner ni déployer avant la migration des médias, la configuration Auth, la validation en staging et la réussite des tests de non-régression.
+
+
+## Vérification complémentaire des exigences formulées par Claude
+Le message de Claude demandait explicitement : (1) bloquer un membre, (2) signaler avec un motif, et (3) un écran Admin pour lire les signalements et suspendre un compte.
+- Le signalement avec motif et l'écran Admin de lecture/classement sont présents dans la branche de correction.
+- Le blocage/déblocage est préparé. Une incohérence a été corrigée : le navigateur appelait `public.is_blocked_with` alors que seule la fonction interne `private.is_blocked_with` existait. Une fonction RPC publique minimale, réservée aux utilisateurs authentifiés et délégant au schéma privé, a été ajoutée et ajoutée aux contrôles statiques.
+- **La suspension réelle d'un compte n'est PAS encore implémentée.** L'écran Admin actuel permet d'examiner ou de classer un signalement, mais ne suspend pas le compte signalé. Une suspension effective doit passer par une opération Auth Admin côté serveur, jamais par un secret privilégié dans le navigateur. Aucun outil de gestion des secrets/ban Auth n'est disponible dans cette session pour configurer et vérifier cette opération en sécurité.
+
+## Blocages non résolus empêchant de déclarer le lancement prêt
+- Médias privés : bucket public existant ; aucun outil Storage de migration/lecture/écriture n'est disponible dans cette session.
+- Auth : protection contre mots de passe compromis toujours désactivée ; aucun réglage Auth n'est exposé par les outils disponibles.
+- Suspension Admin réelle : non implémentée et non testée.
+- Appels Jitsi historiques : deux anciennes entrées restent à traiter.
+- Tests de bout en bout avec deux comptes : non exécutés. La CI ne valide que la syntaxe JS et le parsing SQL.
+- Environnement de test Supabase séparé : création refusée par le forfait ; aucun coût de staging n'a été engagé.
+
+Ces points ne doivent pas être contournés en appliquant des migrations non testées à la production. La version publique reste inchangée.
