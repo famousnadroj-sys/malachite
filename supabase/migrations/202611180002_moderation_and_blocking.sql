@@ -155,10 +155,10 @@ language sql
 stable
 security definer
 set search_path = ''
-as $
+as $function$
   select auth.uid() is not null
      and private.is_blocked_with(p_other);
-$;
+$function$;
 revoke all on function public.is_blocked_with(uuid) from public, anon;
 grant execute on function public.is_blocked_with(uuid) to authenticated;
 
