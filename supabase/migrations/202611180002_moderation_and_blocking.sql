@@ -107,6 +107,14 @@ using (
   or not public.is_blocked_with(id)
 );
 
+drop policy if exists "lire ses messages" on public.messages;
+create policy "lire ses messages" on public.messages
+for select to authenticated
+using (
+  (auth.uid() = de or auth.uid() = a)
+  and not public.is_blocked_with(case when auth.uid() = de then a else de end)
+);
+
 drop policy if exists "envoyer un message" on public.messages;
 create policy "envoyer un message" on public.messages
 for insert to authenticated
