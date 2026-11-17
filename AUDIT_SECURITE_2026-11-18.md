@@ -34,7 +34,8 @@
 
 ### Fichiers et médias
 - Le bucket `photos` est public, sans limite de taille ni liste MIME autorisée.
-- Le même bucket sert aux photos de profil, aux images de chat et aux messages vocaux. Le rendre privé ou limiter son MIME aux seules images casserait des fonctions existantes. Une migration séparée des médias privés est nécessaire avant tout changement de visibilité.
+- Le même bucket sert aux photos de profil, aux images de chat et aux messages vocaux. Les pièces jointes de conversation peuvent donc être accessibles par URL publique : c'est un bloqueur de confidentialité avant lancement. Le rendre privé ou limiter son MIME aux seules images casserait des fonctions existantes. Il faut séparer les photos de profil publiques des médias de conversation privés et migrer les anciens objets.
+- La table `profiles` autorise la lecture de toutes les colonnes pour tout membre connecté. Cela inclut `prefs` (préférences de recherche), en plus des champs de profil et des questions-réponses. La confidentialité des préférences doit être décidée et corrigée avant publication ; ne pas supposer qu'elles sont privées.
 
 ### Autres risques à traiter
 - L'administration frontend est affichée selon une comparaison d'e-mail ; les contrôles serveur doivent rester l'autorité.
