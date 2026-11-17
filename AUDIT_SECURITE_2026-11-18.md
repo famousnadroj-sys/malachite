@@ -38,8 +38,8 @@
 
 ### Autres risques à traiter
 - L'administration frontend est affichée selon une comparaison d'e-mail ; les contrôles serveur doivent rester l'autorité.
-- La fonction `traiter_paiement` contrôle l'e-mail administrateur, mais ne rejette pas explicitement une valeur `offre` inconnue avant de marquer le paiement comme validé. À corriger après vérification des offres et des données existantes.
-- Le code annonce 15 messages gratuits par jour, tandis que le trigger SQL observé applique une limite de 5.
+- La fonction `traiter_paiement` contrôle l'e-mail administrateur. La migration préparée ajoute aussi une validation des offres et de la cible de l'offre Contact, et interdit la réutilisation d'un code de transaction. Le contrôle de l'e-mail administrateur reste à remplacer à terme par un rôle serveur géré dans `app_metadata`.
+- Le code annonce 15 messages gratuits par jour, tandis que le trigger SQL observé applique une limite de 5. La migration préparée aligne le trigger sur les 15 messages annoncés.
 - Les appels vidéo utilisent des salons Jitsi construits de manière prévisible, sans jeton d'accès observé dans le code. Ce n'est pas une preuve qu'un tiers a rejoint un appel, mais l'accès doit être repensé avant un lancement public.
 - Le frontend charge `profiles.select('*')`, qui expose aussi `prefs` et `prompts` aux utilisateurs autorisés à lire les profils. Il faut décider si les préférences de recherche doivent être privées.
 
