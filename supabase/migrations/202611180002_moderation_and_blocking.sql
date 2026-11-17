@@ -69,6 +69,10 @@ create unique index if not exists paiements_code_unique_idx on public.paiements 
 alter table public.prives
   add column if not exists prefs jsonb not null default '{}'::jsonb;
 
+-- The frontend's presence heartbeat reads and updates this timestamp.
+alter table public.profiles
+  add column if not exists derniere_vue timestamptz;
+
 update public.prives pv
 set prefs = coalesce(p.prefs, '{}'::jsonb)
 from public.profiles p
@@ -78,7 +82,7 @@ where p.id = pv.id
 
 update public.profiles set prefs = null where prefs is not null;
 revoke select on table public.profiles from authenticated;
-grant select (id, prenom, age, genre, commune, profession, bio, interets, photos, created_at, prompts)
+grant select (id, prenom, age, genre, commune, profession, bio, interets, photos, created_at, prompts, derniere_vue)
   on table public.profiles to authenticated;
 
 -- B. Blocage privé entre membres (séparé de deblocages, qui sert aux achats de contacts)
