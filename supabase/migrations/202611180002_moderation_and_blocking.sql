@@ -50,6 +50,8 @@ create table if not exists public.blocages (
   constraint blocages_no_self check (user_id <> cible)
 );
 alter table public.blocages enable row level security;
+grant select, insert, delete on table public.blocages to authenticated;
+revoke update, truncate, references, trigger on table public.blocages from authenticated;
 
 drop policy if exists "voir ses blocages" on public.blocages;
 create policy "voir ses blocages" on public.blocages
