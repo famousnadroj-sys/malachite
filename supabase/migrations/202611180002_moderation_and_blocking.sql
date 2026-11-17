@@ -100,6 +100,23 @@ grant execute on function public.blocked_user_ids() to authenticated;
 revoke all on function public.is_blocked_with(uuid) from public, anon;
 grant execute on function public.is_blocked_with(uuid) to authenticated;
 
+-- Liste limitée aux membres que l'utilisateur courant a lui-même bloqués,
+-- afin de lui permettre de les débloquer sans exposer les blocages des autres.
+create or replace function public.my_blocked_profiles()
+returns table(id uuid, prenom text, commune text)
+language sql
+stable
+security definer
+set search_path = ''
+as $
+  select p.id, p.prenom, p.commune
+  from public.blocages b
+  join public.profiles p on p.id = b.cible
+  where b.user_id = (select auth.uid());
+$;
+revoke all on function public.my_blocked_profiles() from public, anon;
+grant execute on function public.my_blocked_profiles() to authenticated;
+
 -- C. Appliquer le blocage aux profils, messages, likes et rendez-vous
 drop policy if exists "voir profils" on public.profiles;
 create policy "voir profils" on public.profiles
