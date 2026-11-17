@@ -147,6 +147,21 @@ grant execute on function public.blocked_user_ids() to authenticated;
 revoke all on function private.is_blocked_with(uuid) from public, anon;
 grant execute on function private.is_blocked_with(uuid) to authenticated;
 
+-- Public RPC wrapper required by the browser client. The implementation stays
+-- in the non-exposed private schema; only authenticated users can call it.
+create or replace function public.is_blocked_with(p_other uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $
+  select auth.uid() is not null
+     and private.is_blocked_with(p_other);
+$;
+revoke all on function public.is_blocked_with(uuid) from public, anon;
+grant execute on function public.is_blocked_with(uuid) to authenticated;
+
 -- Liste limitée aux membres que l'utilisateur courant a lui-même bloqués,
 -- afin de lui permettre de les débloquer sans exposer les blocages des autres.
 create or replace function public.my_blocked_profiles()
