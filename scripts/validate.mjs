@@ -9,7 +9,7 @@ const scripts = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)]
   .filter(source => source.trim().length > 0);
 if (scripts.length === 0) throw new Error('No inline application script found.');
 const temp = path.join(os.tmpdir(), 'malachite-inline.js');
-fs.writeFileSync(temp, scripts.join('\\n;\\n'));
+fs.writeFileSync(temp, scripts.join('\n;\n'));
 const result = spawnSync(process.execPath, ['--check', temp], { encoding: 'utf8' });
 if (result.status !== 0) {
   process.stderr.write(result.stderr || result.stdout);
