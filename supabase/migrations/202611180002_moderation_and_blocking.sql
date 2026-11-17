@@ -43,6 +43,28 @@ with check (
 create index if not exists signalements_statut_created_idx
   on public.signalements (statut, created_at desc);
 
+-- Payment requests may only use known offers and a plausible non-empty code.
+drop policy if exists "declarer un paiement" on public.paiements;
+create policy "declarer un paiement" on public.paiements
+for insert to authenticated
+with check (
+  user_id = (select auth.uid())
+  and statut = 'attente'
+  and offre in ('Premium','Boost','Badge Vérifié','Contact')
+  and char_length(btrim(code)) between 4 and 100
+  and (
+    (offre = 'Contact'
+      and cible is not null
+      and cible <> (select auth.uid())
+      and exists (select 1 from public.profiles p where p.id = cible))
+    or
+    (offre <> 'Contact' and cible is null)
+  )
+);
+
+-- Current data has no duplicate transaction codes; prevent re-use going forward.
+create unique index if not exists paiements_code_unique_idx on public.paiements (code);
+
 -- B. Blocage privé entre membres (séparé de deblocages, qui sert aux achats de contacts)
 create table if not exists public.blocages (
   user_id uuid not null references auth.users(id) on delete cascade,
