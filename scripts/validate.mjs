@@ -18,4 +18,6 @@ if (result.status !== 0) {
 if (html.includes("profiles').select('*')")) throw new Error('Public profile query must not select private columns.');
 if (!html.includes("insert({de:me.id,profil:id,motif:motif})")) throw new Error('Report must include the authenticated reporter id.');
 if (!html.includes("from('prives').upsert({id:me.id,prefs:pr})")) throw new Error('Search preferences must be stored in the private table.');
+const migration = fs.readFileSync('supabase/migrations/202611180002_moderation_and_blocking.sql', 'utf8');
+if (!migration.includes('add column if not exists derniere_vue timestamptz')) throw new Error('Presence timestamp column is missing from the migration.');
 console.log('JavaScript syntax and privacy guard checks passed.');
