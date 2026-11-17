@@ -191,6 +191,89 @@ grant execute on function public.est_premium(uuid) to authenticated;
 revoke execute on function public.limite_messages() from public, anon, authenticated;
 revoke execute on function public.limite_rdv() from public, anon, authenticated;
 revoke execute on function public.rls_auto_enable() from public, anon, authenticated;
+-- Align the free-message quota with the 15/day limit shown in the UI.
+create or replace function public.limite_messages()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare n int;
+begin
+  if not public.est_premium(new.de) then
+    if new.texte ~* '(\d[\s.\-]*){8,}|whats|watsap|wa\.me|telegram|messenger|facebook|instagram|snap' then
+      raise exception 'contact_interdit';
+    end if;
+    select count(*) into n
+    from public.messages
+    where de = new.de and created_at >= date_trunc('day', now());
+    if n >= 15 then raise exception 'limite_gratuite'; end if;
+  end if;
+  return new;
+end
+$function$;
+
+-- Validate the offer and Contact target before granting any benefit.
+create or replace function public.traiter_paiement(pid bigint, accepter boolean)
+returns text
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare p public.paiements%rowtype;
+begin
+  if (auth.jwt() ->> 'email') is distinct from 'famousnadroj@gmail.com' then
+    raise exception 'interdit';
+  end if;
+
+  select * into p
+  from public.paiements
+  where id = pid and statut = 'attente';
+
+  if not found then return 'introuvable'; end if;
+
+  if p.offre not in ('Premium', 'Boost', 'Badge Vérifié', 'Contact') then
+    raise exception 'offre_invalide';
+  end if;
+  if p.offre = 'Contact' and (
+    p.cible is null
+    or not exists (select 1 from public.profiles where id = p.cible)
+  ) then
+    raise exception 'cible_invalide';
+  end if;
+
+  if not accepter then
+    update public.paiements set statut = 'rejete' where id = pid;
+    return 'rejete';
+  end if;
+
+  insert into public.statuts (user_id)
+  values (p.user_id)
+  on conflict do nothing;
+
+  if p.offre = 'Premium' then
+    update public.statuts
+    set premium_until = greatest(coalesce(premium_until, now()), now()) + interval '30 days'
+    where user_id = p.user_id;
+  elsif p.offre = 'Boost' then
+    update public.statuts
+    set boost_until = greatest(coalesce(boost_until, now()), now()) + interval '1 day'
+    where user_id = p.user_id;
+  elsif p.offre = 'Badge Vérifié' then
+    update public.statuts
+    set verified_until = greatest(coalesce(verified_until, now()), now()) + interval '14 days'
+    where user_id = p.user_id;
+  elsif p.offre = 'Contact' then
+    insert into public.deblocages (user_id, cible)
+    values (p.user_id, p.cible)
+    on conflict do nothing;
+  end if;
+
+  update public.paiements set statut = 'valide' where id = pid;
+  return 'ok';
+end
+$function$;
+
 revoke execute on function public.traiter_paiement(bigint, boolean) from public, anon;
 grant execute on function public.traiter_paiement(bigint, boolean) to authenticated;
 
