@@ -210,7 +210,7 @@ begin
     if n >= 15 then raise exception 'limite_gratuite'; end if;
   end if;
   return new;
-end
+end;
 $function$;
 
 -- Validate the offer and Contact target before granting any benefit.
@@ -271,7 +271,7 @@ begin
 
   update public.paiements set statut = 'valide' where id = pid;
   return 'ok';
-end
+end;
 $function$;
 
 revoke execute on function public.traiter_paiement(bigint, boolean) from public, anon;
