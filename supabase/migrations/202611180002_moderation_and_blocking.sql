@@ -65,6 +65,22 @@ with check (
 -- Current data has no duplicate transaction codes; prevent re-use going forward.
 create unique index if not exists paiements_code_unique_idx on public.paiements (code);
 
+-- Keep matching preferences private: profiles is visible to all signed-in members.
+alter table public.prives
+  add column if not exists prefs jsonb not null default '{}'::jsonb;
+
+update public.prives pv
+set prefs = coalesce(p.prefs, '{}'::jsonb)
+from public.profiles p
+where p.id = pv.id
+  and p.prefs is not null
+  and pv.prefs = '{}'::jsonb;
+
+update public.profiles set prefs = null where prefs is not null;
+revoke select on table public.profiles from authenticated;
+grant select (id, prenom, age, genre, commune, profession, bio, interets, photos, created_at, prompts)
+  on table public.profiles to authenticated;
+
 -- B. Blocage privé entre membres (séparé de deblocages, qui sert aux achats de contacts)
 create table if not exists public.blocages (
   user_id uuid not null references auth.users(id) on delete cascade,
