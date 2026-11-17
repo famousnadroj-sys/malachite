@@ -75,9 +75,7 @@ stable
 security definer
 set search_path = ''
 as $$
-  select b.cible from public.blocages b where b.user_id = (select auth.uid())
-  union
-  select b.user_id from public.blocages b where b.cible = (select auth.uid());
+  select b.cible from public.blocages b where b.user_id = (select auth.uid());
 $$;
 
 -- Vérifie un blocage sans exposer la table privée à l'appelant.
