@@ -21,6 +21,8 @@ on public.signalements for insert to authenticated
 with check (
   de = (select auth.uid())
   and profil <> (select auth.uid())
+  and motif is not null
+  and char_length(btrim(motif)) between 1 and 300
   and exists (select 1 from public.profiles p where p.id = profil)
 );
 
