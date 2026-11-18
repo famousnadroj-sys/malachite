@@ -67,3 +67,10 @@ Le message de Claude demandait explicitement : (1) bloquer un membre, (2) signal
 - Environnement de test Supabase séparé : création refusée par le forfait ; aucun coût de staging n'a été engagé.
 
 Ces points ne doivent pas être contournés en appliquant des migrations non testées à la production. La version publique reste inchangée.
+
+
+## Mise à jour — préparation de la suspension Admin
+- Une Edge Function `admin-user-moderation` est maintenant ajoutée à la branche de correction. Elle vérifie le JWT auprès de Supabase Auth, limite l'action à l'adresse administrateur définie dans le code, valide l'identifiant UUID, interdit l'auto-suspension et appelle l'API Auth Admin côté serveur.
+- Le panneau Admin appelle cette fonction depuis chaque signalement.
+- Le secret `SUPABASE_SERVICE_ROLE_KEY` est uniquement lu dans l'environnement serveur ; aucune clé privilégiée n'est ajoutée au navigateur ou au dépôt.
+- **Non terminé :** la fonction n'est pas déployée, les secrets du projet ne sont pas configurés/vérifiés et aucun test de suspension/réactivation n'a été exécuté. Le blocage est donc encore un point de lancement ouvert.
