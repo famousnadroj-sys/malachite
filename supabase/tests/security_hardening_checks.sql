@@ -33,15 +33,19 @@ where table_schema = 'public' and grantee = 'anon'
 order by table_name, privilege_type;
 
 -- 5) Confirm SECURITY DEFINER execution is no longer granted to anon.
-select p.proname,
+select n.nspname as schema_name,
+       p.proname,
+       p.prosecdef as security_definer,
        has_function_privilege('anon', p.oid, 'EXECUTE') as anon_can_execute,
        has_function_privilege('authenticated', p.oid, 'EXECUTE') as authenticated_can_execute
 from pg_proc p
 join pg_namespace n on n.oid = p.pronamespace
-where n.nspname = 'public'
-  and p.proname in (
+where (n.nspname = 'public' and p.proname in (
     'contact_de','est_match','est_premium','limite_messages',
     'limite_rdv','rls_auto_enable','traiter_paiement',
     'blocked_user_ids','is_blocked_with','my_blocked_profiles'
-  )
-order by p.proname;
+  ))
+  or (n.nspname = 'private' and p.proname in (
+    'contact_de','est_match','est_premium','traiter_paiement','is_blocked_with'
+  ))
+order by n.nspname, p.proname;
