@@ -21,4 +21,10 @@ if (!html.includes("from('prives').upsert({id:me.id,prefs:pr})")) throw new Erro
 const migration = fs.readFileSync('supabase/migrations/202611180002_moderation_and_blocking.sql', 'utf8');
 if (!migration.includes('add column if not exists derniere_vue timestamptz')) throw new Error('Presence timestamp column is missing from the migration.');
 if (!migration.includes('create or replace function public.is_blocked_with(p_other uuid)')) throw new Error('Authenticated block-check RPC wrapper is missing.');
-console.log('JavaScript syntax and privacy guard checks passed.');
+if (!html.includes("sb.functions.invoke('admin-user-moderation'")) throw new Error('Admin account suspension must use the server-side function.');
+if (/service[_-]?role|sb_secret_/i.test(html)) throw new Error('Privileged Supabase credentials must never appear in browser code.');
+const moderationFunction = fs.readFileSync('supabase/functions/admin-user-moderation/index.ts', 'utf8');
+for (const required of ['auth.getUser(token)', 'auth.admin.updateUserById', 'ADMIN_EMAIL', 'SUPABASE_SERVICE_ROLE_KEY', 'cannot_suspend_self']) {
+  if (!moderationFunction.includes(required)) throw new Error('Admin moderation security check missing: ' + required);
+}
+console.log('JavaScript syntax, privacy guards, and Admin moderation security checks passed.');
