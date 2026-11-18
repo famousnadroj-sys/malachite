@@ -508,4 +508,14 @@ $function$;
 revoke all on function public.traiter_paiement(bigint, boolean) from public, anon;
 grant execute on function public.traiter_paiement(bigint, boolean) to authenticated;
 
+
+-- Re-enable the authenticated browser RPCs after the broad revokes above.
+-- These wrappers are SECURITY INVOKER and delegate to narrowly guarded
+-- SECURITY DEFINER implementations in the private schema. The authenticated
+-- frontend needs EXECUTE on the public wrappers; anonymous/public callers do not.
+grant execute on function public.est_match(uuid), public.contact_de(uuid) to authenticated;
+grant execute on function public.blocked_user_ids(), public.my_blocked_profiles() to authenticated;
+grant execute on function public.is_blocked_with(uuid) to authenticated;
+grant execute on function public.traiter_paiement(bigint, boolean) to authenticated;
+
 commit;
