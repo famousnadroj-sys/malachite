@@ -21,6 +21,11 @@ if (!html.includes("from('prives').upsert({id:me.id,prefs:pr})")) throw new Erro
 const migration = fs.readFileSync('supabase/migrations/202611180002_moderation_and_blocking.sql', 'utf8');
 if (!migration.includes('add column if not exists derniere_vue timestamptz')) throw new Error('Presence timestamp column is missing from the migration.');
 if (!migration.includes('create or replace function public.is_blocked_with(p_other uuid)')) throw new Error('Authenticated block-check RPC wrapper is missing.');
+if (!migration.includes('create or replace function private.est_premium(u uuid)')) throw new Error('Private premium lookup is missing.');
+if (!migration.includes('create or replace function private.contact_de(p_autre uuid)')) throw new Error('Private contact lookup is missing.');
+if (!migration.includes('create or replace function private.traiter_paiement(pid bigint, accepter boolean)')) throw new Error('Private payment approval is missing.');
+if (!migration.includes('security invoker')) throw new Error('Public RPC wrappers must run as invoker.');
+if (!migration.includes('revoke execute on function public.est_premium(uuid) from public, anon, authenticated')) throw new Error('Public premium lookup must not be directly executable.');
 if (!html.includes("sb.functions.invoke('admin-user-moderation'")) throw new Error('Admin account suspension must use the server-side function.');
 if (/service[_-]?role|sb_secret_/i.test(html)) throw new Error('Privileged Supabase credentials must never appear in browser code.');
 const moderationFunction = fs.readFileSync('supabase/functions/admin-user-moderation/index.ts', 'utf8');
