@@ -16,14 +16,11 @@ revoke truncate, references, trigger on all tables in schema public from authent
 
 -- The following SECURITY DEFINER functions are not needed by anonymous visitors.
 -- Preserve authenticated access only for functions called by the current client.
-revoke execute on function public.contact_de(uuid) from public, anon;
-grant execute on function public.contact_de(uuid) to authenticated;
+revoke execute on function public.contact_de(uuid) from public, anon, authenticated;
 
-revoke execute on function public.est_match(uuid) from public, anon;
-grant execute on function public.est_match(uuid) to authenticated;
+revoke execute on function public.est_match(uuid) from public, anon, authenticated;
 
-revoke execute on function public.est_premium(uuid) from public, anon;
-grant execute on function public.est_premium(uuid) to authenticated;
+revoke execute on function public.est_premium(uuid) from public, anon, authenticated;
 
 -- Trigger/event-trigger functions must not be callable through the public RPC API.
 -- Their existing database triggers/event trigger continue to invoke them.
@@ -33,8 +30,7 @@ revoke execute on function public.rls_auto_enable() from public, anon, authentic
 
 -- Payment approval stays callable by authenticated sessions because the function
 -- itself checks the administrator email in the JWT. Anonymous execution is removed.
-revoke execute on function public.traiter_paiement(bigint, boolean) from public, anon;
-grant execute on function public.traiter_paiement(bigint, boolean) to authenticated;
+revoke execute on function public.traiter_paiement(bigint, boolean) from public, anon, authenticated;
 
 -- Allow only the configured administrator to read the reports in the Admin UI.
 drop policy if exists "admin voit signalements" on public.signalements;
