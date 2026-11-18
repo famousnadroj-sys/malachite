@@ -14,8 +14,8 @@ revoke all privileges on all sequences in schema public from anon;
 -- Keep ordinary CRUD grants intact; row access remains controlled by existing RLS.
 revoke truncate, references, trigger on all tables in schema public from authenticated;
 
--- The following SECURITY DEFINER functions are not needed by anonymous visitors.
--- Preserve authenticated access only for functions called by the current client.
+-- Remove direct execution of existing SECURITY DEFINER RPCs while migration 2
+-- installs narrow SECURITY INVOKER wrappers over guarded private implementations.
 revoke execute on function public.contact_de(uuid) from public, anon, authenticated;
 
 revoke execute on function public.est_match(uuid) from public, anon, authenticated;
@@ -28,8 +28,8 @@ revoke execute on function public.limite_messages() from public, anon, authentic
 revoke execute on function public.limite_rdv() from public, anon, authenticated;
 revoke execute on function public.rls_auto_enable() from public, anon, authenticated;
 
--- Payment approval stays callable by authenticated sessions because the function
--- itself checks the administrator email in the JWT. Anonymous execution is removed.
+-- Payment approval is temporarily closed until migration 2 installs the guarded
+-- SECURITY INVOKER public wrapper over the private Auth-admin-only implementation.
 revoke execute on function public.traiter_paiement(bigint, boolean) from public, anon, authenticated;
 
 -- Allow only the configured administrator to read the reports in the Admin UI.
