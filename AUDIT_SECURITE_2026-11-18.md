@@ -96,3 +96,9 @@ Ces points ne doivent pas être contournés en appliquant des migrations non tes
 - GitHub Actions : **succès** (`44205455903`).
 - Vérifications réussies : syntaxe JavaScript du site, garde-fous de confidentialité/modération, vérification TypeScript Deno de la fonction Admin et parsing des deux migrations PostgreSQL.
 - Ces contrôles confirment la validité syntaxique/statique de la branche ; ils ne remplacent pas l'exécution des migrations, les tests RLS réels, les tests de stockage ni les essais avec deux comptes.
+
+
+## Protection des mots de passe — contrainte de coût vérifiée
+- La documentation Supabase confirme que la vérification des mots de passe compromis via HaveIBeenPwned est réservée au plan Pro et supérieur. Aucune mise à niveau payante ne sera engagée.
+- Une validation gratuite côté formulaire d'inscription impose désormais 12 caractères minimum, une minuscule, une majuscule, un chiffre et un symbole. La connexion des comptes existants n'est pas modifiée.
+- Cette validation côté navigateur n'est pas équivalente à une règle Auth côté serveur et peut être contournée par un appel direct à l'API Auth. Elle réduit les erreurs d'inscription dans l'interface, mais ne permet pas de prétendre que la protection contre les mots de passe compromis est activée.
