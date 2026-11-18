@@ -46,6 +46,7 @@ where (n.nspname = 'public' and p.proname in (
     'blocked_user_ids','is_blocked_with','my_blocked_profiles'
   ))
   or (n.nspname = 'private' and p.proname in (
-    'contact_de','est_match','est_premium','traiter_paiement','is_blocked_with'
+    'blocked_user_ids','contact_de','est_match','est_premium',
+    'my_blocked_profiles','traiter_paiement','is_blocked_with'
   ))
 order by n.nspname, p.proname;
