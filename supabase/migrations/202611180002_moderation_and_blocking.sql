@@ -162,6 +162,95 @@ $function$;
 revoke all on function public.is_blocked_with(uuid) from public, anon;
 grant execute on function public.is_blocked_with(uuid) to authenticated;
 
+-- Keep privileged lookup logic outside the exposed public API schema.
+create or replace function private.est_match(p_autre uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $function$
+  select auth.uid() is not null
+     and p_autre <> auth.uid()
+     and exists (
+       select 1 from public.avis_match x
+       where x.user_id = auth.uid() and x.autre = p_autre and x.ok
+     )
+     and exists (
+       select 1 from public.avis_match y
+       where y.user_id = p_autre and y.autre = auth.uid() and y.ok
+     );
+$function$;
+
+create or replace function private.est_premium(u uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $function$
+  select auth.uid() is not null
+     and u = auth.uid()
+     and coalesce((
+       select s.premium_until > now()
+       from public.statuts s
+       where s.user_id = auth.uid()
+     ), false);
+$function$;
+
+create or replace function private.contact_de(p_autre uuid)
+returns table(nom text, tel text)
+language sql
+stable
+security definer
+set search_path = ''
+as $function$
+  select pr.nom_complet, pr.telephone
+  from public.prives pr
+  where auth.uid() is not null
+    and p_autre <> auth.uid()
+    and pr.id = p_autre
+    and private.est_match(p_autre)
+    and not private.is_blocked_with(p_autre)
+    and (
+      private.est_premium(auth.uid())
+      or exists (
+        select 1 from public.deblocages d
+        where d.user_id = auth.uid() and d.cible = p_autre
+      )
+    );
+$function$;
+
+revoke all on function private.est_match(uuid) from public, anon;
+revoke all on function private.est_premium(uuid) from public, anon;
+revoke all on function private.contact_de(uuid) from public, anon;
+grant execute on function private.est_match(uuid), private.est_premium(uuid), private.contact_de(uuid) to authenticated;
+
+-- Public RPC names stay compatible with the existing browser client, but wrappers
+-- run as invoker and delegate only to the guarded private implementations.
+create or replace function public.est_match(p_autre uuid)
+returns boolean
+language sql
+stable
+security invoker
+set search_path = ''
+as $function$
+  select private.est_match(p_autre);
+$function$;
+
+create or replace function public.contact_de(p_autre uuid)
+returns table(nom text, tel text)
+language sql
+stable
+security invoker
+set search_path = ''
+as $function$
+  select * from private.contact_de(p_autre);
+$function$;
+
+revoke all on function public.est_match(uuid), public.contact_de(uuid) from public, anon;
+grant execute on function public.est_match(uuid), public.contact_de(uuid) to authenticated;
+
 -- Liste limitée aux membres que l'utilisateur courant a lui-même bloqués,
 -- afin de lui permettre de les débloquer sans exposer les blocages des autres.
 create or replace function public.my_blocked_profiles()
@@ -264,10 +353,8 @@ alter default privileges in schema public revoke all on sequences from anon;
 revoke truncate, references, trigger on all tables in schema public from authenticated;
 
 -- E. Les fonctions SECURITY DEFINER ne sont pas exposées aux visiteurs anonymes.
-revoke execute on function public.contact_de(uuid) from public, anon;
-grant execute on function public.contact_de(uuid) to authenticated;
-revoke execute on function public.est_match(uuid) from public, anon;
-grant execute on function public.est_match(uuid) to authenticated;
+revoke execute on function public.contact_de(uuid) from public, anon, authenticated;
+revoke execute on function public.est_match(uuid) from public, anon, authenticated;
 revoke execute on function public.est_premium(uuid) from public, anon, authenticated;
 revoke execute on function public.limite_messages() from public, anon, authenticated;
 revoke execute on function public.limite_rdv() from public, anon, authenticated;
@@ -281,7 +368,7 @@ set search_path = ''
 as $function$
 declare n int;
 begin
-  if not public.est_premium(new.de) then
+  if not private.est_premium(new.de) then
     if new.texte ~* '(\d[\s.\-]*){8,}|whats|watsap|wa\.me|telegram|messenger|facebook|instagram|snap' then
       raise exception 'contact_interdit';
     end if;
