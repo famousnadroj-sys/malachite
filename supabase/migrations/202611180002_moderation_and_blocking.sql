@@ -379,6 +379,7 @@ begin
   end if;
   return new;
 end;
+$function$;
 
 -- Keep the appointment quota trigger privileged only internally.
 create or replace function public.limite_rdv()
@@ -473,9 +474,6 @@ set search_path = ''
 as $function$
   select private.traiter_paiement(pid, accepter);
 $function$;
-
-revoke all on function public.traiter_paiement(bigint, boolean) from public, anon;
-grant execute on function public.traiter_paiement(bigint, boolean) to authenticated;
 
 revoke all on function public.traiter_paiement(bigint, boolean) from public, anon;
 grant execute on function public.traiter_paiement(bigint, boolean) to authenticated;
