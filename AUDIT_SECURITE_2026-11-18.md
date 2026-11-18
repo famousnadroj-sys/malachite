@@ -74,3 +74,11 @@ Ces points ne doivent pas être contournés en appliquant des migrations non tes
 - Le panneau Admin appelle cette fonction depuis chaque signalement.
 - Le secret `SUPABASE_SERVICE_ROLE_KEY` est uniquement lu dans l'environnement serveur ; aucune clé privilégiée n'est ajoutée au navigateur ou au dépôt.
 - **Non terminé :** la fonction n'est pas déployée, les secrets du projet ne sont pas configurés/vérifiés et aucun test de suspension/réactivation n'a été exécuté. Le blocage est donc encore un point de lancement ouvert.
+
+
+## Validation automatique — run GitHub Actions #42
+- Commit contrôlé : `c7bfe9432bbdaac55fb19e353eb2d410218416be`.
+- Résultat réel : **succès** (`44204890527`).
+- Étapes passées : vérification syntaxique JavaScript du site, installation Deno, contrôle TypeScript de l'Edge Function de modération, parsing des migrations SQL avec pglast.
+- Le run précédent avait détecté une erreur de syntaxe dans l'attribut onclick du bouton de suspension ; la correction a été poussée, puis l'ensemble des étapes ci-dessus a réussi.
+- Cette CI reste statique : elle ne déploie rien, n'exécute pas les migrations sur Supabase et ne prouve pas les parcours d'authentification, stockage, RLS ou suspension réelle.
