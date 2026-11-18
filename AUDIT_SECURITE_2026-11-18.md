@@ -89,3 +89,10 @@ Ces points ne doivent pas être contournés en appliquant des migrations non tes
 - Les migrations préparées ont été renforcées : la logique métier sensible (match, contact, état Premium, listes de blocage et approbation de paiement) est déplacée dans le schéma `private`, avec vérifications `auth.uid()` ou email Admin. Les fonctions RPC publiques conservées sont des wrappers `SECURITY INVOKER` ; les fonctions de trigger sont révoquées pour les rôles API.
 - Le code prépare donc une réduction des alertes de fonctions exposées, mais **aucune migration n'a été appliquée au projet actif**. Le résultat du Security Advisor après migration n'est pas encore vérifiable.
 - Le réglage Auth de protection des mots de passe compromis demeure un blocage séparé ; aucun outil de configuration Auth n'est disponible dans cette session.
+
+
+## Validation après durcissement des RPC — run #73
+- Commit contrôlé : `43b555bf1e8a99423b0b9ccfd43926866f41d0c4`.
+- GitHub Actions : **succès** (`44205455903`).
+- Vérifications réussies : syntaxe JavaScript du site, garde-fous de confidentialité/modération, vérification TypeScript Deno de la fonction Admin et parsing des deux migrations PostgreSQL.
+- Ces contrôles confirment la validité syntaxique/statique de la branche ; ils ne remplacent pas l'exécution des migrations, les tests RLS réels, les tests de stockage ni les essais avec deux comptes.
