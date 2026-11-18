@@ -113,15 +113,27 @@ for delete to authenticated using (user_id = (select auth.uid()));
 create index if not exists blocages_cible_idx on public.blocages(cible);
 
 -- Renvoie uniquement les identifiants des membres que l'utilisateur courant a bloqués.
-create or replace function public.blocked_user_ids()
+create or replace function private.blocked_user_ids()
 returns setof uuid
 language sql
 stable
 security definer
 set search_path = ''
-as $$
-  select b.cible from public.blocages b where b.user_id = (select auth.uid());
-$$;
+as $
+  select b.cible
+  from public.blocages b
+  where auth.uid() is not null and b.user_id = auth.uid();
+$;
+
+create or replace function public.blocked_user_ids()
+returns setof uuid
+language sql
+stable
+security invoker
+set search_path = ''
+as $
+  select * from private.blocked_user_ids();
+$;
 
 -- Vérifie un blocage sans exposer la table privée à l'appelant.
 create schema if not exists private;
@@ -142,6 +154,8 @@ as $$
   );
 $$;
 
+revoke all on function private.blocked_user_ids() from public, anon;
+grant execute on function private.blocked_user_ids() to authenticated;
 revoke all on function public.blocked_user_ids() from public, anon;
 grant execute on function public.blocked_user_ids() to authenticated;
 revoke all on function private.is_blocked_with(uuid) from public, anon;
@@ -153,11 +167,10 @@ create or replace function public.is_blocked_with(p_other uuid)
 returns boolean
 language sql
 stable
-security definer
+security invoker
 set search_path = ''
 as $function$
-  select auth.uid() is not null
-     and private.is_blocked_with(p_other);
+  select private.is_blocked_with(p_other);
 $function$;
 revoke all on function public.is_blocked_with(uuid) from public, anon;
 grant execute on function public.is_blocked_with(uuid) to authenticated;
@@ -253,18 +266,31 @@ grant execute on function public.est_match(uuid), public.contact_de(uuid) to aut
 
 -- Liste limitée aux membres que l'utilisateur courant a lui-même bloqués,
 -- afin de lui permettre de les débloquer sans exposer les blocages des autres.
-create or replace function public.my_blocked_profiles()
+create or replace function private.my_blocked_profiles()
 returns table(id uuid, prenom text, commune text)
 language sql
 stable
 security definer
 set search_path = ''
-as $$
+as $
   select p.id, p.prenom, p.commune
   from public.blocages b
   join public.profiles p on p.id = b.cible
-  where b.user_id = (select auth.uid());
-$$;
+  where auth.uid() is not null and b.user_id = auth.uid();
+$;
+
+create or replace function public.my_blocked_profiles()
+returns table(id uuid, prenom text, commune text)
+language sql
+stable
+security invoker
+set search_path = ''
+as $
+  select * from private.my_blocked_profiles();
+$;
+
+revoke all on function private.my_blocked_profiles() from public, anon;
+grant execute on function private.my_blocked_profiles() to authenticated;
 revoke all on function public.my_blocked_profiles() from public, anon;
 grant execute on function public.my_blocked_profiles() to authenticated;
 
