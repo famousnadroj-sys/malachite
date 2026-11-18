@@ -102,3 +102,10 @@ Ces points ne doivent pas être contournés en appliquant des migrations non tes
 - La documentation Supabase confirme que la vérification des mots de passe compromis via HaveIBeenPwned est réservée au plan Pro et supérieur. Aucune mise à niveau payante ne sera engagée.
 - Une validation gratuite côté formulaire d'inscription impose désormais 12 caractères minimum, une minuscule, une majuscule, un chiffre et un symbole. La connexion des comptes existants n'est pas modifiée.
 - Cette validation côté navigateur n'est pas équivalente à une règle Auth côté serveur et peut être contournée par un appel direct à l'API Auth. Elle réduit les erreurs d'inscription dans l'interface, mais ne permet pas de prétendre que la protection contre les mots de passe compromis est activée.
+
+
+## Validation finale de la branche après durcissement et règle de mot de passe — run #81
+- Commit contrôlé : `9b494bffb2f8e437f17740d97898973c1ea1f119`.
+- GitHub Actions : **succès** (`44205642514`).
+- Les 4 contrôles ont réussi : syntaxe JavaScript, gardes de confidentialité/modération, vérification TypeScript de l'Edge Function et parsing des migrations SQL.
+- Aucun déploiement, aucune migration de production, aucun changement de `main` n'a été effectué.
