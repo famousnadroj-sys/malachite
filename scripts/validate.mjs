@@ -24,6 +24,8 @@ if (!migration.includes('create or replace function public.is_blocked_with(p_oth
 if (!migration.includes('create or replace function private.est_premium(u uuid)')) throw new Error('Private premium lookup is missing.');
 if (!migration.includes('create or replace function private.contact_de(p_autre uuid)')) throw new Error('Private contact lookup is missing.');
 if (!migration.includes('create or replace function private.traiter_paiement(pid bigint, accepter boolean)')) throw new Error('Private payment approval is missing.');
+if (!migration.includes('create or replace function private.blocked_user_ids()')) throw new Error('Private blocked-id lookup is missing.');
+if (!migration.includes('create or replace function private.my_blocked_profiles()')) throw new Error('Private blocked-profile lookup is missing.');
 if (!migration.includes('security invoker')) throw new Error('Public RPC wrappers must run as invoker.');
 if (!migration.includes('revoke execute on function public.est_premium(uuid) from public, anon, authenticated')) throw new Error('Public premium lookup must not be directly executable.');
 if (!html.includes("sb.functions.invoke('admin-user-moderation'")) throw new Error('Admin account suspension must use the server-side function.');
