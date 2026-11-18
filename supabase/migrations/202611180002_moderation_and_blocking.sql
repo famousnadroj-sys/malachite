@@ -127,7 +127,7 @@ as $
   select b.cible
   from public.blocages b
   where auth.uid() is not null and b.user_id = auth.uid();
-$;
+$$;
 
 create or replace function public.blocked_user_ids()
 returns setof uuid
@@ -137,7 +137,7 @@ security invoker
 set search_path = ''
 as $
   select * from private.blocked_user_ids();
-$;
+$$;
 
 -- Vérifie un blocage sans exposer la table privée à l'appelant.
 create schema if not exists private;
@@ -281,7 +281,7 @@ as $
   from public.blocages b
   join public.profiles p on p.id = b.cible
   where auth.uid() is not null and b.user_id = auth.uid();
-$;
+$$;
 
 create or replace function public.my_blocked_profiles()
 returns table(id uuid, prenom text, commune text)
@@ -291,7 +291,7 @@ security invoker
 set search_path = ''
 as $
   select * from private.my_blocked_profiles();
-$;
+$$;
 
 revoke all on function private.my_blocked_profiles() from public, anon;
 grant execute on function private.my_blocked_profiles() to authenticated;
