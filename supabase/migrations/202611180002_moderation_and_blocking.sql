@@ -123,7 +123,7 @@ language sql
 stable
 security definer
 set search_path = ''
-as $
+as $$
   select b.cible
   from public.blocages b
   where auth.uid() is not null and b.user_id = auth.uid();
@@ -135,7 +135,7 @@ language sql
 stable
 security invoker
 set search_path = ''
-as $
+as $$
   select * from private.blocked_user_ids();
 $$;
 
@@ -276,7 +276,7 @@ language sql
 stable
 security definer
 set search_path = ''
-as $
+as $$
   select p.id, p.prenom, p.commune
   from public.blocages b
   join public.profiles p on p.id = b.cible
@@ -289,7 +289,7 @@ language sql
 stable
 security invoker
 set search_path = ''
-as $
+as $$
   select * from private.my_blocked_profiles();
 $$;
 
