@@ -112,6 +112,10 @@ for delete to authenticated using (user_id = (select auth.uid()));
 
 create index if not exists blocages_cible_idx on public.blocages(cible);
 
+create schema if not exists private;
+revoke all on schema private from public, anon;
+grant usage on schema private to authenticated;
+
 -- Renvoie uniquement les identifiants des membres que l'utilisateur courant a bloqués.
 create or replace function private.blocked_user_ids()
 returns setof uuid
