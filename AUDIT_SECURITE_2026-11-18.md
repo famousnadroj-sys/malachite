@@ -109,3 +109,9 @@ Ces points ne doivent pas être contournés en appliquant des migrations non tes
 - GitHub Actions : **succès** (`44205642514`).
 - Les 4 contrôles ont réussi : syntaxe JavaScript, gardes de confidentialité/modération, vérification TypeScript de l'Edge Function et parsing des migrations SQL.
 - Aucun déploiement, aucune migration de production, aucun changement de `main` n'a été effectué.
+
+
+## Vérification complémentaire Storage — lecture seule
+- Les seules policies actuellement visibles sur `storage.objects` pour `photos` sont l'ajout et la suppression par un utilisateur dans son propre dossier (`auth.uid()`). Aucune policy SELECT dédiée n'est présente.
+- Cela ne rend pas les objets confidentiels : le bucket `photos` est public, donc les objets accessibles par URL publique restent lisibles sans passer par les policies RLS.
+- La correction doit donc inclure à la fois le passage contrôlé vers un bucket privé, la génération d'URL signées dans le frontend et la migration vérifiée des références existantes. Aucune modification Storage n'a été faite en production.
