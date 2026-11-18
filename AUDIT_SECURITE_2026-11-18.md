@@ -82,3 +82,10 @@ Ces points ne doivent pas être contournés en appliquant des migrations non tes
 - Étapes passées : vérification syntaxique JavaScript du site, installation Deno, contrôle TypeScript de l'Edge Function de modération, parsing des migrations SQL avec pglast.
 - Le run précédent avait détecté une erreur de syntaxe dans l'attribut onclick du bouton de suspension ; la correction a été poussée, puis l'ensemble des étapes ci-dessus a réussi.
 - Cette CI reste statique : elle ne déploie rien, n'exécute pas les migrations sur Supabase et ne prouve pas les parcours d'authentification, stockage, RLS ou suspension réelle.
+
+
+## Contrôle Supabase Security Advisor — lecture seule
+- Le contrôle direct du projet actif a signalé 7 fonctions `SECURITY DEFINER` exécutables par `anon` et/ou `authenticated`, ainsi que la protection contre les mots de passe compromis désactivée.
+- Les migrations préparées ont été renforcées : la logique métier sensible (match, contact, état Premium, listes de blocage et approbation de paiement) est déplacée dans le schéma `private`, avec vérifications `auth.uid()` ou email Admin. Les fonctions RPC publiques conservées sont des wrappers `SECURITY INVOKER` ; les fonctions de trigger sont révoquées pour les rôles API.
+- Le code prépare donc une réduction des alertes de fonctions exposées, mais **aucune migration n'a été appliquée au projet actif**. Le résultat du Security Advisor après migration n'est pas encore vérifiable.
+- Le réglage Auth de protection des mots de passe compromis demeure un blocage séparé ; aucun outil de configuration Auth n'est disponible dans cette session.
