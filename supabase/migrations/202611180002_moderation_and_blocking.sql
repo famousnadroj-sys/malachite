@@ -379,10 +379,28 @@ begin
   end if;
   return new;
 end;
+
+-- Keep the appointment quota trigger privileged only internally.
+create or replace function public.limite_rdv()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+begin
+  if not private.est_premium(new.de)
+     and exists (
+       select 1 from public.rendez_vous r
+       where r.de = new.de and r.created_at > now() - interval '7 days'
+     ) then
+    raise exception 'limite_rdv';
+  end if;
+  return new;
+end;
 $function$;
 
 -- Validate the offer and Contact target before granting any benefit.
-create or replace function public.traiter_paiement(pid bigint, accepter boolean)
+create or replace function private.traiter_paiement(pid bigint, accepter boolean)
 returns text
 language plpgsql
 security definer
@@ -444,7 +462,22 @@ begin
 end;
 $function$;
 
-revoke execute on function public.traiter_paiement(bigint, boolean) from public, anon;
+revoke all on function private.traiter_paiement(bigint, boolean) from public, anon;
+grant execute on function private.traiter_paiement(bigint, boolean) to authenticated;
+
+create or replace function public.traiter_paiement(pid bigint, accepter boolean)
+returns text
+language sql
+security invoker
+set search_path = ''
+as $function$
+  select private.traiter_paiement(pid, accepter);
+$function$;
+
+revoke all on function public.traiter_paiement(bigint, boolean) from public, anon;
+grant execute on function public.traiter_paiement(bigint, boolean) to authenticated;
+
+revoke all on function public.traiter_paiement(bigint, boolean) from public, anon;
 grant execute on function public.traiter_paiement(bigint, boolean) to authenticated;
 
 commit;
