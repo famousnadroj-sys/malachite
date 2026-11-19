@@ -461,5 +461,5 @@ function admin0(){return '<h2>Paiements à vérifier</h2><div class="list">'+(ad
 function malShowLegal(){alert("CONDITIONS D’UTILISATION — 18 ans et plus\n\n"+mt("termsBody")+"\n\nCONFIDENTIALITÉ\n"+mt("privacyBody")+"\n\nSÉCURITÉ\n"+mt("safetyBody")+"\n\n"+mt("pending"))}
 function go(t){if(t==="centre"&&!me){malShowLegal();return}document.querySelectorAll(".sheetbg,.viewer,.lbx").forEach(function(e){e.remove()});tab=t;msg="";lastSig="";clearInterval(timer);if(t==="chat"){loadChat();timer=setInterval(loadChat,4000)}else if(t==="home"||t==="search"){load().then(draw)}else if(t==="rdv"){loadRdv().then(draw)}else if(t==="adm"){loadAdm()}draw()}
 IC.centre='<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>';
-</script></body>
+</script><script>function av(p){var u=p&&p.photoUrls&&p.photoUrls[0];if(u)return '<div class="av" style="background-image:url('+esc(u)+')"></div>';var a=p&&p.avatar;if(a&&a.emoji)return '<div class="av" style="background:'+esc(a.color||'#F7B7D0')+';display:grid;place-items:center;font-size:30px">'+esc(a.emoji)+'</div>';return '<div class="av">'+esc(p&&p.prenom?p.prenom[0]:'?')+'</div>'}</script></body>
 </html>
