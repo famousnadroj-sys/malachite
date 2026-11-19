@@ -93,7 +93,9 @@ begin
 end;
 $function$;
 
-revoke all on function private.admin_moderate_user(uuid, text, text) from public, anon, authenticated;
+revoke all on function private.admin_moderate_user(uuid, text, text) from public, anon;
+grant usage on schema private to authenticated;
+grant execute on function private.admin_moderate_user(uuid, text, text) to authenticated;
 
 create or replace function public.moderate_user(
   p_user_id uuid,
