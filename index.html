@@ -678,6 +678,7 @@ function clearFieldErrors(){
  document.querySelectorAll('[aria-invalid="true"]').forEach(function(x){x.removeAttribute('aria-invalid');x.style.borderColor=''});
 }
 function showFieldError(id,message){
+ if(mode==='up'){var targetStep=/^(suFirst|suUsername|suEmail|suPassword|suPasswordConfirm)$/.test(id)?1:/^(suAge|suPhone)$/.test(id)?2:3;if(signupStep!==targetStep){signupStep=targetStep;draw()}}
  clearFieldErrors();var el=$(id);if(!el){msg=message;var ae=$('ae');if(ae)ae.textContent=message;return}
  el.setAttribute('aria-invalid','true');el.style.borderColor='#B42318';
  var host=el.closest('label')||el.parentElement,span=document.createElement('small');span.className='mal-field-error';span.textContent=message;host.appendChild(span);
@@ -963,15 +964,17 @@ async function rm(i){
 }
 function profileSaveFeedback(t){msg=t;var e=$('malProfileMsg')||document.querySelector('.mal-own-note');if(e)e.textContent=t;}
 function stageProfilePhoto(el){var f=el.files&&el.files[0];if(!f)return;if(['image/jpeg','image/png','image/webp','image/gif'].indexOf(f.type)<0||f.size>5e6){profileSaveFeedback('Choisis une photo JPEG, PNG, WebP ou GIF de 5 Mo maximum.');el.value='';return}pendingProfileFile=f;if(pendingProfilePreview)URL.revokeObjectURL(pendingProfilePreview);pendingProfilePreview=URL.createObjectURL(f);var p=$('malProfilePhotoPreview');if(p){p.style.backgroundImage='url('+pendingProfilePreview+')';p.textContent=''}profileSaveFeedback('Photo prête. Appuie sur « Enregistrer mon profil » pour enregistrer ensemble tes informations et ta photo.')}
-async function save(){
+async async function save(){
  if(profileSaving)return;
  if(privLoadFailed){profileSaveFeedback('Chargement de tes informations privées impossible. Recharge la page avant de sauvegarder : rien ne sera écrasé.');return}
  if(!me||!me.id){profileSaveFeedback('Ta session a expiré. Reconnecte-toi avant d’enregistrer.');return}
- var name=$('pn').value.trim(),age=+$('pa').value;
+ var name=$('pn').value.trim(),age=+$('pa').value,username=$('pu')?$('pu').value.trim().toLowerCase():((mine&&mine.username)||'');
  if(!name||age<18||(!(mine||(me.user_metadata&&me.user_metadata.malachite_consent))&&!$('pok').checked)){profileSaveFeedback('Prénom, âge (18 ans ou plus) et accord obligatoires.');return}
+ if(username&&!/^[a-z0-9_]{3,24}$/.test(username)){profileSaveFeedback('Le nom d’utilisateur doit contenir 3 à 24 lettres, chiffres ou _.');$('pu').focus();return}
+ if(username){var usernameCheck=await sb.functions.invoke('username-login',{body:{action:'check',username:username}});if(usernameCheck.error||!usernameCheck.data||!usernameCheck.data.available){profileSaveFeedback('Ce nom d’utilisateur est déjà utilisé ou ne peut pas être vérifié.');$('pu').focus();return}}
  if(!pendingProfileFile&&!ph.length){profileSaveFeedback('Ajoute une photo de profil avant d’enregistrer.');return}
  var uid=me.id,mode=$('profileVisibility')?$('profileVisibility').value:'public',isPrivate=mode==='private';
- var raw={prenom:name,age:age,genre:$('pg').value,commune:$('pc').value,quartier:$('pqtr').value.trim(),profession:$('pj').value.trim(),bio:$('pb').value.trim(),interets:$('pi').value.split(',').map(function(x){return x.trim()}).filter(Boolean).slice(0,6).concat([].slice.call(document.querySelectorAll('.lgc:checked')).map(function(x){return '🗣 '+x.value})),prompts:pqv()};
+ var raw={prenom:name,username:username||((mine&&mine.username)||null),age:age,genre:$('pg').value,commune:$('pc').value,quartier:$('pqtr').value.trim(),profession:$('pj').value.trim(),bio:$('pb').value.trim(),interets:$('pi').value.split(',').map(function(x){return x.trim()}).filter(Boolean).slice(0,6).concat([].slice.call(document.querySelectorAll('.lgc:checked')).map(function(x){return '🗣 '+x.value})),prompts:pqv()};
  var previewPhotos=pendingProfilePreview?[pendingProfilePreview].concat(phUrls||[]).slice(0,3):(phUrls||[]).slice(0,3);
  var oldPrefs=Object.assign({},priv.prefs||(mine&&mine.prefs)||{});
  mine=Object.assign({},mine||{},raw,{id:uid,photos:ph.slice(),photoUrls:previewPhotos,profile_private:isPrivate,prefs:oldPrefs});
@@ -990,7 +993,7 @@ async function save(){
   }
   var privateFields={age:raw.age,genre:raw.genre,commune:raw.commune,quartier:raw.quartier,profession:raw.profession,bio:raw.bio,interets:raw.interets,photos:allPhotos,prompts:raw.prompts};
   var nextPrefs=Object.assign({},oldPrefs,{profile_visibility:{mode:mode},profile_private:privateFields});
-  var publicProfile={id:uid,username:(mine&&mine.username)||(me.user_metadata&&me.user_metadata.username)||null,prenom:raw.prenom,age:isPrivate?null:raw.age,genre:isPrivate?null:raw.genre,commune:isPrivate?null:raw.commune,quartier:isPrivate?null:raw.quartier,profession:isPrivate?null:raw.profession,bio:isPrivate?null:raw.bio,interets:isPrivate?[]:raw.interets,photos:isPrivate?allPhotos.slice(0,1):allPhotos,prompts:isPrivate?[]:raw.prompts,profile_private:isPrivate};
+  var publicProfile={id:uid,username:raw.username||(me.user_metadata&&me.user_metadata.username)||null,prenom:raw.prenom,age:isPrivate?null:raw.age,genre:isPrivate?null:raw.genre,commune:isPrivate?null:raw.commune,quartier:isPrivate?null:raw.quartier,profession:isPrivate?null:raw.profession,bio:isPrivate?null:raw.bio,interets:isPrivate?[]:raw.interets,photos:isPrivate?allPhotos.slice(0,1):allPhotos,prompts:isPrivate?[]:raw.prompts,profile_private:isPrivate};
   var privateProfile={nom_complet:$('pnm').value.trim()||raw.prenom,adresse:$('pad').value.trim(),telephone:$('ptl').value.trim(),profile_age:raw.age,prefs:nextPrefs};
   var result=await sb.rpc('save_my_profile',{p_profile:publicProfile,p_private:privateProfile});
   if(result.error||!result.data||result.data.id!==uid)throw new Error(result.error?result.error.message:'La base n’a pas confirmé la sauvegarde.');
