@@ -35,6 +35,22 @@ if (!html.includes("insert({de:me.id,profil:id,motif:motif})")) throw new Error(
 if ((html.match(/storage\.from\('photos'\)\.upload/g) || []).length) throw new Error('New uploads must not use the legacy public photos bucket.');
 if (/service[_-]?role|sb_secret_/i.test(html)) throw new Error('Privileged Supabase credentials must never appear in browser code.');
 if (html.includes('contact_interdit')) throw new Error('Private message content must not be scanned to block contact details.');
+if (!html.includes('function persistMalView()') || !html.includes('function restoreMalView()')) {
+  throw new Error('Chat navigation must survive a same-tab refresh.');
+}
+if (!html.includes('function sendSticker(emoji)') || !html.includes('m.media_type==="document"')) {
+  throw new Error('Chat stickers and document rendering must remain available.');
+}
+if (!html.includes('createSignedUrl(path,3600,{download:true})')) {
+  throw new Error('Private document downloads must use signed download URLs.');
+}
+if (html.includes('timer=setInterval(loadChat,4000)')) {
+  throw new Error('Chat polling must not run every four seconds.');
+}
+if (!html.includes('target===me.id')) {
+  throw new Error('Self-conversations must be blocked before message inserts.');
+}
+
 
 const manifest = JSON.parse(fs.readFileSync('manifest.webmanifest', 'utf8'));
 if (manifest.start_url !== './' || manifest.scope !== './' || manifest.display !== 'standalone') {
