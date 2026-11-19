@@ -892,7 +892,7 @@ async function ensureMatchNotice(id){
 }
 async function avis(ok){ans[open]=ok;await sb.from('avis_match').upsert({autre:open,ok:ok});if(ok)hearts();lastSig='';loadChat()}
 async function payC(){var c=$('uc').value.trim();if(!c)return;var r=await sb.from('paiements').insert({offre:'Contact',cible:open,code:c});$('um').textContent=r.error?'Erreur, réessaie.':'Code reçu. Le contact sera débloqué après vérification.'}
-async async function compressChatImage(file){
+async function compressChatImage(file){
  if(!file||!/^image\/(jpeg|png|webp)$/i.test(file.type)||file.size<500*1024||!window.createImageBitmap)return {file:file,mime:file.type};
  var bitmap=null;
  try{
@@ -1086,7 +1086,7 @@ async function recStart(){
  rtm=setInterval(function(){rt++;var e=$('rtm');if(e)e.textContent=Math.floor(rt/60)+':'+('0'+rt%60).slice(-2);if(rt>=120)recStop(false)},1000);
 }
 function recStop(c){rcancel=!!c;if(mr&&mr.state!='inactive')mr.stop()}
-async async function sendAudio(blob,sec){
+async function sendAudio(blob,sec){
  var target=open;if(!target||!me||!blob||!blob.size)return;
  if(blob.size>8*1024*1024){setChatUploadStatus('Vocal trop volumineux : 8 Mo maximum.');return}
  var raw=(blob.type||'audio/webm').split(';')[0].toLowerCase(),types={'audio/webm':'webm','audio/mp4':'m4a','audio/x-m4a':'m4a','audio/ogg':'ogg','audio/aac':'aac','audio/mpeg':'mp3'},ext=types[raw];
