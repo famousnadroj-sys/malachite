@@ -644,23 +644,26 @@ async function resolveMessagesMedia(rows){
   groups[loc.bucket][loc.path].push(m);
  });
  await Promise.all(Object.keys(groups).map(async function(bucket){
-  var paths=Object.keys(groups[bucket]);if(!paths.length)return;
-  var result=await sb.storage.from(bucket).createSignedUrls(paths,3600);
-  if(result.error)throw result.error;
-  (result.data||[]).forEach(function(item,index){
-   var path=item.path||paths[index],url=item.signedUrl||'';
-   (groups[bucket][path]||[]).forEach(function(m){
-    if(url){m.display_url=url;var key=bucket+'|'+path,cache=chatMediaUrlCache[key]||{expiresAt:now+3500000};cache.url=url;chatMediaUrlCache[key]=cache}
+  try{
+   var paths=Object.keys(groups[bucket]);if(!paths.length)return;
+   var result=await sb.storage.from(bucket).createSignedUrls(paths,3600);
+   if(result.error)throw result.error;
+   (result.data||[]).forEach(function(item,index){
+    var path=item.path||paths[index],url=item.signedUrl||'';
+    (groups[bucket][path]||[]).forEach(function(m){
+     if(url){m.display_url=url;var key=bucket+'|'+path,cache=chatMediaUrlCache[key]||{};cache.url=url;cache.expiresAt=now+3500000;chatMediaUrlCache[key]=cache}
+    });
    });
-  });
-  var docPaths=Array.from(new Set(paths.filter(function(path){return (groups[bucket][path]||[]).some(function(m){return m.media_type==='document'})}).concat(Object.keys(docs[bucket]||{}))));
-  if(docPaths.length){
-   var downloads=await sb.storage.from(bucket).createSignedUrls(docPaths,3600,{download:true});
-   if(!downloads.error)(downloads.data||[]).forEach(function(item,index){
-    var path=item.path||docPaths[index],url=item.signedUrl||'';
-    (groups[bucket][path]||[]).concat(docs[bucket]&&docs[bucket][path]||[]).forEach(function(m){if(m.media_type==='document'&&url){m.download_url=url;var key=bucket+'|'+path,cache=chatMediaUrlCache[key]||{expiresAt:now+3500000};cache.downloadUrl=url;chatMediaUrlCache[key]=cache}});
-   });
-  }
+   var docPaths=Array.from(new Set(paths.filter(function(path){return (groups[bucket][path]||[]).some(function(m){return m.media_type==='document'})}).concat(Object.keys(docs[bucket]||{}))));
+   if(docPaths.length){
+    var downloads=await sb.storage.from(bucket).createSignedUrls(docPaths,3600,{download:true});
+    if(downloads.error)throw downloads.error;
+    (downloads.data||[]).forEach(function(item,index){
+     var path=item.path||docPaths[index],url=item.signedUrl||'';
+     (groups[bucket][path]||[]).concat(docs[bucket]&&docs[bucket][path]||[]).forEach(function(m){if(m.media_type==='document'&&url){m.download_url=url;var key=bucket+'|'+path,cache=chatMediaUrlCache[key]||{};cache.downloadUrl=url;cache.expiresAt=now+3500000;chatMediaUrlCache[key]=cache}});
+    });
+   }
+  }catch(error){console.warn('Signature des médias de la conversation ('+bucket+')',error)}
  }));
  return rows;
 }
