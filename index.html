@@ -860,6 +860,7 @@ async function loadChat(){
      if(row.id!=null)known[String(row.id)]=1;
     });
     if(fresh.length)msgs=msgs.concat(fresh);
+    if(tab==='chat'&&open===current&&incoming.length){lastSig='';draw(true)}
     if(incoming.length){
      Promise.all(incoming.map(resolveMessageMedia)).then(function(){if(tab==='chat'&&open===current){lastSig='';draw(true)}}).catch(function(error){console.warn('Chargement des médias de la conversation',error)});
      var maxId=chatCursorId;
