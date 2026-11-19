@@ -109,4 +109,8 @@ if (!html.includes("String(m.display_url).indexOf('blob:')===0")) throw new Erro
 if (html.includes("sb.channel('msgs').on('postgres_changes'")) throw new Error('Unfiltered global message realtime subscriptions are forbidden.');
 if (!html.includes("if(t===\"chat\"){if(open&&chatCursorFor!==open)")) throw new Error('Chat navigation must render the conversation shell immediately.');
 if (!html.includes("id=\"chatSendError\"")) throw new Error('Message errors must update without rebuilding the conversation.');
+const insertChatStart = html.indexOf('async function insertChatMessage');
+const insertChatEnd = html.indexOf('async function snd()', insertChatStart);
+if (insertChatStart < 0 || insertChatEnd < 0 || html.slice(insertChatStart, insertChatEnd).includes('draw(true)')) throw new Error('Sending a message must not rebuild the chat DOM.');
+if (!html.includes("catch(error){if(localPreview)m.display_url=localPreview;throw error}")) throw new Error('Failed signing must not discard the local media preview.');
 console.log('Malachite frontend, PWA, private media, SQL policy and Admin security checks passed.');
