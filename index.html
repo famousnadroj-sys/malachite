@@ -861,19 +861,17 @@ async function loadChat(){
     });
     if(fresh.length)msgs=msgs.concat(fresh);
     if(incoming.length){
-     await Promise.all(incoming.map(resolveMessageMedia));
+     Promise.all(incoming.map(resolveMessageMedia)).then(function(){if(tab==='chat'&&open===current){lastSig='';draw(true)}}).catch(function(error){console.warn('Chargement des médias de la conversation',error)});
      var maxId=chatCursorId;
      incoming.forEach(function(m){var n=Number(m.id);if(Number.isFinite(n)&&n>maxId)maxId=n});
      chatCursorId=maxId;
      msgs.sort(function(a,b){return new Date(a.created_at)-new Date(b.created_at)||Number(a.id||0)-Number(b.id||0)});
     }
     if(tab==='chat'){markSeen(current);updNav()}
-    var a=await sb.from('avis_match').select('ok').eq('autre',current).maybeSingle();
+    var checks=await Promise.all([sb.from('avis_match').select('ok').eq('autre',current).maybeSingle(),sb.rpc('est_match',{p_autre:current})]);
     if(open!==current||tab!=='chat')continue;
-    av2=a.data?a.data.ok:null;
-    var mm=await sb.rpc('est_match',{p_autre:current});
-    if(open!==current||tab!=='chat')continue;
-    mutual=!!mm.data;
+    av2=checks[0].data?checks[0].data.ok:null;
+    mutual=!!checks[1].data;
     if(mutual&&av2&&!cel[current]){cel[current]=1;celebrate()}
     if(mutual)ensureMatchNotice(current).catch(function(){});
     ct=null;
@@ -958,7 +956,7 @@ async function sendSticker(emoji){
  catch(e){msg='Sticker non envoyé : '+(e.message||'erreur inconnue');draw(true)}
  var panel=$('chatEmojiPanel');if(panel)panel.hidden=true;
 }
-function talk(id){if(!id||!me)return;if(id===me.id){msg='Tu consultes ton propre profil : tu ne peux pas ouvrir une conversation avec toi-même.';return}if(blocked.indexOf(id)>-1){alert('Cette personne est bloquée. Débloque-la pour reprendre contact.');return}open=id;chatCursor=null;chatCursorId=0;chatCursorFor=id;msgs=[];lastSig='';go('chat')}
+function talk(id){if(!id||!me)return;if(id===me.id){msg='Tu consultes ton propre profil : tu ne peux pas ouvrir une conversation avec toi-même.';return}if(blocked.indexOf(id)>-1){alert('Cette personne est bloquée. Débloque-la pour reprendre contact.');return}openConv(id)}
 var ST={attente:'En attente',confirme:'Confirmé ✔',refuse:'Refusé'};
 async function loadRdv(){var r=await sb.from('rendez_vous').select('*').order('quand');rdvs=r.data||[]}
 function rdv(){var o=others();return '<h2>Mes rendez-vous</h2><div class="list">'+(rdvs.length?rdvs.map(function(x){var p=prof(x.de==me.id?x.a:x.de)||{},d=new Date(x.quand).toLocaleString('fr-FR',{dateStyle:'full',timeStyle:'short'});return '<div class="card"><div class="top">'+av(p)+'<div><div class="nm">'+esc(p.prenom||'Membre')+'</div><div class="sub">'+(x.de==me.id?'Tu as invité':'Invitation reçue')+' · '+ST[x.statut]+'</div></div></div><div>📅 '+esc(d)+'</div><div>📍 '+esc(x.lieu)+(/^https:\/\/maps\.google\.com\//.test(x.lien_carte||'')?' · <a href="'+esc(x.lien_carte)+'" target="_blank" rel="noopener">Voir sur la carte</a>':'')+'</div>'+(x.message?'<div class="note">'+esc(x.message)+'</div>':'')+(x.statut=='confirme'?'<button onclick="ics('+x.id+')">📆 Ajouter à mon calendrier</button>':'')+(x.a==me.id&&x.statut=='attente'?'<div class="acts"><button class="b1" onclick="repRdv('+x.id+',\'confirme\')">Confirmer</button><button onclick="repRdv('+x.id+',\'refuse\')">Refuser</button></div>':'')+'</div>'}).join(''):'<p class="note">Aucun rendez-vous.</p>')+'</div><h2>Créer un rendez-vous</h2><div class="box list"><p class="note" style="margin:0">Pour une première rencontre, choisis toujours un lieu public (restaurant, café).</p><label>Avec qui ?<select id="ra">'+o.map(function(p){return '<option value="'+p.id+'"'+(p.id==rdvFor?' selected':'')+'>'+esc(p.prenom)+'</option>'}).join('')+'</select></label><label>Date et heure<input id="rd" type="datetime-local"></label><label>Lieu (nom et quartier)<input id="rl" placeholder="Ex. Café du Centre, Lubumbashi"></label><label>Message<textarea id="rm" rows="2" maxlength="300"></textarea></label><button onclick="gps()">📍 Ajouter ma position</button><div class="note" style="color:var(--pink)" id="gp">'+esc(msg)+'</div><button class="b1" onclick="mkRdv()">Envoyer l’invitation</button></div>'}
@@ -1154,7 +1152,7 @@ async function call(){alert('Les appels vidéo sont temporairement désactivés 
 var TH=[['Rose bonbon','linear-gradient(180deg,#FFF5F9,#FFD9E8)','#7A5566'],['Lavande','linear-gradient(180deg,#F6F0FF,#DCCBFF)','#5B4B7A'],['Ciel','linear-gradient(180deg,#EFF8FF,#BFE3FF)','#3F6280'],['Menthe','linear-gradient(180deg,#F0FFF7,#BDF1D6)','#3C6B55'],['Pêche','linear-gradient(180deg,#FFF6EE,#FFD3B5)','#7A5A45'],['Coucher de soleil','linear-gradient(180deg,#FFB199,#FF0844)','#fff'],['Océan','linear-gradient(180deg,#43C6AC,#191654)','#fff'],['Nuit étoilée','linear-gradient(180deg,#232526,#414345)','#ddd'],['Or','linear-gradient(180deg,#FFF8E1,#F5C451)','#6B4E10'],['Cerise','linear-gradient(180deg,#E6195E,#7A0A33)','#fff']],cth=0,thOpen=false;
 try{cth=+localStorage.getItem('cth')||0}catch(e){}
 function setTh(i){cth=i;try{localStorage.setItem('cth',i)}catch(e){}thOpen=false;draw(true)}
-function openConv(id){if(!id||!me)return;if(id===me.id){msg='Conversation invalide : ton propre compte ne peut pas être destinataire.';return}open=id;chatCursor=null;chatCursorId=0;chatCursorFor=id;msgs=[];lastSig='';replyDraft=null;go('chat')}
+function openConv(id){if(!id||!me)return;if(id===me.id){msg='Conversation invalide : ton propre compte ne peut pas être destinataire.';return}open=id;tab='chat';chatCursor=null;chatCursorId=0;chatCursorFor=id;msgs=[];lastSig='';replyDraft=null;msg='';clearInterval(timer);persistMalView();draw(true);loadChat();timer=setInterval(function(){if(tab==='chat'&&open&&!document.hidden)loadChat()},30000)}
 function closeConv(){open=null;chatCursor=null;chatCursorId=0;chatCursorFor=null;msgs=[];lastSig='';go('chat')}
 function goTab(k){if(k=='chat'){open=null;chatCursor=null;chatCursorId=0;chatCursorFor=null;msgs=[];lastSig=''}go(k)}
 function online(p){return !!(p&&p.derniere_vue&&Date.now()-new Date(p.derniere_vue)<120000)}
