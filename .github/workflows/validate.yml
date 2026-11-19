@@ -1,7 +1,7 @@
 name: Malachite validation
 on:
   push:
-    branches: [fix/security-hardening]
+    branches: [main, fix/security-hardening]
   pull_request:
     branches: [main]
 permissions:
