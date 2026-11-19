@@ -468,6 +468,45 @@ nav button.on{background:#fff0f5!important;color:#d81b60!important}
 }
 @media(max-width:390px){.ml-search-fields{grid-template-columns:1fr}.ml-home-portraits{height:185px}}
 </style>
+
+<style id="malachite-immersive-profiles-v2">
+/* Cartes de membres : photo dominante, identité et détails immédiatement lisibles */
+.mal-profile-card{padding:14px!important;border:1px solid #f2d9e3!important;border-radius:25px!important;box-shadow:0 12px 34px rgba(72,22,44,.075)!important;transition:transform .25s ease,box-shadow .25s ease}
+.mal-profile-card:hover{transform:translateY(-3px);box-shadow:0 20px 42px rgba(72,22,44,.13)!important}
+.mal-card-cover{height:clamp(340px,43vw,510px)!important;border-radius:20px!important;cursor:zoom-in}
+.mal-card-cover img{object-fit:cover!important;object-position:center 30%!important}
+.mal-card-heading{padding:15px 3px 8px!important}
+.mal-card-heading .nm{font-size:22px!important;font-weight:800!important}
+.mal-card-heading .sub{font-size:13px!important}
+.mal-profile-card .mal-card-bio{font-size:14px!important;line-height:1.7!important;margin:10px 2px!important}
+.mal-profile-card .mal-card-interests{display:flex;flex-wrap:wrap;gap:7px;margin:12px 2px}
+.mal-profile-card .mal-card-interests .chip{padding:7px 11px!important;border-radius:99px!important}
+.mal-profile-card .ph img{width:76px!important;height:88px!important;object-fit:cover!important}
+.mal-profile-viewer{background:#180d14!important}
+.mal-view-photo{height:min(76vh,850px)!important;min-height:360px!important;background:#180d14!important}
+.mal-view-photo img{object-fit:cover!important;object-position:center 28%!important;background:#180d14!important}
+.mal-view-content{max-width:820px!important;padding-top:26px!important}
+.mal-view-title{font-size:clamp(30px,5vw,42px)!important}
+.mal-view-meta{font-size:15px!important;line-height:1.7!important}
+.mal-view-bio{font-size:16px!important;line-height:1.8!important}
+.mal-view-content h3{margin:20px 0 10px!important;font-family:Fraunces,Georgia,serif}
+.mal-view-content .chip{display:inline-flex;margin:0 5px 7px 0;padding:8px 12px!important;border-radius:99px!important}
+.mal-view-actions{position:sticky;bottom:8px;padding:10px 0 calc(8px + env(safe-area-inset-bottom,0px));background:linear-gradient(transparent,#180d14 22%)}
+#malachite-companion{cursor:grab!important;touch-action:none!important;user-select:none;-webkit-user-select:none}
+#malachite-companion:active{cursor:grabbing!important}
+#malachite-companion .mal-buddy{pointer-events:none}
+#malachite-companion .mal-buddy-bubble{pointer-events:none}
+@media(max-width:600px){
+ .mal-profile-card{padding:10px!important}
+ .mal-card-cover{height:clamp(360px,112vw,490px)!important;border-radius:18px!important}
+ .mal-card-heading .nm{font-size:20px!important}
+ .mal-view-photo{height:68vh!important;min-height:330px!important}
+ .mal-view-photo img{object-fit:cover!important}
+ .mal-view-content{padding:20px 17px calc(28px + env(safe-area-inset-bottom,0px))!important}
+ .mal-view-actions{gap:8px}
+}
+@media(prefers-reduced-motion:reduce){.mal-profile-card,.mal-card-cover img{transition:none!important}}
+</style>
 </head>
 <body>
 <header><div class="lg0"><svg class="logo" viewBox="0 0 40 40" width="30" height="30" aria-hidden="true"><path d="M20 35C8 26 4 19 4 13.5 4 9 7.5 6 11.5 6c3.5 0 6.5 2 8.5 5 2-3 5-5 8.5-5C32.5 6 36 9 36 13.5 36 19 32 26 20 35z" fill="url(#lg)"/><path d="M11.5 6 20 11 28.5 6M4 13.5h32M4 13.5 20 35 36 13.5M13 13.5 20 11 27 13.5 20 35z" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width=".9" stroke-linejoin="round"/><path d="M33 1v6M30 4h6" stroke="#C9A227" stroke-width="1.1" stroke-linecap="round"/></svg><div class="brand">Malachite</div></div><div class="tag2">Lubumbashi</div></header>
@@ -629,7 +668,7 @@ function res(){var t=nz(Q.t).trim().split(/\s+/).filter(Boolean),L=others().filt
 L.sort(function(a,b){if(Q.sort=='on')return (online(b)?1:0)-(online(a)?1:0);if(Q.sort=='new')return new Date(b.created_at||0)-new Date(a.created_at||0);return nm(b)-nm(a)||sc(b)-sc(a)});
 var e=$('rc');if(e)e.innerHTML='<div class="note">'+L.length+' résultat'+(L.length>1?'s':'')+'</div>'+(L.length?L.map(row).join(''):'<div class="box" style="text-align:center">Aucun profil trouvé.<div class="note">Essaie un autre nom ou élargis les filtres.</div><button class="b1" style="margin-top:8px" onclick="qreset()">Réinitialiser</button></div>')}
 function row(p){return card(p)}
-function viewProf(id){var p=prof(id);if(!p)return;var d=document.createElement('div');d.className='sheetbg';d.innerHTML='<div class="sheet pop"><button class="lx2" aria-label="Fermer">✕</button>'+card(p)+'</div>';d.onclick=function(e){if(e.target===d||e.target.className=='lx2')d.remove()};document.body.appendChild(d)}
+function viewProf(id){if(typeof window.malOpenProfile==='function'){window.malOpenProfile(id,0);return}var p=prof(id);if(!p)return;var d=document.createElement('div');d.className='sheetbg';d.innerHTML='<div class="sheet pop"><button class="lx2" aria-label="Fermer">✕</button>'+card(p)+'</div>';d.onclick=function(e){if(e.target===d||e.target.className=='lx2')d.remove()};document.body.appendChild(d)}
 var HP='M20 35C8 26 4 19 4 13.5 4 9 7.5 6 11.5 6c3.5 0 6.5 2 8.5 5 2-3 5-5 8.5-5C32.5 6 36 9 36 13.5 36 19 32 26 20 35z',FC='M11.5 6 20 11 28.5 6M4 13.5h32M4 13.5 20 35 36 13.5M13 13.5 20 11 27 13.5 20 35z';
 function logo(z){return '<svg class="logo" viewBox="0 0 40 40" width="'+z+'" height="'+z+'" aria-hidden="true"><path d="'+HP+'" fill="url(#lg)"/><path d="'+FC+'" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width=".9" stroke-linejoin="round"/><path d="M33 1v6M30 4h6" stroke="#C9A227" stroke-width="1.1" stroke-linecap="round"/></svg>'}
 (function(){try{if(sessionStorage.getItem('sp'))return;sessionStorage.setItem('sp',1)}catch(e){}var d=document.createElement('div');d.id='splash';d.innerHTML='<div><svg viewBox="0 0 40 40" width="108" height="108"><path class="ln" d="'+HP+'" fill="none" stroke="#D81B60" stroke-width="1.2"/><path class="ln" d="'+FC+'" fill="none" stroke="#D81B60" stroke-width=".8"/><path class="fl" d="'+HP+'" fill="url(#lg)"/></svg><b>Malachite</b><small>Rencontres à Lubumbashi</small></div>';document.body.appendChild(d);setTimeout(function(){d.remove()},2500)})();
@@ -903,6 +942,39 @@ IC.centre='<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>';
  var phrases=['Salut ! Moi, c’est Mali 💗 Je peux te guider dans Malachite.','Astuce : une belle photo et une bio sincère aident les autres à te découvrir.','Explore les profils à ton rythme et privilégie les échanges respectueux.','Ton personnage peut changer de style et de couleur dans le Centre Malachite.'];
  var buddy=document.createElement('button');buddy.type='button';buddy.id='malachite-companion';buddy.setAttribute('aria-label','Compagnon animé Mali');buddy.innerHTML='<span class="mal-buddy-bubble">Salut ! Moi, c’est Mali 🌿 Je peux te guider dans Malachite.</span><svg class="mal-buddy" viewBox="0 0 76 82" role="img" aria-label="Mascotte rose Malachite"><g class="mal-buddy-body"><path d="M38 8C20 8 9 22 10 43c1 18 12 30 28 30s27-12 28-30C67 22 56 8 38 8Z" fill="#FF4F8B" stroke="#E6195E" stroke-width="3"/><path d="M31 10C25 1 31-2 38 7c6-12 15-6 8 5" fill="#FFC2D8" stroke="#E6195E" stroke-width="2"/><ellipse cx="28" cy="37" rx="4" ry="6" fill="#fff" class="mal-buddy-eye"/><ellipse cx="48" cy="37" rx="4" ry="6" fill="#fff" class="mal-buddy-eye"/><circle cx="29" cy="38" r="2" fill="#3A1224"/><circle cx="47" cy="38" r="2" fill="#3A1224"/><path d="M31 51q7 7 14 0" fill="none" stroke="#3A1224" stroke-width="3" stroke-linecap="round"/><circle cx="20" cy="47" r="4" fill="#F7B6A8" opacity=".8"/><circle cx="56" cy="47" r="4" fill="#F7B6A8" opacity=".8"/></g><path class="mal-buddy-arm" d="M13 43Q1 35 4 24" fill="none" stroke="#FF4F8B" stroke-width="8" stroke-linecap="round"/><path d="M63 43q12-8 9-19" fill="none" stroke="#FF4F8B" stroke-width="8" stroke-linecap="round"/></svg>';
  document.body.appendChild(buddy);
+ buddy.title='Glisse Mali pour le déplacer';
+ buddy.style.touchAction='none';
+ var dragState=null,dragged=false;
+ try{
+  var saved=JSON.parse(localStorage.getItem('malachite_mali_position')||'null');
+  if(saved&&Number.isFinite(saved.x)&&Number.isFinite(saved.y)){
+   buddy.style.setProperty('right','auto','important');buddy.style.setProperty('bottom','auto','important');
+   buddy.style.left=Math.max(0,Math.min(innerWidth-70,saved.x))+'px';
+   buddy.style.top=Math.max(0,Math.min(innerHeight-76,saved.y))+'px';
+  }
+ }catch(e){}
+ buddy.addEventListener('pointerdown',function(e){
+  if(e.target.closest('.mal-buddy-bubble'))return;
+  var r=buddy.getBoundingClientRect();dragState={dx:e.clientX-r.left,dy:e.clientY-r.top,x:e.clientX,y:e.clientY};dragged=false;
+  try{buddy.setPointerCapture(e.pointerId)}catch(err){}
+ });
+ buddy.addEventListener('pointermove',function(e){
+  if(!dragState)return;
+  if(Math.abs(e.clientX-dragState.x)+Math.abs(e.clientY-dragState.y)>7)dragged=true;
+  if(!dragged)return;
+  var x=Math.max(4,Math.min(innerWidth-buddy.offsetWidth-4,e.clientX-dragState.dx));
+  var y=Math.max(4,Math.min(innerHeight-buddy.offsetHeight-4,e.clientY-dragState.dy));
+  buddy.style.setProperty('right','auto','important');buddy.style.setProperty('bottom','auto','important');
+  buddy.style.left=x+'px';buddy.style.top=y+'px';
+ });
+ function finishMaliDrag(){
+  if(dragState&&dragged){var r=buddy.getBoundingClientRect();try{localStorage.setItem('malachite_mali_position',JSON.stringify({x:r.left,y:r.top}))}catch(e){}}
+  dragState=null;
+  if(dragged){setTimeout(function(){dragged=false},80)}
+ }
+ buddy.addEventListener('pointerup',finishMaliDrag);
+ buddy.addEventListener('pointercancel',finishMaliDrag);
+ buddy.addEventListener('click',function(e){if(dragged){e.preventDefault();e.stopImmediatePropagation();dragged=false}},true);
  var phrase=0,timer=null;
  buddy.addEventListener('click',function(){phrase=(phrase+1)%phrases.length;buddy.querySelector('.mal-buddy-bubble').textContent=phrases[phrase];buddy.classList.add('speaking');clearTimeout(timer);timer=setTimeout(function(){buddy.classList.remove('speaking')},5000)});
  setTimeout(function(){buddy.classList.add('speaking');timer=setTimeout(function(){buddy.classList.remove('speaking')},5000)},2200);
