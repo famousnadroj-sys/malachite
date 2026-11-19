@@ -93,10 +93,10 @@ for (const item of [
 if (moderationFunction.includes('ADMIN_EMAIL')) throw new Error('Admin identity must come from the private database allow-list.');
 if (!html.includes('function openConv(id){if(!id||!me)return;')) throw new Error('Conversation entry handler missing.');
 if (!html.includes('persistMalView();draw(true);loadChat();timer=setInterval(function(){if(tab===\'chat\'&&open&&!document.hidden)loadChat()},30000)')) throw new Error('Conversation must render immediately before network loading.');
-if (!html.includes("if(tab==='chat'&&open===current&&incoming.length){lastSig='';draw(true)}")) throw new Error('Text messages must render before media and match metadata finish loading.');
-if (!html.includes('Promise.all(incoming.map(resolveMessageMedia))')) throw new Error('Media resolution must run without blocking initial message rendering.');
-if (!html.includes('var checks=await Promise.all([sb.from(\'avis_match\')')) throw new Error('Conversation match checks must run concurrently.');
-if (!html.includes("sb.channel('msgs').on('postgres_changes'")) throw new Error('Realtime message updates must remain enabled.');
+if (!html.includes('if(firstLoad){\n    msgs=msgs.concat(fresh)')) throw new Error('Initial messages must render in the conversation.');
+if (!html.includes('resolveMessagesMedia(mediaRows).then(function()')) throw new Error('Media resolution must run after the first message render.');
+if (!html.includes("Promise.all([sb.from('avis_match').select('ok')")) throw new Error('Conversation match checks must run concurrently.');
+if (!html.includes("sb.channel('msgs-'+me.id)")) throw new Error('Per-user Realtime message updates must remain enabled.');
 if (!html.includes('async function resolveMessagesMedia(rows)') || !html.includes("createSignedUrls(paths,3600)")) throw new Error('Chat media URLs must be resolved in batches.');
 if (!html.includes("filter:'a=eq.'+me.id") || !html.includes("filter:'de=eq.'+me.id")) throw new Error('Realtime messages must be filtered to the signed-in user.');
 if (!html.includes("preload=\"none\"")) throw new Error('Chat videos must not preload all media data.');
@@ -107,7 +107,7 @@ if (!html.includes("chatLoadBusyKeys[key]")) throw new Error('Opening another ch
 if (!html.includes("appendChatRows([temp])") || !html.includes("pendingNode.replaceWith(holder.firstElementChild)")) throw new Error('Sending text must not redraw and interrupt media playback.');
 if (!html.includes("String(m.display_url).indexOf('blob:')===0")) throw new Error('Uploaded local media previews must still be replaced with private signed URLs.');
 if (html.includes("sb.channel('msgs').on('postgres_changes'")) throw new Error('Unfiltered global message realtime subscriptions are forbidden.');
-if (!html.includes("if(t===\"chat\"){if(open&&chatCursorFor!==open)")) throw new Error('Chat navigation must render the conversation shell immediately.');
+if (!html.includes("if(t=='chat'){loadChat();timer=setInterval(loadChat,15000);if(open)return}")) throw new Error('Chat navigation must load messages and preserve the open conversation.');
 if (!html.includes("id=\"chatSendError\"")) throw new Error('Message errors must update without rebuilding the conversation.');
 const insertChatStart = html.indexOf('async function insertChatMessage');
 const insertChatEnd = html.indexOf('async function snd()', insertChatStart);
