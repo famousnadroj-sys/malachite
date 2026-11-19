@@ -97,4 +97,11 @@ if (!html.includes("if(tab==='chat'&&open===current&&incoming.length){lastSig=''
 if (!html.includes('Promise.all(incoming.map(resolveMessageMedia))')) throw new Error('Media resolution must run without blocking initial message rendering.');
 if (!html.includes('var checks=await Promise.all([sb.from(\'avis_match\')')) throw new Error('Conversation match checks must run concurrently.');
 if (!html.includes("sb.channel('msgs').on('postgres_changes'")) throw new Error('Realtime message updates must remain enabled.');
+if (!html.includes('async function resolveMessagesMedia(rows)') || !html.includes("createSignedUrls(paths,3600)")) throw new Error('Chat media URLs must be resolved in batches.');
+if (!html.includes("filter:'a=eq.'+me.id") || !html.includes("filter:'de=eq.'+me.id")) throw new Error('Realtime messages must be filtered to the signed-in user.');
+if (!html.includes("preload=\"none\"")) throw new Error('Chat videos must not preload all media data.');
+if (!html.includes('async function loadOlderMessages()')) throw new Error('Chat history must load older messages incrementally.');
+if (!html.includes("setInterval(poll,30000)")) throw new Error('Background message polling must not overload the chat view.');
+if (!html.includes("if(tab!=='chat'){var r=await sb.from('messages')")) throw new Error('Realtime chat must avoid duplicate full message polling.');
+if (!html.includes("chatLoadBusyKeys[key]")) throw new Error('Opening another chat must not wait for a different conversation request.');
 console.log('Malachite frontend, PWA, private media, SQL policy and Admin security checks passed.');
