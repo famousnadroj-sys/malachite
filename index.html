@@ -899,7 +899,7 @@ async function sendImg(el){
   if(up.error)throw up.error;
   await insertChatMessage({a:open,texte:'📷 Photo',media_url:p,media_type:'image'});
   clear();msg='';draw(true);
- }catch(e){msg='Photo non envoyée : '+(e&&e.message?e.message:'erreur inconnue');clear();draw(true)}
+ }catch(e){try{await sb.storage.from('chat-media').remove([p])}catch(clean){}msg='Photo non envoyée : '+(e&&e.message?e.message:'erreur inconnue');clear();draw(true)}
 }
 function banner(){if(!me)return '';var nb=(tab=='home'&&'Notification' in window&&Notification.permission=='default')?'<div class="wall pop">🔔 <b>Active les notifications</b> pour ne rater aucun message ni rendez-vous.<button class="b1" style="width:100%;margin-top:8px" onclick="askNotif()">Activer</button></div>':'';var t=new Date().toDateString();return nb+rdvs.filter(function(x){return x.statut=='confirme'&&new Date(x.quand).toDateString()==t}).map(function(x){var p=prof(x.de==me.id?x.a:x.de)||{};return '<div class="wall pop">🔔 <b>Aujourd’hui</b> : rendez-vous avec '+esc(p.prenom||'ton match')+' à '+new Date(x.quand).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+' · '+esc(x.lieu)+'</div>'}).join('')}
 function ics(id){var x=rdvs.filter(function(y){return y.id==id})[0];if(!x)return;var d=new Date(x.quand),e=new Date(+d+36e5),f=function(z){return z.toISOString().replace(/[-:]/g,'').split('.')[0]+'Z'};var t='BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:malachite-'+id+'@malachite\r\nDTSTAMP:'+f(new Date())+'\r\nDTSTART:'+f(d)+'\r\nDTEND:'+f(e)+'\r\nSUMMARY:Rendez-vous Malachite\r\nLOCATION:'+String(x.lieu).replace(/[,;\r\n]/g,' ')+'\r\nBEGIN:VALARM\r\nTRIGGER:-PT2H\r\nACTION:DISPLAY\r\nDESCRIPTION:Rendez-vous Malachite\r\nEND:VALARM\r\nEND:VEVENT\r\nEND:VCALENDAR';var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/calendar'}));a.download='rendez-vous.ics';a.click()}
@@ -1010,7 +1010,7 @@ async function sendAudio(blob,sec){
   if(up.error)throw up.error;
   await insertChatMessage({a:open,texte:'🎤 Message vocal ('+(sec||0)+' s)',media_url:p,media_type:'audio'});
   msg='';draw(true);
- }catch(e){msg='Vocal non envoyé : '+(e&&e.message?e.message:'erreur inconnue');draw(true)}
+ }catch(e){try{await sb.storage.from('chat-media').remove([p])}catch(clean){}msg='Vocal non envoyé : '+(e&&e.message?e.message:'erreur inconnue');draw(true)}
 }
 function playV(b){if(aud){aud.pause();if(audBtn){audBtn.textContent='▶';audBtn.parentNode.classList.remove('pl')}if(audBtn===b){aud=null;audBtn=null;return}}aud=new Audio(b.dataset.src);audBtn=b;b.textContent='⏸';b.parentNode.classList.add('pl');aud.onended=function(){b.textContent='▶';b.parentNode.classList.remove('pl');aud=null;audBtn=null};aud.play().catch(function(){b.textContent='▶';b.parentNode.classList.remove('pl')})}
 function setStar(i){star=i;document.querySelectorAll('#st button').forEach(function(b,k){b.classList.toggle('on',k<i);b.classList.remove('pp');if(k<i){void b.offsetWidth;b.style.animationDelay=(k*70)+'ms';b.classList.add('pp')}});$('stt').textContent=STT[i];if(i==5)hearts()}
@@ -1222,7 +1222,7 @@ function draw(keep){var y=scrollY,tv=$('mi')?$('mi').value:'';document.body.clas
 
 function centre(){if(mine&&mine.avatar){malAvatarEmoji=mine.avatar.emoji||"🥰";malAvatarColor=mine.avatar.color||"#F7B7D0"}return malCentre()}
 function bub(m){var u=!!m.display_url,t=new Date(m.created_at).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"}),body=u&&m.media_type==="image"?'<img alt="photo" class="pic" onclick="viewImg(this.src)" src="'+esc(m.display_url)+'">':u&&m.media_type==="audio"?'<audio class="aud" controls preload="metadata" src="'+esc(m.display_url)+'"></audio>':u&&m.media_type==="video"?'<video controls playsinline preload="metadata" style="max-width:100%;max-height:260px;border-radius:12px" src="'+esc(m.display_url)+'"></video>':esc(m.texte);return '<div class="m '+(m.de==me.id?"out":"in")+'">'+body+'<span class="tm">'+t+'</span></div>'}
-async function sendVideo(el){
+async async function sendVideo(el){
  var f=el&&el.files&&el.files[0];if(!f)return;
  var clear=function(){if(el)el.value=''};
  if(!open||!me){clear();return}
@@ -1236,7 +1236,7 @@ async function sendVideo(el){
   if(up.error)throw up.error;
   await insertChatMessage({a:open,texte:'🎬 Vidéo',media_url:p,media_type:'video'});
   clear();msg='';draw(true);
- }catch(e){msg='Vidéo non envoyée : '+(e&&e.message?e.message:'erreur inconnue');clear();draw(true)}
+ }catch(e){try{await sb.storage.from('chat-media').remove([p])}catch(clean){}msg='Vidéo non envoyée : '+(e&&e.message?e.message:'erreur inconnue');clear();draw(true)}
 }
 </script><script>
 function matchBox(){
