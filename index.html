@@ -893,7 +893,7 @@ async function ensureMatchNotice(id){
 async function avis(ok){ans[open]=ok;await sb.from('avis_match').upsert({autre:open,ok:ok});if(ok)hearts();lastSig='';loadChat()}
 async function payC(){var c=$('uc').value.trim();if(!c)return;var r=await sb.from('paiements').insert({offre:'Contact',cible:open,code:c});$('um').textContent=r.error?'Erreur, réessaie.':'Code reçu. Le contact sera débloqué après vérification.'}
 async async function compressChatImage(file){
- if(!file||!/^image\\/(jpeg|png|webp)$/i.test(file.type)||file.size<500*1024||!window.createImageBitmap)return {file:file,mime:file.type};
+ if(!file||!/^image\/(jpeg|png|webp)$/i.test(file.type)||file.size<500*1024||!window.createImageBitmap)return {file:file,mime:file.type};
  var bitmap=null;
  try{
   bitmap=await createImageBitmap(file);
@@ -918,7 +918,7 @@ async function sendChatMediaFast(file,opts){
    else draw(true);
   }
   setChatUploadStatus(opts.progressText||'Préparation de l’envoi…');
-  var uploadFile=file,uploadMime=opts.mime;if(opts.optimizeImage){setChatUploadStatus('Optimisation de la photo…');var optimized=await compressChatImage(file);uploadFile=optimized.file;uploadMime=optimized.mime||uploadMime;if(optimized.ext)path=path.replace(/\\.[^.]+$/,'.'+optimized.ext)}
+  var uploadFile=file,uploadMime=opts.mime;if(opts.optimizeImage){setChatUploadStatus('Optimisation de la photo…');var optimized=await compressChatImage(file);uploadFile=optimized.file;uploadMime=optimized.mime||uploadMime;if(optimized.ext)path=path.replace(/\.[^.]+$/,'.'+optimized.ext)}
   await uploadChatAsset(path,uploadFile,uploadMime);
   setChatUploadStatus('Enregistrement du message…');
   var result=await sb.from('messages').insert({a:target,texte:opts.text,media_url:path,media_type:opts.type}).select('*').single();
