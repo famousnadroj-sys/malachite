@@ -1,4 +1,4 @@
-const CACHE = "malachite-static-v2";
+const CACHE = "malachite-static-v3";
 const APP_SHELL = ["./", "./manifest.webmanifest", "./icons/malachite.svg"];
 
 self.addEventListener("install", (event) => {
@@ -19,6 +19,7 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
+  // Never cache authenticated, database, storage, or Edge Function traffic.
   if (/\/(auth|rest|storage|functions)\/v1\//.test(url.pathname)) return;
   if (request.headers.has("Authorization")) return;
 
@@ -35,17 +36,19 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (APP_SHELL.some((path) => url.pathname.endsWith(path.replace("./", "")))) {
+  const staticPaths = APP_SHELL.map((path) => new URL(path, self.registration.scope).pathname);
+  if (staticPaths.includes(url.pathname)) {
     event.respondWith(caches.match(request).then((cached) => cached || fetch(request)));
   }
 });
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
+  const destination = event.notification.data && event.notification.data.url || "./";
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
       if (clients.length) return clients[0].focus();
-      return self.clients.openWindow("./");
+      return self.clients.openWindow(destination);
     })
   );
 });
