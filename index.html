@@ -964,7 +964,7 @@ async function rm(i){
 }
 function profileSaveFeedback(t){msg=t;var e=$('malProfileMsg')||document.querySelector('.mal-own-note');if(e)e.textContent=t;}
 function stageProfilePhoto(el){var f=el.files&&el.files[0];if(!f)return;if(['image/jpeg','image/png','image/webp','image/gif'].indexOf(f.type)<0||f.size>5e6){profileSaveFeedback('Choisis une photo JPEG, PNG, WebP ou GIF de 5 Mo maximum.');el.value='';return}pendingProfileFile=f;if(pendingProfilePreview)URL.revokeObjectURL(pendingProfilePreview);pendingProfilePreview=URL.createObjectURL(f);var p=$('malProfilePhotoPreview');if(p){p.style.backgroundImage='url('+pendingProfilePreview+')';p.textContent=''}profileSaveFeedback('Photo prête. Appuie sur « Enregistrer mon profil » pour enregistrer ensemble tes informations et ta photo.')}
-async async function save(){
+async function save(){
  if(profileSaving)return;
  if(privLoadFailed){profileSaveFeedback('Chargement de tes informations privées impossible. Recharge la page avant de sauvegarder : rien ne sera écrasé.');return}
  if(!me||!me.id){profileSaveFeedback('Ta session a expiré. Reconnecte-toi avant d’enregistrer.');return}
