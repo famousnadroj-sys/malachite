@@ -551,7 +551,7 @@ nav button.on{background:#fff0f5!important;color:#d81b60!important}
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#D81B60"/><stop offset="1" stop-color="#FF6B9D"/></linearGradient></defs></svg><main id="v"></main><nav id="nav"></nav>
 <script>
 var sb=supabase.createClient('https://tscsmemsvgacqioncash.supabase.co','sb_publishable_XDpqSzsPNeVduv6aGyjuoA_suakeFN0');
-var me=null,mine=null,profileDraft={},pendingSignupPhoto=null,pendingSignupPreview='',phUrls=[],loadSeq=0,loadedUid=null,profileEditing=false,pendingProfileFile=null,pendingProfilePreview='',profileSaving=false,privLoadFailed=false,admSuspensions=[],ADM='famousnadroj@gmail.com',av2=null,mutual=false,ct=null,lastSig='',rdvFor=null,fresh=false,adm=[],sigs=[],blocked=[],blockedProfiles=[],blockedCurrent=false,blockedCheckedFor=null,NUM='',rdvs=[],pos='',priv={},profs=[],st={},tab='home',open=null,msgs=[],convs=[],ph=[],msg='',F={g:'',c:'',a:18,b:99},timer,mode='in';
+var me=null,mine=null,profileDraft={},pendingSignupPhoto=null,pendingSignupPreview='',pendingSignupEmail='',phUrls=[],loadSeq=0,loadedUid=null,profileEditing=false,pendingProfileFile=null,pendingProfilePreview='',profileSaving=false,privLoadFailed=false,admSuspensions=[],ADM='famousnadroj@gmail.com',av2=null,mutual=false,ct=null,lastSig='',rdvFor=null,fresh=false,adm=[],sigs=[],blocked=[],blockedProfiles=[],blockedCurrent=false,blockedCheckedFor=null,NUM='',rdvs=[],pos='',priv={},profs=[],st={},tab='home',open=null,msgs=[],convs=[],ph=[],msg='',F={g:'',c:'',a:18,b:99},timer,mode='in';
 var $=function(i){return document.getElementById(i)};
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 function on(t){return t&&new Date(t)>new Date()}
@@ -590,7 +590,7 @@ async function load(){
   profileEditing=true;
   var md=me.user_metadata||{};
   profileDraft={prenom:md.prenom||'',nom_complet:md.nom_complet||'',age:md.age||'',profession:md.profession||'',genre:md.genre||'H',commune:md.commune||'Lubumbashi',quartier:md.quartier||'',bio:md.bio||'',interets:[],profile_visibility:md.profile_visibility||'public'};
-  if(pendingSignupPhoto){pendingProfileFile=pendingSignupPhoto;pendingProfilePreview=pendingSignupPreview}
+  if(pendingSignupPhoto&&(!pendingSignupEmail||me.email===pendingSignupEmail)){pendingProfileFile=pendingSignupPhoto;pendingProfilePreview=pendingSignupPreview}
  }
  loadedUid=uid;
  // Do not hold the profile screen while discovery, messages and secondary data load.
@@ -608,7 +608,7 @@ async function load(){
   await Promise.all(othersPhotos);
   await Promise.all([loadRdv(),loadAns(),loadMyAvis()]);
   if(seq!==loadSeq||!me||me.id!==uid)return;
-  sub();if(tab==='home'||tab==='search')draw(true);
+  if(tab==='home'||tab==='search')draw(true);
  })();
  background.catch(function(err){if(seq===loadSeq)console.warn('Chargement secondaire Malachite',err)});
  sub();
@@ -860,7 +860,7 @@ async function save(){
   priv=Object.assign({},priv,{nom_complet:privateProfile.nom_complet,adresse:privateProfile.adresse,telephone:privateProfile.telephone,prefs:nextPrefs});
   mine=Object.assign({},result.data,privateFields,{id:uid,prenom:raw.prenom,photos:allPhotos,prefs:nextPrefs,profile_private:isPrivate});profileDraft={};
   await resolveProfilePhotos(mine);ph=allPhotos.slice();phUrls=(mine.photoUrls||[]).slice();
-  pendingProfileFile=null;if(pendingProfilePreview)URL.revokeObjectURL(pendingProfilePreview);pendingProfilePreview='';
+  pendingProfileFile=null;if(pendingProfilePreview)URL.revokeObjectURL(pendingProfilePreview);pendingProfilePreview='';pendingSignupPhoto=null;pendingSignupPreview='';pendingSignupEmail='';
   idx=profs.findIndex(function(x){return x.id===uid});if(idx>=0)profs[idx]=mine;else profs.push(mine);
   profileSaving=false;msg='Profil enregistré durablement. Tu peux le modifier quand tu veux.';draw();profileSaveFeedback(msg);
  }catch(error){
