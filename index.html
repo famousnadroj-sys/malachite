@@ -892,7 +892,20 @@ async function ensureMatchNotice(id){
 }
 async function avis(ok){ans[open]=ok;await sb.from('avis_match').upsert({autre:open,ok:ok});if(ok)hearts();lastSig='';loadChat()}
 async function payC(){var c=$('uc').value.trim();if(!c)return;var r=await sb.from('paiements').insert({offre:'Contact',cible:open,code:c});$('um').textContent=r.error?'Erreur, réessaie.':'Code reçu. Le contact sera débloqué après vérification.'}
-async async function sendChatMediaFast(file,opts){
+async async function compressChatImage(file){
+ if(!file||!/^image\\/(jpeg|png|webp)$/i.test(file.type)||file.size<500*1024||!window.createImageBitmap)return {file:file,mime:file.type};
+ var bitmap=null;
+ try{
+  bitmap=await createImageBitmap(file);
+  var scale=Math.min(1,1600/Math.max(bitmap.width,bitmap.height));
+  var canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(bitmap.width*scale));canvas.height=Math.max(1,Math.round(bitmap.height*scale));
+  var ctx=canvas.getContext('2d',{alpha:false});ctx.drawImage(bitmap,0,0,canvas.width,canvas.height);
+  var blob=await new Promise(function(resolve){canvas.toBlob(resolve,'image/webp',0.80)});
+  if(blob&&blob.size<file.size*0.9)return {file:blob,mime:'image/webp',ext:'webp'};
+ }catch(e){}finally{if(bitmap&&bitmap.close)bitmap.close()}
+ return {file:file,mime:file.type};
+}
+async function sendChatMediaFast(file,opts){
  var target=open;if(!target||!me||!file)return;
  var localUrl='',temp=null,path=opts.path;
  try{
@@ -905,7 +918,8 @@ async async function sendChatMediaFast(file,opts){
    else draw(true);
   }
   setChatUploadStatus(opts.progressText||'Préparation de l’envoi…');
-  await uploadChatAsset(path,file,opts.mime);
+  var uploadFile=file,uploadMime=opts.mime;if(opts.optimizeImage){setChatUploadStatus('Optimisation de la photo…');var optimized=await compressChatImage(file);uploadFile=optimized.file;uploadMime=optimized.mime||uploadMime;if(optimized.ext)path=path.replace(/\\.[^.]+$/,'.'+optimized.ext)}
+  await uploadChatAsset(path,uploadFile,uploadMime);
   setChatUploadStatus('Enregistrement du message…');
   var result=await sb.from('messages').insert({a:target,texte:opts.text,media_url:path,media_type:opts.type}).select('*').single();
   if(result.error)throw result.error;
@@ -922,7 +936,7 @@ async async function sendChatMediaFast(file,opts){
   setChatUploadStatus('Envoyé ✓');
   resolveMessageMedia(row).then(function(){
    if(open!==target)return;
-   var currentIdx=msgs.indexOf(row),oldNode=document.querySelector('[data-message-id="'+temp.id+'"]');
+   var currentIdx=msgs.indexOf(row),oldNode=document.querySelector('[data-message-id="'+row.id+'"]');
    if(oldNode){var holder=document.createElement('div');holder.innerHTML=bub(row,currentIdx);var fresh=holder.firstElementChild;if(fresh)oldNode.replaceWith(fresh)}
    if(row._local_preview){URL.revokeObjectURL(row._local_preview);delete row._local_preview}
   }).catch(function(){});
@@ -974,7 +988,7 @@ async function sendImg(el){
  if(!allowed[mime]){setChatUploadStatus('Format photo non accepté.');clear();return}
  if(f.size>5*1024*1024){setChatUploadStatus('Photo trop lourde : 5 Mo maximum.');clear();return}
  var path=me.id+'/'+target+'/photo-'+Date.now()+'-'+Math.random().toString(36).slice(2,7)+'.'+allowed[mime];
- clear();sendChatMediaFast(f,{path:path,type:'image',mime:mime,text:'📷 Photo',progressText:'Envoi de la photo…'});
+ clear();sendChatMediaFast(f,{path:path,type:'image',mime:mime,text:'📷 Photo',progressText:'Envoi de la photo…',optimizeImage:true});
 }
 function banner(){if(!me)return '';var nb=(tab=='home'&&'Notification' in window&&Notification.permission=='default')?'<div class="wall pop">🔔 <b>Active les notifications</b> pour ne rater aucun message ni rendez-vous.<button class="b1" style="width:100%;margin-top:8px" onclick="askNotif()">Activer</button></div>':'';var t=new Date().toDateString();return nb+rdvs.filter(function(x){return x.statut=='confirme'&&new Date(x.quand).toDateString()==t}).map(function(x){var p=prof(x.de==me.id?x.a:x.de)||{};return '<div class="wall pop">🔔 <b>Aujourd’hui</b> : rendez-vous avec '+esc(p.prenom||'ton match')+' à '+new Date(x.quand).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+' · '+esc(x.lieu)+'</div>'}).join('')}
 function ics(id){var x=rdvs.filter(function(y){return y.id==id})[0];if(!x)return;var d=new Date(x.quand),e=new Date(+d+36e5),f=function(z){return z.toISOString().replace(/[-:]/g,'').split('.')[0]+'Z'};var t='BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:malachite-'+id+'@malachite\r\nDTSTAMP:'+f(new Date())+'\r\nDTSTART:'+f(d)+'\r\nDTEND:'+f(e)+'\r\nSUMMARY:Rendez-vous Malachite\r\nLOCATION:'+String(x.lieu).replace(/[,;\r\n]/g,' ')+'\r\nBEGIN:VALARM\r\nTRIGGER:-PT2H\r\nACTION:DISPLAY\r\nDESCRIPTION:Rendez-vous Malachite\r\nEND:VALARM\r\nEND:VEVENT\r\nEND:VCALENDAR';var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/calendar'}));a.download='rendez-vous.ics';a.click()}
