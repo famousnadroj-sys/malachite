@@ -997,7 +997,7 @@ async function sendChatMediaFast(file,opts){
   var pendingIndex=msgs.findIndex(function(m){return temp&&m.id===temp.id});
   if(existingIndex>=0){
    if(pendingIndex>=0&&pendingIndex!==existingIndex){msgs.splice(pendingIndex,1);if(pendingIndex<existingIndex)existingIndex--}
-   msgs[existingIndex]=Object.assign({},msgs[existingIndex],row);
+   row=Object.assign({},msgs[existingIndex],row);msgs[existingIndex]=row;
   }else if(pendingIndex>=0)msgs[pendingIndex]=row;
   else msgs.push(row);
   msgs.sort(function(a,b){return new Date(a.created_at)-new Date(b.created_at)||Number(a.id||0)-Number(b.id||0)});
