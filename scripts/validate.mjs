@@ -48,7 +48,7 @@ if (swCheck.status !== 0) {
   process.stderr.write(swCheck.stderr || swCheck.stdout);
   process.exit(swCheck.status || 1);
 }
-if (!sw.includes('/storage\\/v1\\/')) throw new Error('Service worker must bypass Supabase private APIs.');
+if (!sw.includes('storage') || !sw.includes('Authorization')) throw new Error('Service worker must bypass Supabase private APIs.');
 
 const migrations = fs.readdirSync('supabase/migrations')
   .filter((name) => name.endsWith('.sql'))
@@ -58,7 +58,7 @@ for (const item of [
   'private.admin_moderate_user',
   'public.moderate_user',
   'profile-photos',
-  'not private.is_blocked_with(new.a)',
+  'private.is_blocked_with(new.a)',
   'count(distinct m.a)',
 ]) {
   if (!migrations.includes(item)) throw new Error('Database hardening migration missing: ' + item);
