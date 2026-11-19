@@ -104,4 +104,9 @@ if (!html.includes('async function loadOlderMessages()')) throw new Error('Chat 
 if (!html.includes("setInterval(poll,30000)")) throw new Error('Background message polling must not overload the chat view.');
 if (!html.includes("if(tab!=='chat'){var r=await sb.from('messages')")) throw new Error('Realtime chat must avoid duplicate full message polling.');
 if (!html.includes("chatLoadBusyKeys[key]")) throw new Error('Opening another chat must not wait for a different conversation request.');
+if (!html.includes("appendChatRows([temp])") || !html.includes("pendingNode.replaceWith(holder.firstElementChild)")) throw new Error('Sending text must not redraw and interrupt media playback.');
+if (!html.includes("String(m.display_url).indexOf('blob:')===0")) throw new Error('Uploaded local media previews must still be replaced with private signed URLs.');
+if (html.includes("sb.channel('msgs').on('postgres_changes'")) throw new Error('Unfiltered global message realtime subscriptions are forbidden.');
+if (!html.includes("if(t===\"chat\"){if(open&&chatCursorFor!==open)")) throw new Error('Chat navigation must render the conversation shell immediately.');
+if (!html.includes("id=\"chatSendError\"")) throw new Error('Message errors must update without rebuilding the conversation.');
 console.log('Malachite frontend, PWA, private media, SQL policy and Admin security checks passed.');
