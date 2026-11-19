@@ -126,5 +126,7 @@ if (!html.includes("table:'message_receipts'") || !html.includes('function handl
 if (!html.includes("markIncomingReceipts(incoming,document.visibilityState==='visible')")) throw new Error('Opening a conversation must record delivery and read state.');
 if (!html.includes("msg-status read") || !html.includes("aria-label=\"Lu\"")) throw new Error('Read receipts must be visibly distinct from delivered receipts.');
 if (!migrations.includes('message_receipts') || !migrations.includes('recipient marks read') || !migrations.includes('revoke all on public.message_receipts')) throw new Error('Secure message receipt migrations are missing.');
-if (!sw.includes('malachite-static-v17')) throw new Error('Service worker cache must be refreshed after chat changes.');
+if (!html.includes('cache.expiresAt=now+3500000')) throw new Error('Signed media URL cache must refresh its expiry after renewal.');
+if (!html.includes("Signature des médias de la conversation ('+bucket+')")) throw new Error('Media URL resolution must isolate failures by storage bucket.');
+if (!sw.includes('malachite-static-v18')) throw new Error('Service worker cache must be refreshed after chat changes.');
 console.log('Malachite frontend, PWA, private media, SQL policy and Admin security checks passed.');
