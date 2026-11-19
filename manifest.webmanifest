@@ -1,0 +1,20 @@
+{
+  "name": "Malachite — Rencontres sincères",
+  "short_name": "Malachite",
+  "description": "Des rencontres sincères à Lubumbashi.",
+  "lang": "fr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#FFFFFF",
+  "theme_color": "#D81B60",
+  "icons": [
+    {
+      "src": "./icons/malachite.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
