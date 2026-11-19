@@ -114,9 +114,11 @@ const insertChatEnd = html.indexOf('async function snd()', insertChatStart);
 if (insertChatStart < 0 || insertChatEnd < 0 || html.slice(insertChatStart, insertChatEnd).includes('draw(true)')) throw new Error('Sending a message must not rebuild the chat DOM.');
 if (!html.includes("catch(error){if(localPreview)m.display_url=localPreview;throw error}")) throw new Error('Failed signing must not discard the local media preview.');
 if (!html.includes('function receiptMarkup(m,pending)') || !html.includes('function markIncomingReceipts(rows,asRead)')) throw new Error('Message delivery and read receipt UI is missing.');
-const bubbleStarts = [...html.matchAll(/function bub\\(m,i\\)\\s*\\{/g)].map(match => match.index);
+const bubbleStarts = [];
+let bubbleSearch = 0;
+while ((bubbleSearch = html.indexOf('function bub(m,i)', bubbleSearch)) !== -1) { bubbleStarts.push(bubbleSearch); bubbleSearch += 1; }
 if (bubbleStarts.length < 2) throw new Error('Expected chat bubble implementations were not found.');
-const activeBubble = html.slice(bubbleStarts[bubbleStarts.length - 1], html.indexOf('\\n}', bubbleStarts[bubbleStarts.length - 1]) + 2);
+const activeBubble = html.slice(bubbleStarts[bubbleStarts.length - 1], html.indexOf('async function sendVideo', bubbleStarts[bubbleStarts.length - 1]));
 if (!activeBubble.includes('receiptMarkup(m,pending)')) throw new Error('The active chat bubble renderer must display delivery/read indicators.');
 if (!html.includes('body.mal-chat-mode .m .msg-status svg')) throw new Error('Message status icons must have visible chat-scoped styling.');
 if (!html.includes('aria-label="Envoyé"') || !html.includes('aria-label="Reçu"') || !html.includes('aria-label="Lu"') || !html.includes('aria-label="En attente d’envoi"')) throw new Error('All four message status states must be accessible.');
