@@ -820,7 +820,7 @@ async function save(){
   await resolveProfilePhotos(mine);ph=allPhotos.slice();phUrls=(mine.photoUrls||[]).slice();
   pendingProfileFile=null;if(pendingProfilePreview)URL.revokeObjectURL(pendingProfilePreview);pendingProfilePreview='';
   idx=profs.findIndex(function(x){return x.id===uid});if(idx>=0)profs[idx]=mine;else profs.push(mine);
-  profileSaving=false;profileSaveFeedback('Profil enregistré durablement. Tu peux le modifier quand tu veux.');
+  profileSaving=false;msg='Profil enregistré durablement. Tu peux le modifier quand tu veux.';draw();profileSaveFeedback(msg);
  }catch(error){
   if(uploadedPath){try{await sb.storage.from('profile-photos').remove([uploadedPath])}catch(cleanupError){}}
   profileSaving=false;profileSaveFeedback('Le profil est affiché, mais sa sauvegarde n’est pas confirmée : '+(error&&error.message?error.message:'erreur inconnue')+'. Ouvre « Modifier mon profil » et réessaie.');
