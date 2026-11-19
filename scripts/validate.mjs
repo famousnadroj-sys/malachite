@@ -91,4 +91,9 @@ for (const item of [
   if (!moderationFunction.includes(item)) throw new Error('Admin moderation security check missing: ' + item);
 }
 if (moderationFunction.includes('ADMIN_EMAIL')) throw new Error('Admin identity must come from the private database allow-list.');
+if (!html.includes('function openConv(id){if(!id||!me)return;')) throw new Error('Conversation entry handler missing.');
+if (!html.includes('persistMalView();draw(true);loadChat();timer=setInterval(function(){if(tab===\'chat\'&&open&&!document.hidden)loadChat()},30000)')) throw new Error('Conversation must render immediately before network loading.');
+if (!html.includes('Promise.all(incoming.map(resolveMessageMedia))')) throw new Error('Media resolution must run without blocking initial message rendering.');
+if (!html.includes('var checks=await Promise.all([sb.from(\'avis_match\')')) throw new Error('Conversation match checks must run concurrently.');
+if (!html.includes("sb.channel('msgs').on('postgres_changes'")) throw new Error('Realtime message updates must remain enabled.');
 console.log('Malachite frontend, PWA, private media, SQL policy and Admin security checks passed.');
