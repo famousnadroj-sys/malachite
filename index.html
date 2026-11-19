@@ -841,13 +841,18 @@ async function loadChat(){
  var sg=JSON.stringify([open,msgs.length,convs.length,av2,mutual,!!ct,payOpen]);if(tab=='chat'&&sg!=lastSig){lastSig=sg;draw(true)}
 }
 async function insertChatMessage(payload){
- var target=open,result=await sb.from('messages').insert(payload).select('*').single();
- if(result.error)throw result.error;if(open!==target)return result.data;
- var row=result.data;await resolveMessageMedia(row);
- if(!row.id||!msgs.some(function(m){return m.id===row.id}))msgs.push(row);
- msgs.sort(function(a,b){return new Date(a.created_at)-new Date(b.created_at)});
- if(row.created_at&&(!chatCursor||new Date(row.created_at)>new Date(chatCursor)))chatCursor=row.created_at;
- lastSig='';draw(true);return row;
+ var target=open,temp={id:'pending-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),de:me.id,a:target,texte:payload.texte||'',media_type:payload.media_type||null,media_url:payload.media_url||null,created_at:new Date().toISOString(),_pending:true};
+ if(open===target){msgs.push(temp);draw(true)}
+ try{
+  var result=await sb.from('messages').insert(payload).select('*').single();
+  if(result.error)throw result.error;
+  var row=result.data;if(open!==target)return row;
+  await resolveMessageMedia(row);
+  msgs=msgs.filter(function(m){return m.id!==temp.id&&(!row.id||m.id!==row.id)});msgs.push(row);
+  msgs.sort(function(a,b){return new Date(a.created_at)-new Date(b.created_at)});
+  if(row.created_at&&(!chatCursor||new Date(row.created_at)>new Date(chatCursor)))chatCursor=row.created_at;
+  lastSig='';draw(true);return row;
+ }catch(error){if(open===target){msgs=msgs.filter(function(m){return m.id!==temp.id});lastSig='';draw(true)}throw error}
 }
 async function snd(){
  var input=$('mi'),raw=input?input.value.trim():'';
@@ -1020,7 +1025,7 @@ async function unsuspendMember(id){if(!confirm('Réactiver ce compte ?'))return;
 function suspensionsAdmin(){return '<h2>Comptes suspendus ('+admSuspensions.length+')</h2><div class="list">'+(admSuspensions.length?admSuspensions.map(function(x){var p=prof(x.user_id)||{};return '<div class="card"><b>'+esc(p.prenom||'Compte')+'</b><div class="sub">Depuis '+ago(x.depuis)+'</div><div>'+esc(x.motif||'Motif non précisé')+'</div><button class="b1" onclick="unsuspendMember(&quot;'+esc(x.user_id)+'&quot;)">Réactiver le compte</button></div>'}).join(''):'<p class="note">Aucun compte suspendu.</p>')+'</div>'}
 function admin(){return reportsAdmin()+suspensionsAdmin()+admin0()+avisList()}
 var myAvis=[];
-function bub(m,i){var u=!!m.display_url,j=m.media_type=='call'&&/^https:\/\/meet\.jit\.si\//.test(m.media_url||''),t=new Date(m.created_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});var body=u&&m.media_type=='image'?'<img alt="photo" class="pic" onclick="viewImg(this.src,event)" src="'+esc(m.display_url)+'">':u&&m.media_type=='video'?'<video class="chat-video" controls playsinline preload="metadata" src="'+esc(m.display_url)+'"></video>':u&&m.media_type=='audio'?'<audio class="aud" controls preload="metadata" src="'+esc(m.display_url)+'"></audio><a class="ol" href="'+esc(m.display_url)+'" target="_blank" rel="noopener">Si ça ne joue pas : ouvrir le vocal</a>':j?'📹 <b>Appel vidéo indisponible temporairement</b>':esc(m.texte);return '<div class="m '+(m.de==me.id?'out':'in')+'" data-message-index="'+i+'" onclick="openMessageActions('+i+',event)" role="button" tabindex="0" aria-label="Options du message">'+body+'<span class="tm">'+t+'</span></div>'}
+function bub(m,i){var pending=!!m._pending,u=!!m.display_url,j=m.media_type=='call'&&/^https:\/\/meet\.jit\.si\//.test(m.media_url||''),t=new Date(m.created_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});var body=u&&m.media_type=='image'?'<img alt="photo" class="pic" onclick="viewImg(this.src,event)" src="'+esc(m.display_url)+'">':u&&m.media_type=='video'?'<video class="chat-video" controls playsinline preload="metadata" src="'+esc(m.display_url)+'"></video>':u&&m.media_type=='audio'?'<audio class="aud" controls preload="metadata" src="'+esc(m.display_url)+'"></audio><a class="ol" href="'+esc(m.display_url)+'" target="_blank" rel="noopener">Si ça ne joue pas : ouvrir le vocal</a>':j?'📹 <b>Appel vidéo indisponible temporairement</b>':esc(m.texte);return '<div class="m '+(m.de==me.id?'out':'in')+'" data-message-index="'+i+'" onclick="openMessageActions('+i+',event)" role="button" tabindex="0" aria-label="Options du message">'+body+'<span class="tm">'+(pending?'Envoi…':t)+'</span></div>'}
 function viewImg(u,event){if(event)event.stopPropagation();var d=document.createElement('div');d.className='lbx';d.innerHTML='<button class="lx" aria-label="Fermer">✕</button><img alt="photo" src="'+esc(u)+'"><div class="lbar"><button class="b1" id="lsv">⬇ Enregistrer</button><button id="lsh">↗ Partager</button></div>';d.onclick=function(e){if(e.target===d||e.target.className=='lx')d.remove()};document.body.appendChild(d);
 $('lsv').onclick=async function(){try{var r=await fetch(u),b=await r.blob(),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='malachite-'+Date.now()+'.jpg';document.body.appendChild(a);a.click();a.remove()}catch(e){window.open(u,'_blank')}};
 $('lsh').onclick=async function(){try{var r=await fetch(u),b=await r.blob(),f=new File([b],'photo.jpg',{type:b.type||'image/jpeg'});if(navigator.canShare&&navigator.canShare({files:[f]}))await navigator.share({files:[f]});else if(navigator.share)await navigator.share({url:u});else{await navigator.clipboard.writeText(u);alert('Lien copié')}}catch(e){}}}
