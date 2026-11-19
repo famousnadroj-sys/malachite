@@ -676,8 +676,13 @@ function patchMessageMedia(rows){
  });
 }
 async function resolveMessageMedia(m){
- if(!m||m.display_url)return m;
- await resolveMessagesMedia([m]);return m;
+ if(!m||!m.media_url||m.media_type==='call')return m;
+ var localPreview=m.display_url&&String(m.display_url).indexOf('blob:')===0?m.display_url:'';
+ if(m.display_url&&!localPreview)return m;
+ if(localPreview)m.display_url='';
+ await resolveMessagesMedia([m]);
+ if(!m.display_url&&localPreview)m.display_url=localPreview;
+ return m;
 }
 function appendChatRows(rows){
  var box=$('msgs');if(!box){draw(true);return}
@@ -1002,7 +1007,7 @@ async function insertChatMessage(payload,targetOverride){
  if(target===me.id)throw new Error('self_message_blocked');
  var safePayload=Object.assign({de:me.id,a:target},payload||{});
  var temp={id:'pending-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),de:me.id,a:target,texte:safePayload.texte||'',media_type:safePayload.media_type||null,media_url:safePayload.media_url||null,created_at:new Date().toISOString(),_pending:true};
- if(open===target){msgs.push(temp);draw(true)}
+ if(open===target){msgs.push(temp);appendChatRows([temp])}
  try{
   var result=await sb.from('messages').insert(safePayload).select('*').single();
   if(result.error)throw result.error;
@@ -1012,11 +1017,13 @@ async function insertChatMessage(payload,targetOverride){
   msgs.push(row);
   msgs.sort(function(a,b){return new Date(a.created_at)-new Date(b.created_at)||Number(a.id||0)-Number(b.id||0)});
   if(row.created_at&&(!chatCursor||new Date(row.created_at)>new Date(chatCursor)))chatCursor=row.created_at;
-  lastSig='';draw(true);
-  if(row.media_url)resolveMessageMedia(row).then(function(){if(open===target){lastSig='';draw(true)}}).catch(function(){});
+  chatCursorId=Math.max(chatCursorId,Number(row.id)||0);
+  var pendingNode=document.querySelector('[data-message-id="'+temp.id+'"]');
+  if(pendingNode){var holder=document.createElement('div');holder.innerHTML=bub(row,msgs.indexOf(row));if(holder.firstElementChild)pendingNode.replaceWith(holder.firstElementChild)}else appendChatRows([row]);
+  if(row.media_url)resolveMessageMedia(row).then(function(){if(open===target)patchMessageMedia([row])}).catch(function(){});
   return row;
  }catch(error){
-  if(open===target){msgs=msgs.filter(function(m){return m.id!==temp.id});lastSig='';}
+  if(open===target){msgs=msgs.filter(function(m){return m.id!==temp.id});var pendingNode=document.querySelector('[data-message-id="'+temp.id+'"]');if(pendingNode)pendingNode.remove();}
   throw error;
  }
 }
@@ -1024,13 +1031,13 @@ async function snd(){
  var input=$('mi'),raw=input?input.value.trim():'';
  if(!raw||!open||chatSending)return;
  var target=open,wasFocused=!!(input&&document.activeElement===input);
- if(target===me.id){msg='Tu ne peux pas envoyer un message à ton propre compte.';draw(true);return}
+ if(target===me.id){msg='Tu ne peux pas envoyer un message à ton propre compte.';var err=$('chatSendError');if(err){err.textContent=msg;err.hidden=false}return}
  var t=replyDraft?'↪ '+replyDraft.name+' : '+replyDraft.text+'\n'+raw:raw;
  chatSending=true;msg='';
  if(input){input.value='';input.disabled=true}
  try{
   await insertChatMessage({de:me.id,a:target,texte:t});
-  if(open===target)replyDraft=null;
+  if(open===target){replyDraft=null;var preview=document.querySelector('.reply-preview');if(preview)preview.remove()}
  }catch(e){
   if(open===target){
    msg=e.message==='self_message_blocked'?'Tu ne peux pas t’envoyer un message à toi-même.':
@@ -1038,7 +1045,7 @@ async function snd(){
     e.message==='conversation_bloquee'?'Cette conversation est bloquée.':
     /row-level security|42501|403/i.test(e.message)?'Envoi refusé : vérifie que tu as ouvert la conversation du bon membre.':
     'Message non envoyé : '+(e.message||'erreur inconnue');
-   draw(true);
+   var err=$('chatSendError');if(err){err.textContent=msg;err.hidden=false}
    var restored=$('mi');
    if(restored){restored.value=raw;restored.focus();restored.setSelectionRange(raw.length,raw.length)}
   }
@@ -1049,9 +1056,9 @@ async function snd(){
 }
 async function sendSticker(emoji){
  var target=open;if(!target||!me)return;
- if(target===me.id){msg='Tu ne peux pas envoyer un sticker à ton propre compte.';draw(true);return}
+ if(target===me.id){msg='Tu ne peux pas envoyer un sticker à ton propre compte.';var err=$('chatSendError');if(err){err.textContent=msg;err.hidden=false}return}
  try{await insertChatMessage({de:me.id,a:target,texte:emoji})}
- catch(e){msg='Sticker non envoyé : '+(e.message||'erreur inconnue');draw(true)}
+ catch(e){msg='Sticker non envoyé : '+(e.message||'erreur inconnue');var err=$('chatSendError');if(err){err.textContent=msg;err.hidden=false}}
  var panel=$('chatEmojiPanel');if(panel)panel.hidden=true;
 }
 function talk(id){if(!id||!me)return;if(id===me.id){msg='Tu consultes ton propre profil : tu ne peux pas ouvrir une conversation avec toi-même.';return}if(blocked.indexOf(id)>-1){alert('Cette personne est bloquée. Débloque-la pour reprendre contact.');return}openConv(id)}
@@ -1286,7 +1293,7 @@ function cupidPass(){if(document.hidden||!me||tab=='chat')return;var c=document.
 function thread(){var p=prof(open)||{},day='',T=TH[cth],h=fxl()+'<div class="chtop"><div class="top"><button onclick="closeConv()" aria-label="Retour" style="padding:8px 12px">←</button>'+'<button class="mal-chat-profile" type="button" onclick="viewProf(open)" aria-label="Ouvrir le profil de '+esc(p.prenom||'ce membre')+'">'+av(p)+'<span><b>'+esc(p.prenom||'Membre')+'</b><small id="pst">'+presence(p)+'</small></span><i>Voir le profil ›</i></button><button onclick="thOpen=!thOpen;draw(true)" aria-label="Changer le fond" style="padding:8px 12px">🎨</button><button onclick="toggleBlock(open)" aria-label="Bloquer ou débloquer ce membre" style="padding:8px 12px">🚫</button></div>'+(thOpen?'<div class="ths">'+TH.map(function(t,i){return '<button class="'+(i==cth?'sel':'')+'" title="'+t[0]+'" style="background:'+t[1]+'" onclick="setTh('+i+')"></button>'}).join('')+'</div><div class="note">Fond : '+esc(T[0])+'</div>':'')+'<div id="chatMatchBox">'+matchBox()+'</div></div><div class="chat" id="msgs" style="--cfg:'+T[2]+'">';
 msgs.forEach(function(m,i){var d=new Date(m.created_at),k=d.toDateString();if(k!=day){day=k;h+='<div class="dsep">'+(k==new Date().toDateString()?'Aujourd’hui':d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'}))+'</div>'}h+=bub(m,i)});
 if(!msgs.length){if(chatInitialLoading)h+='<div class="chat-loading"><span class="chat-loading-dot"></span> Ouverture de la conversation…</div>';else h+='<div class="dsep">Dis bonjour 👋</div><div class="ice">'+ICE.map(function(t,i){return '<button onclick="ice('+i+')">'+esc(t)+'</button>'}).join('')+'</div>'}
-return h+'</div>'+(blockedCurrent?'<div class="sendbar"><div class="note">🚫 Envoi de messages et médias désactivé pour cette conversation.</div></div>':'<div class="sendbar">'+(replyDraft?'<div class="reply-preview"><div><b>Réponse à '+esc(replyDraft.name)+'</b><span>'+esc(replyDraft.text)+'</span></div><button type="button" onclick="cancelReply()" aria-label="Annuler la réponse">✕</button></div>':'')+(msg?'<div class="err">'+esc(msg)+'</div>'+(/Premium/.test(msg)?'<button style="margin:4px 0" onclick="go(\'offres\')">⭐ Voir Premium</button>':''):'')+'<div class="chat-emoji-panel" id="chatEmojiPanel" hidden><button type="button" onclick="insertChatEmoji(this.textContent)">😊</button><button type="button" onclick="insertChatEmoji(this.textContent)">😂</button><button type="button" onclick="insertChatEmoji(this.textContent)">🥰</button><button type="button" onclick="insertChatEmoji(this.textContent)">😍</button><button type="button" onclick="insertChatEmoji(this.textContent)">😘</button><button type="button" onclick="insertChatEmoji(this.textContent)">❤️</button><button type="button" onclick="insertChatEmoji(this.textContent)">🌹</button><button type="button" onclick="insertChatEmoji(this.textContent)">🎉</button><button type="button" onclick="insertChatEmoji(this.textContent)">🤗</button><button type="button" onclick="insertChatEmoji(this.textContent)">👍</button><div class="chat-sticker-label" style="width:100%;font-weight:700;font-size:12px">Stickers · toucher pour envoyer</div><div class="chat-stickers" style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" style="font-size:26px" onclick="sendSticker(&quot;🥰&quot;)">🥰</button><button type="button" style="font-size:26px" onclick="sendSticker(&quot;😂&quot;)">😂</button><button type="button" style="font-size:26px" onclick="sendSticker(&quot;😍&quot;)">😍</button><button type="button" style="font-size:26px" onclick="sendSticker(&quot;😘&quot;)">😘</button><button type="button" style="font-size:26px" onclick="sendSticker(&quot;💖&quot;)">💖</button><button type="button" style="font-size:26px" onclick="sendSticker(&quot;🤗&quot;)">🤗</button><button type="button" style="font-size:26px" onclick="sendSticker(&quot;🎉&quot;)">🎉</button><button type="button" style="font-size:26px" onclick="sendSticker(&quot;🌹&quot;)">🌹</button></div></div><div class="chat-attach-menu" id="chatAttachMenu" hidden><button type="button" onclick="document.getElementById(this.dataset.target).click();toggleChatAttach()" data-target="chatCameraInput">📸 <span>Appareil photo</span></button><button type="button" onclick="document.getElementById(this.dataset.target).click();toggleChatAttach()" data-target="chatImageInput">🖼️ <span>Photos</span></button><button type="button" onclick="document.getElementById(this.dataset.target).click();toggleChatAttach()" data-target="chatVideoInput">🎬 <span>Vidéo</span></button><button type="button" onclick="document.getElementById(this.dataset.target).click();toggleChatAttach()" data-target="chatDocumentInput">📎 <span>Document</span></button></div><div class="send chat-composer"><input id="chatCameraInput" class="chat-hidden-file" type="file" accept="image/*" capture="environment" onchange="sendImg(this)"><input id="chatImageInput" class="chat-hidden-file" type="file" accept="image/*" onchange="sendImg(this)"><input id="chatVideoInput" class="chat-hidden-file" type="file" accept="video/*,.mp4,.mov,.webm,.3gp" onchange="sendVideo(this)"><input id="chatDocumentInput" class="chat-hidden-file" type="file" accept=".pdf,.txt,.csv,.doc,.docx,.xls,.xlsx,.ppt,.pptx" onchange="sendDocument(this)"><button type="button" class="chat-tool" onclick="toggleChatAttach()" aria-label="Joindre un fichier">＋</button><button type="button" class="chat-tool" onclick="toggleChatEmoji()" aria-label="Emojis et stickers">☺</button><input id="mi" placeholder="Écris un message…" aria-label="Message" autocomplete="off" onkeydown="if(event.key==\'Enter\')snd()"><button onclick="recStart()" aria-label="Message vocal" class="chat-tool mic">🎤</button><button onclick="snd()" aria-label="Envoyer" class="chat-send">➤</button></div><div id="chatUploadStatus" class="chat-upload-status" aria-live="polite"></div></div>')}
+return h+'</div>'+(blockedCurrent?'<div class="sendbar"><div class="note">🚫 Envoi de messages et médias désactivé pour cette conversation.</div></div>':'<div class="sendbar">'+(replyDraft?'<div class="reply-preview"><div><b>Réponse à '+esc(replyDraft.name)+'</b><span>'+esc(replyDraft.text)+'</span></div><button type="button" onclick="cancelReply()" aria-label="Annuler la réponse">✕</button></div>':'')+'<div class="err" id="chatSendError"'+(msg?'':' hidden')+'>'+esc(msg)+'</div>' + (/Premium/.test(msg)?'<button style="margin:4px 0" onclick="go(\'offres\')">⭐ Voir Premium</button>':'')+'<div class="chat-emoji-panel" id="chatEmojiPanel" hidden><button type="button" onclick="insertChatEmoji(this.textContent)">😊</button><button type="button" onclick="insertChatEmoji(this.textContent)">😂</button><button type="button" onclick="insertChatEmoji(this.textContent)">🥰</button><button type="button" onclick="insertChatEmoji(this.textContent)">😍</button><button type="button" onclick="insertChatEmoji(this.textContent)">😘</button><button type="button" onclick="insertChatEmoji(this.textContent)">❤️</button><button type="button" onclick="insertChatEmoji(this.textContent)">🌹</button><button type="button" onclick="insertChatEmoji(this.textContent)">🎉</button><button type="button" onclick="insertChatEmoji(this.textContent)">🤗</button><button type="button" onclick="insertChatEmoji(this.textContent)">👍</button><div class="chat-sticker-label" style="width:100%;font-weight:700;font-size:12px">Stickers · toucher pour envoyer</div><div class="chat-stickers" style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" style="font-size:26px" onclick="sendSticker(&quot;🥰&quot;)">🥰</button><button type="button" style="font-size:26px" onclick="sendSticker(&quot;😂&quot;)">😂</button><button type="button" style="font-size:26px" onclick="sendSticker(&quot;😍&quot;)">😍</button><button type="button" style="font-size:26px" onclick="sendSticker(&quot;😘&quot;)">😘</button><button type="button" style="font-size:26px" onclick="sendSticker(&quot;💖&quot;)">💖</button><button type="button" style="font-size:26px" onclick="sendSticker(&quot;🤗&quot;)">🤗</button><button type="button" style="font-size:26px" onclick="sendSticker(&quot;🎉&quot;)">🎉</button><button type="button" style="font-size:26px" onclick="sendSticker(&quot;🌹&quot;)">🌹</button></div></div><div class="chat-attach-menu" id="chatAttachMenu" hidden><button type="button" onclick="document.getElementById(this.dataset.target).click();toggleChatAttach()" data-target="chatCameraInput">📸 <span>Appareil photo</span></button><button type="button" onclick="document.getElementById(this.dataset.target).click();toggleChatAttach()" data-target="chatImageInput">🖼️ <span>Photos</span></button><button type="button" onclick="document.getElementById(this.dataset.target).click();toggleChatAttach()" data-target="chatVideoInput">🎬 <span>Vidéo</span></button><button type="button" onclick="document.getElementById(this.dataset.target).click();toggleChatAttach()" data-target="chatDocumentInput">📎 <span>Document</span></button></div><div class="send chat-composer"><input id="chatCameraInput" class="chat-hidden-file" type="file" accept="image/*" capture="environment" onchange="sendImg(this)"><input id="chatImageInput" class="chat-hidden-file" type="file" accept="image/*" onchange="sendImg(this)"><input id="chatVideoInput" class="chat-hidden-file" type="file" accept="video/*,.mp4,.mov,.webm,.3gp" onchange="sendVideo(this)"><input id="chatDocumentInput" class="chat-hidden-file" type="file" accept=".pdf,.txt,.csv,.doc,.docx,.xls,.xlsx,.ppt,.pptx" onchange="sendDocument(this)"><button type="button" class="chat-tool" onclick="toggleChatAttach()" aria-label="Joindre un fichier">＋</button><button type="button" class="chat-tool" onclick="toggleChatEmoji()" aria-label="Emojis et stickers">☺</button><input id="mi" placeholder="Écris un message…" aria-label="Message" autocomplete="off" onkeydown="if(event.key==\'Enter\')snd()"><button onclick="recStart()" aria-label="Message vocal" class="chat-tool mic">🎤</button><button onclick="snd()" aria-label="Envoyer" class="chat-send">➤</button></div><div id="chatUploadStatus" class="chat-upload-status" aria-live="polite"></div></div>')}
 var replyDraft=null, messageActionLayer=null;
 function closeMessageActions(){if(messageActionLayer){messageActionLayer.remove();messageActionLayer=null}}
 function openMessageActions(i,event){if(event&&event.target&&event.target.closest&&event.target.closest('audio,video,a,button'))return;var m=msgs[i];if(!m)return;closeMessageActions();var name=m.de==me.id?'Toi':((prof(m.de)||{}).prenom||'Membre'),txt=(m.texte|| (m.media_type=='image'?'Photo':m.media_type=='audio'?'Message vocal':'Message')).slice(0,220);var layer=document.createElement('div');layer.className='msg-action-backdrop';layer.innerHTML='<div class="msg-action-sheet" role="dialog" aria-label="Actions du message"><div class="msg-action-grip"></div><div class="msg-action-quote"><b>'+esc(name)+'</b><span>'+esc(txt)+'</span></div><div class="msg-action-buttons"><button type="button" onclick="replyToMessage('+i+')">↩️ Répondre</button><button type="button" onclick="copyMessage('+i+')">📋 Copier</button><button type="button" onclick="shareMessage('+i+')">↗️ Partager</button></div><button type="button" class="msg-action-cancel" onclick="closeMessageActions()">Annuler</button></div>';layer.addEventListener('click',function(e){if(e.target===layer)closeMessageActions()});document.body.appendChild(layer);messageActionLayer=layer}
