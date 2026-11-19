@@ -1,60 +1,65 @@
-# Malachite — état des corrections techniques
+# Malachite — bilan des corrections techniques
 Date : 19 novembre 2026
 
-## Périmètre
+## Références vérifiées
 - Dépôt : `famousnadroj-sys/malachite`
-- Branche de travail : `work/malachite-hardening-2026-11-19`
-- Projet Supabase : `tscsmemsvgacqioncash`
-- La branche `main` et le site public n'ont pas été modifiés par ce travail.
-- Les changements de base décrits ci-dessous ont été appliqués au projet Supabase actif. Aucune donnée de membre n'a été supprimée.
+- Branche de production : `main`
+- Commit de mise à jour : `23e02bbbda236b828596649f7bf12a8322bccc53`
+- Projet Supabase : `tscsmemsvgacqioncash`, région `eu-west-1`
+- PR de sécurisation : #1, fusionnée après validation CI.
 
 ## Corrections appliquées
-1. **Médias privés**
-   - Création du bucket privé `profile-photos`, limité à 5 Mo et aux formats JPEG, PNG, WebP et GIF.
-   - Politiques Storage : un membre écrit, modifie et supprime uniquement ses propres photos ; les autres membres authentifiés ne peuvent les lire que si le blocage ne l'interdit pas.
-   - Le bucket `chat-media` reste privé. Les tests SQL en transaction ont confirmé que l'expéditeur et le destinataire voient l'objet de leur conversation, mais pas un troisième compte.
-   - Le frontend de la branche utilise `chat-media` pour les photos et vocaux, et `profile-photos` pour les photos de profil. Les médias privés sont rendus avec des URL signées.
 
-2. **Limitation des messages et confidentialité**
-   - Le trigger ne recherche plus de numéros de téléphone, liens ou réseaux sociaux dans le texte des messages.
-   - Les membres gratuits peuvent initier jusqu'à 15 nouvelles conversations par jour. Les réponses dans une conversation existante ne consomment pas ce quota.
-   - Le trigger vérifie l'identité de l'expéditeur, la suspension et le blocage.
-   - Un test SQL transactionnel a confirmé qu'un message de test contenant un numéro est accepté ; la transaction a ensuite été annulée.
+### Médias et stockage
+- Les trois buckets utilisés (`chat-media`, `profile-photos`, ancien `photos`) sont maintenant privés.
+- `profile-photos` : limite 5 Mo, formats JPEG/PNG/WebP/GIF ; écriture et suppression réservées au propriétaire ; lecture authentifiée et filtrée selon le blocage.
+- `chat-media` : limite 8 Mo, images et formats audio autorisés ; accès contrôlé par expéditeur/destinataire.
+- Le frontend utilise les URL signées pour les photos et médias privés.
+- Les 9 anciens objets de `photos` ont été conservés, pas supprimés. Les contrôles SQL ont trouvé 0 référence dans les messages et 0 référence dans les profils avant la privatisation. Les objets historiques orphelins ne sont plus publiquement accessibles.
 
-3. **Modération Admin**
-   - La fonction SQL privée vérifie l'identifiant de l'administrateur dans `private.admins`, refuse l'auto-suspension et refuse de suspendre un autre administrateur.
-   - Les suspensions et réactivations sont enregistrées dans `public.suspensions` et `public.admin_actions`.
-   - L'Edge Function `admin-user-moderation` est déployée en version 2. Elle vérifie la session, appelle la fonction SQL autorisée, puis synchronise le bannissement Auth avec la clé de service côté serveur.
-   - Tests SQL transactionnels : l'action d'un administrateur a réussi puis a été annulée ; un compte non administrateur a été refusé.
+### Messages et confidentialité
+- Le trigger ne scanne plus le texte privé pour bloquer les numéros ou liens.
+- Les comptes gratuits peuvent initier 15 nouvelles conversations par jour ; les réponses et conversations déjà existantes ne consomment pas ce quota.
+- Le trigger vérifie l'expéditeur authentifié, l'état de suspension et le blocage.
+- Test transactionnel : un message de test contenant un numéro a été accepté puis annulé par rollback.
 
-4. **Frontend**
-   - Requêtes de profils limitées aux colonnes publiques.
-   - Préférences enregistrées dans `prives`.
-   - Corrections de chargement, d'upload et de lecture des photos et vocaux.
-   - Références de paiement soumises en attente ; le frontend précise qu'aucun avantage n'est activé avant vérification effective du portefeuille.
-   - Suppression de la vente d'un « badge vérifié » : un paiement seul ne prouve pas l'identité.
-   - Ajout d'une mascotte originale animée et d'une mise en page desktop.
-   - Ajout du manifeste PWA et d'un service worker qui n'enregistre pas les requêtes Auth, REST, Storage ou Edge Functions.
+### Modération Admin
+- La décision d'administration dépend de `private.admins`, pas d'une adresse e-mail codée en dur.
+- Auto-suspension et suspension d'un autre administrateur refusées.
+- Les suspensions/réactivations sont enregistrées dans `public.suspensions` et `public.admin_actions`.
+- Edge Function `admin-user-moderation` active en version 2 ; elle vérifie la session, appelle le RPC autorisé, puis synchronise Auth côté serveur.
+- Tests transactionnels : appel administrateur accepté puis annulé ; appel non-administrateur refusé. Aucun compte réel n'a été suspendu.
 
-## Migrations appliquées
+### Frontend et CI
+- Requête des profils limitée aux colonnes publiques et préférences dans `prives`.
+- Upload et lecture des photos/vocaux corrigés ; échec d'insertion nettoie le fichier nouvellement uploadé.
+- Suppression d'une photo : la référence en base est mise à jour avant la suppression du fichier pour éviter les références cassées.
+- Quota affiché aligné sur les 15 nouvelles conversations initiées ; le contenu des messages n'est pas inspecté.
+- Références de paiement restent en attente jusqu'à vérification réelle du portefeuille ; aucun badge d'identité n'est vendu.
+- Mascotte originale animée, mise en page desktop, manifeste PWA et service worker. Le service worker ne met pas en cache les requêtes Auth, REST, Storage ou Edge Functions.
+- CI GitHub réussie : run #95 (PR) et run #94 (push), JavaScript, TypeScript Deno et parsing de toutes les migrations SQL.
+
+## Migrations enregistrées dans Supabase
 - `202611180001_security_hardening`
 - `202611180002_moderation_and_blocking`
 - `202611180003_admin_audit_private_media`
 - `202611190001_launch_hardening`
 - `202611190002_fix_message_trigger_pattern`
+- `202611190004_legacy_media_signed_reads`
+- `202611190003_private_legacy_media`
 
-## Points qui bloquent encore la déclaration « prêt pour lancement »
-1. **Le bucket historique `photos` est encore public.** Une migration corrective est préparée dans `202611190003_private_legacy_media.sql`, mais elle ne doit être appliquée qu'après que le nouveau frontend soit publié. Elle rendra les anciens médias accessibles uniquement aux participants des messages correspondants. Aucun fichier historique ne sera supprimé.
-2. **Protection Supabase contre les mots de passe compromis désactivée.** L'advisor Supabase la signale encore. Le réglage doit être activé dans Auth si le plan et les paramètres du projet le permettent ; aucun abonnement payant n'a été souscrit.
-3. **Le code de la branche n'est pas encore sur `main` et n'est donc pas encore le site public.** Une PR et les validations CI doivent être terminées avant la bascule.
-4. **Pas de test E2E complet dans un navigateur avec deux comptes de test.** Les tests SQL transactionnels et l'analyse statique ne remplacent pas ces essais.
-5. **Les paiements Airtel Money restent vérifiés manuellement.** Aucune API opérateur ou automatisation de paiement n'est configurée.
-6. Les traductions Swahili/Lingala/Kikongo/Tshiluba, les textes juridiques définitifs, les réglages avancés de notifications et l'Avatar Studio ne sont pas validés comme fonctionnalités de lancement. La mascotte animée est ajoutée ; elle ne constitue pas l'Avatar Studio.
+## État des contrôles Supabase
+- Buckets `chat-media`, `profile-photos` et `photos` : tous `public=false`.
+- Conseils de santé : aucun finding.
+- Sécurité : un finding informatif sur `private.admins` (RLS activé sans politique dans un schéma privé non exposé ; accès réservé aux fonctions privées) et un avertissement sur la protection des mots de passe compromis désactivée.
+- Cette protection Auth reste désactivée. Aucun changement de forfait ni dépense n'a été engagé.
 
-## État des advisors après les corrections
-- Santé Supabase : aucun finding retourné.
-- Sécurité : restent le finding informatif RLS activé sans politique sur `private.admins` (schéma non exposé, accès par fonctions privées) et l'avertissement de protection des mots de passe compromis désactivée.
-- Le bucket `photos` public demeure un risque jusqu'à l'application de la migration de bascule après publication du frontend.
+## Ce qui n'est pas certifié terminé
+1. **Publication GitHub Pages** : le code a été fusionné dans `main`, mais l'URL publique n'a pas pu être vérifiée par l'outil de contrôle. Le déploiement et le rendu sur téléphone doivent encore être confirmés.
+2. **Tests E2E** : pas de parcours complet navigateur avec deux comptes sur appareil réel. Les tests SQL et CI ne remplacent pas ces tests.
+3. **Protection contre mots de passe compromis** : à activer dans les paramètres Auth si disponible sans upgrade ; sinon décision de plan à prendre avant lancement.
+4. **Paiements** : Airtel Money reste une vérification manuelle ; aucune API opérateur n'est connectée.
+5. **Fonctionnalités non livrées** : Avatar Studio, traductions complètes en Swahili/Lingala/Kikongo/Tshiluba, réglages avancés de notifications et validation juridique finale.
 
-## Règle de publication
-Ne pas annoncer Malachite comme entièrement sécurisé ou prêt à la production tant que le nouveau frontend n'est pas publié, que le bucket historique n'est pas privé, que les validations CI ne sont pas vertes et que les parcours E2E ne sont pas passés.
+## Conclusion
+Le code et la base ont été renforcés, les trois buckets sont privés et les contrôles statiques/SQL exécutés sont passés. Cela ne constitue pas une certification de sécurité ni une preuve de lancement opérationnel. La validation du site public, les tests E2E et le réglage Auth restant sont les dernières étapes avant de déclarer le lancement prêt.
