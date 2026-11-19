@@ -1244,7 +1244,13 @@ function sub(){
   .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:'a=eq.'+me.id},handleOwnMessageEvent)
   .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:'de=eq.'+me.id},handleOwnMessageEvent)
   .on('postgres_changes',{event:'*',schema:'public',table:'message_receipts',filter:'sender_id=eq.'+me.id},handleReceiptEvent)
-  .subscribe();
+  .subscribe(function(status,error){
+   if(status==='SUBSCRIBED'){
+    if(tab==='chat'&&open)loadChat();
+   }else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED'){
+    console.warn('Canal de messagerie Realtime indisponible : '+status,error||'');
+   }
+  });
  syncIncomingDeliveries().catch(function(e){console.warn('Synchronisation des accusés',e)});
 }
 var cel={};
@@ -1289,7 +1295,7 @@ async function call(){alert('Les appels vidéo sont temporairement désactivés 
 var TH=[['Rose bonbon','linear-gradient(180deg,#FFF5F9,#FFD9E8)','#7A5566'],['Lavande','linear-gradient(180deg,#F6F0FF,#DCCBFF)','#5B4B7A'],['Ciel','linear-gradient(180deg,#EFF8FF,#BFE3FF)','#3F6280'],['Menthe','linear-gradient(180deg,#F0FFF7,#BDF1D6)','#3C6B55'],['Pêche','linear-gradient(180deg,#FFF6EE,#FFD3B5)','#7A5A45'],['Coucher de soleil','linear-gradient(180deg,#FFB199,#FF0844)','#fff'],['Océan','linear-gradient(180deg,#43C6AC,#191654)','#fff'],['Nuit étoilée','linear-gradient(180deg,#232526,#414345)','#ddd'],['Or','linear-gradient(180deg,#FFF8E1,#F5C451)','#6B4E10'],['Cerise','linear-gradient(180deg,#E6195E,#7A0A33)','#fff']],cth=0,thOpen=false;
 try{cth=+localStorage.getItem('cth')||0}catch(e){}
 function setTh(i){cth=i;try{localStorage.setItem('cth',i)}catch(e){}thOpen=false;draw(true)}
-function openConv(id){if(!id||!me)return;if(id===me.id){msg='Conversation invalide : ton propre compte ne peut pas être destinataire.';return}open=id;tab='chat';chatCursor=null;chatCursorId=0;chatBeforeId=0;chatHasOlder=false;chatCursorFor=null;chatInitialLoading=true;blockedCurrent=false;blockedCheckedFor=null;msgs=[];lastSig='';replyDraft=null;msg='';clearInterval(timer);persistMalView();draw(true);loadChat();timer=setInterval(function(){if(tab==='chat'&&open&&!document.hidden)loadChat()},30000)}
+function openConv(id){if(!id||!me)return;if(id===me.id){msg='Conversation invalide : ton propre compte ne peut pas être destinataire.';return}open=id;tab='chat';chatCursor=null;chatCursorId=0;chatBeforeId=0;chatHasOlder=false;chatCursorFor=null;chatInitialLoading=true;blockedCurrent=false;blockedCheckedFor=null;msgs=[];lastSig='';replyDraft=null;msg='';clearInterval(timer);persistMalView();draw(true);loadChat();timer=setInterval(function(){if(tab==='chat'&&open&&!document.hidden)loadChat()},10000)}
 function closeConv(){open=null;chatCursor=null;chatCursorId=0;chatBeforeId=0;chatHasOlder=false;chatCursorFor=null;chatInitialLoading=false;msgs=[];lastSig='';go('chat')}
 function goTab(k){if(k=='chat'){open=null;chatCursor=null;chatCursorId=0;chatBeforeId=0;chatHasOlder=false;chatCursorFor=null;chatInitialLoading=false;msgs=[];lastSig=''}go(k)}
 function online(p){return !!(p&&p.derniere_vue&&Date.now()-new Date(p.derniere_vue)<120000)}
@@ -1677,7 +1683,7 @@ function go(t){
  if(t==="centre"&&!me){malShowLegal();return}
  document.querySelectorAll(".sheetbg,.viewer,.lbx").forEach(function(e){e.remove()});
  tab=t;msg="";lastSig="";clearInterval(timer);persistMalView();
- if(t==="chat"){if(open&&chatCursorFor!==open){chatInitialLoading=true;chatCursorId=0;chatBeforeId=0;chatHasOlder=false;msgs=[]}draw(true);loadChat();timer=setInterval(function(){if(tab==="chat"&&!document.hidden)loadChat()},30000);return}
+ if(t==="chat"){if(open&&chatCursorFor!==open){chatInitialLoading=true;chatCursorId=0;chatBeforeId=0;chatHasOlder=false;msgs=[]}draw(true);loadChat();timer=setInterval(function(){if(tab==="chat"&&!document.hidden)loadChat()},10000);return}
  if(t==="home"||t==="search"){load().then(function(){if(tab===t)draw(true)});draw(true);return}
  if(t==="rdv"){loadRdv().then(function(){if(tab===t)draw(true)});draw(true);return}
  if(t==="adm"){loadAdm();return}
