@@ -4,12 +4,12 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 const html = fs.readFileSync('index.html', 'utf8');
-const inlineScripts = [...html.matchAll(/<script\\b[^>]*>([\\s\\S]*?)<\\/script>/gi)]
+const inlineScripts = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)]
   .map((match) => match[1])
   .filter((source) => source.trim().length > 0);
 if (inlineScripts.length === 0) throw new Error('No inline application script found.');
 const temp = path.join(os.tmpdir(), 'malachite-inline.js');
-fs.writeFileSync(temp, inlineScripts.join('\\n;\\n'));
+fs.writeFileSync(temp, inlineScripts.join('\n;\n'));
 const js = spawnSync(process.execPath, ['--check', temp], { encoding: 'utf8' });
 if (js.status !== 0) {
   process.stderr.write(js.stderr || js.stdout);
@@ -32,7 +32,7 @@ for (const item of requiredFrontend) {
 }
 if (html.includes("profiles').select('*')")) throw new Error('Public profile query must not select private columns.');
 if (!html.includes("insert({de:me.id,profil:id,motif:motif})")) throw new Error('Report must include the authenticated reporter id.');
-if ((html.match(/storage\\.from\\('photos'\\)\\.upload/g) || []).length) throw new Error('New uploads must not use the legacy public photos bucket.');
+if ((html.match(/storage\.from\('photos'\)\.upload/g) || []).length) throw new Error('New uploads must not use the legacy public photos bucket.');
 if (/service[_-]?role|sb_secret_/i.test(html)) throw new Error('Privileged Supabase credentials must never appear in browser code.');
 if (html.includes('contact_interdit')) throw new Error('Private message content must not be scanned to block contact details.');
 
@@ -53,7 +53,7 @@ if (!sw.includes('storage') || !sw.includes('Authorization')) throw new Error('S
 const migrations = fs.readdirSync('supabase/migrations')
   .filter((name) => name.endsWith('.sql'))
   .map((name) => fs.readFileSync(path.join('supabase/migrations', name), 'utf8'))
-  .join('\\n');
+  .join('\n');
 for (const item of [
   'private.admin_moderate_user',
   'public.moderate_user',
