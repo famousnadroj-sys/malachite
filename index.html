@@ -854,18 +854,20 @@ async function ensureMatchNotice(id){
 async function avis(ok){ans[open]=ok;await sb.from('avis_match').upsert({autre:open,ok:ok});if(ok)hearts();lastSig='';loadChat()}
 async function payC(){var c=$('uc').value.trim();if(!c)return;var r=await sb.from('paiements').insert({offre:'Contact',cible:open,code:c});$('um').textContent=r.error?'Erreur, réessaie.':'Code reçu. Le contact sera débloqué après vérification.'}
 async function sendImg(el){
- var f=el&&el.files&&el.files[0];if(!f||!open)return;
+ var f=el&&el.files&&el.files[0];if(!f)return;
  var clear=function(){if(el)el.value=''};
+ if(!open||!me){clear();return}
  var allowed={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif'};
  if(!allowed[f.type]){msg='Format photo non accepté. Utilise JPEG, PNG, WebP ou GIF.';clear();return draw(true)}
  if(f.size>5*1024*1024){msg='Photo trop lourde : 5 Mo maximum.';clear();return draw(true)}
- var p=me.id+'/'+open+'/photo-'+Date.now()+'.'+allowed[f.type];
+ var p=me.id+'/'+open+'/photo-'+Date.now()+'-'+Math.random().toString(36).slice(2,7)+'.'+allowed[f.type];
  try{
-  var up=await sb.storage.from('chat-media').upload(p,f,{contentType:f.type,upsert:false});
+  msg='Envoi de la photo…';draw(true);
+  var up=await sb.storage.from('chat-media').upload(p,f,{contentType:f.type,upsert:false,cacheControl:'3600'});
   if(up.error)throw up.error;
   var q=await sb.from('messages').insert({a:open,texte:'📷 Photo',media_url:p,media_type:'image'});
   if(q.error){await sb.storage.from('chat-media').remove([p]);throw q.error}
-  msg='';lastSig='';clear();await loadChat();
+  clear();msg='';lastSig='';await loadChat();draw(true);
  }catch(e){msg='Photo non envoyée : '+(e&&e.message?e.message:'erreur inconnue');clear();draw(true)}
 }
 function banner(){if(!me)return '';var nb=(tab=='home'&&'Notification' in window&&Notification.permission=='default')?'<div class="wall pop">🔔 <b>Active les notifications</b> pour ne rater aucun message ni rendez-vous.<button class="b1" style="width:100%;margin-top:8px" onclick="askNotif()">Activer</button></div>':'';var t=new Date().toDateString();return nb+rdvs.filter(function(x){return x.statut=='confirme'&&new Date(x.quand).toDateString()==t}).map(function(x){var p=prof(x.de==me.id?x.a:x.de)||{};return '<div class="wall pop">🔔 <b>Aujourd’hui</b> : rendez-vous avec '+esc(p.prenom||'ton match')+' à '+new Date(x.quand).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+' · '+esc(x.lieu)+'</div>'}).join('')}
@@ -965,18 +967,19 @@ async function recStart(){
 }
 function recStop(c){rcancel=!!c;if(mr&&mr.state!='inactive')mr.stop()}
 async function sendAudio(blob,sec){
- if(!open||!blob||!blob.size)return;
+ if(!open||!me||!blob||!blob.size)return;
  if(blob.size>8*1024*1024){msg='Vocal trop volumineux : 8 Mo maximum.';return draw(true)}
  var raw=(blob.type||'audio/webm').split(';')[0].toLowerCase();
  var types={'audio/webm':'webm','audio/mp4':'m4a','audio/x-m4a':'m4a','audio/ogg':'ogg','audio/aac':'aac','audio/mpeg':'mp3'};
  var ext=types[raw];if(!ext){msg='Format audio non pris en charge par le stockage.';return draw(true)}
- var p=me.id+'/'+open+'/vocal-'+Date.now()+'.'+ext;
+ var p=me.id+'/'+open+'/vocal-'+Date.now()+'-'+Math.random().toString(36).slice(2,7)+'.'+ext;
  try{
-  var up=await sb.storage.from('chat-media').upload(p,blob,{contentType:raw,upsert:false});
+  msg='Envoi du message vocal…';draw(true);
+  var up=await sb.storage.from('chat-media').upload(p,blob,{contentType:raw,upsert:false,cacheControl:'3600'});
   if(up.error)throw up.error;
   var q=await sb.from('messages').insert({a:open,texte:'🎤 Message vocal ('+(sec||0)+' s)',media_url:p,media_type:'audio'});
   if(q.error){await sb.storage.from('chat-media').remove([p]);throw q.error}
-  msg='';lastSig='';await loadChat();
+  msg='';lastSig='';await loadChat();draw(true);
  }catch(e){msg='Vocal non envoyé : '+(e&&e.message?e.message:'erreur inconnue');draw(true)}
 }
 function playV(b){if(aud){aud.pause();if(audBtn){audBtn.textContent='▶';audBtn.parentNode.classList.remove('pl')}if(audBtn===b){aud=null;audBtn=null;return}}aud=new Audio(b.dataset.src);audBtn=b;b.textContent='⏸';b.parentNode.classList.add('pl');aud.onended=function(){b.textContent='▶';b.parentNode.classList.remove('pl');aud=null;audBtn=null};aud.play().catch(function(){b.textContent='▶';b.parentNode.classList.remove('pl')})}
@@ -1190,18 +1193,20 @@ function draw(keep){var y=scrollY,tv=$('mi')?$('mi').value:'';document.body.clas
 function centre(){if(mine&&mine.avatar){malAvatarEmoji=mine.avatar.emoji||"🥰";malAvatarColor=mine.avatar.color||"#F7B7D0"}return malCentre()}
 function bub(m){var u=!!m.display_url,t=new Date(m.created_at).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"}),body=u&&m.media_type==="image"?'<img alt="photo" class="pic" onclick="viewImg(this.src)" src="'+esc(m.display_url)+'">':u&&m.media_type==="audio"?'<audio class="aud" controls preload="metadata" src="'+esc(m.display_url)+'"></audio>':u&&m.media_type==="video"?'<video controls playsinline preload="metadata" style="max-width:100%;max-height:260px;border-radius:12px" src="'+esc(m.display_url)+'"></video>':esc(m.texte);return '<div class="m '+(m.de==me.id?"out":"in")+'">'+body+'<span class="tm">'+t+'</span></div>'}
 async function sendVideo(el){
- var f=el&&el.files&&el.files[0];if(!f||!open)return;
+ var f=el&&el.files&&el.files[0];if(!f)return;
  var clear=function(){if(el)el.value=''};
+ if(!open||!me){clear();return}
  var allowed={'video/mp4':'mp4','video/webm':'webm'};
- if(!allowed[f.type]){msg='Format vidéo non accepté. Utilise MP4 ou WebM.';clear();return draw(true)}
- if(f.size>8*1024*1024){msg='Vidéo trop lourde : 8 Mo maximum.';clear();return draw(true)}
- var p=me.id+'/'+open+'/video-'+Date.now()+'.'+allowed[f.type];
+ if(!allowed[f.type]){msg='Format vidéo non accepté. Choisis une vidéo MP4 ou WebM.';clear();return draw(true)}
+ if(f.size>8*1024*1024){msg='Vidéo trop lourde : 8 Mo maximum pour le moment.';clear();return draw(true)}
+ var p=me.id+'/'+open+'/video-'+Date.now()+'-'+Math.random().toString(36).slice(2,7)+'.'+allowed[f.type];
  try{
-  var up=await sb.storage.from('chat-media').upload(p,f,{contentType:f.type,upsert:false});
+  msg='Envoi de la vidéo…';draw(true);
+  var up=await sb.storage.from('chat-media').upload(p,f,{contentType:f.type,upsert:false,cacheControl:'3600'});
   if(up.error)throw up.error;
   var q=await sb.from('messages').insert({a:open,texte:'🎬 Vidéo',media_url:p,media_type:'video'});
   if(q.error){await sb.storage.from('chat-media').remove([p]);throw q.error}
-  msg='';lastSig='';clear();await loadChat();
+  clear();msg='';lastSig='';await loadChat();draw(true);
  }catch(e){msg='Vidéo non envoyée : '+(e&&e.message?e.message:'erreur inconnue');clear();draw(true)}
 }
 </script><script>
