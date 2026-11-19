@@ -680,7 +680,7 @@ async function resolveMessageMedia(m){
  var localPreview=m.display_url&&String(m.display_url).indexOf('blob:')===0?m.display_url:'';
  if(m.display_url&&!localPreview)return m;
  if(localPreview)m.display_url='';
- await resolveMessagesMedia([m]);
+ try{await resolveMessagesMedia([m])}catch(error){if(localPreview)m.display_url=localPreview;throw error}
  if(!m.display_url&&localPreview)m.display_url=localPreview;
  return m;
 }
