@@ -1357,13 +1357,12 @@ function suspensionsAdmin(){return '<h2>Comptes suspendus ('+admSuspensions.leng
 function admin(){return reportsAdmin()+suspensionsAdmin()+admin0()+avisList()}
 var myAvis=[];
 function receiptMarkup(m,pending){
- if(pending)return '<span class="msg-status pending" aria-label="En attente d’envoi">◷</span>';
+ if(pending)return '<span class="msg-status pending" role="img" aria-label="En attente d’envoi"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7v5l3.2 2"></path></svg></span>';
  if(!m||m.de!==me.id)return '';
- var r=receiptByMessage[String(m.id)];
- if(!r)return '<span class="msg-status sent" aria-label="Envoyé">✓</span>';
- if(r.read_at)return '<span class="msg-status read" aria-label="Lu">✓✓</span>';
- if(r.delivered_at)return '<span class="msg-status delivered" aria-label="Reçu">✓✓</span>';
- return '<span class="msg-status sent" aria-label="Envoyé">✓</span>';
+ var r=receiptByMessage[String(m.id)],kind=r&&r.read_at?'read':r&&r.delivered_at?'delivered':'sent';
+ if(kind==='read')return '<span class="msg-status read" role="img" aria-label="Lu"><svg viewBox="0 0 28 18" aria-hidden="true"><path d="m1.5 9 5 5 10-10"></path><path d="m9 9 5 5L26 2"></path></svg></span>';
+ if(kind==='delivered')return '<span class="msg-status delivered" role="img" aria-label="Reçu"><svg viewBox="0 0 28 18" aria-hidden="true"><path d="m1.5 9 5 5 10-10"></path><path d="m9 9 5 5L26 2"></path></svg></span>';
+ return '<span class="msg-status sent" role="img" aria-label="Envoyé"><svg viewBox="0 0 24 18" aria-hidden="true"><path d="m3 9 5 5L21 2"></path></svg></span>';
 }
 function patchReceipt(messageId){
  var node=document.querySelector('.m[data-message-id="'+String(messageId)+'"]');
@@ -1633,7 +1632,7 @@ function bub(m,i){
  else if(u&&m.media_type==="video")body='<video class="chat-video" controls playsinline preload="none" src="'+esc(m.display_url)+'"></video><a class="chat-video-open" href="'+esc(m.display_url)+'" target="_blank" rel="noopener">Ouvrir la vidéo si la lecture bloque ↗</a>';
  else if(m.media_type==="document")body='<div class="chat-document"><b>📄 '+esc(label)+'</b><small>'+(u?'Document prêt':'Document enregistré · préparation du lien')+'</small><div class="chat-document-actions">'+(u?'<a href="'+esc(m.display_url)+'" target="_blank" rel="noopener">Ouvrir</a><a href="'+esc(m.download_url||m.display_url)+'" target="_blank" rel="noopener">Télécharger</a>':'<span>Réessaie dans un instant</span>')+'</div></div>';
  else body=esc(m.texte||"");
- return '<div class="m '+(m.de===me.id?'out':'in')+'" data-message-id="'+esc(m.id)+'" data-message-index="'+i+'" onclick="openMessageActions('+i+',event)" role="button" tabindex="0" aria-label="Options du message">'+body+'<span class="tm">'+(pending?'Envoi…':t)+'</span></div>';
+ return '<div class="m '+(m.de===me.id?'out':'in')+'" data-message-id="'+esc(m.id)+'" data-message-index="'+i+'" onclick="openMessageActions('+i+',event)" role="button" tabindex="0" aria-label="Options du message">'+body+'<span class="tm"><span class="msg-time">'+(pending?'Envoi…':t)+'</span>'+receiptMarkup(m,pending)+'</span></div>';
 }
 async function sendVideo(el){
  var f=el&&el.files&&el.files[0];if(!f)return;
@@ -2071,11 +2070,15 @@ body.mal-chat-mode .chat .m .chat-document{color:#203b32!important}
 @media(prefers-reduced-motion:reduce){.mal-own-cover:before,.mal-own-cover-caption,.mal-own-cover-caption b,.mal-own-gallery img{animation:none!important;transition:none!important}}
 
 
-/* Delivery and read indicators */
-body.mal-chat-mode .msg-status{display:inline-block;margin-left:5px;font-size:12px;letter-spacing:-3px;font-weight:700;vertical-align:baseline;color:#86969d;white-space:nowrap}
-body.mal-chat-mode .msg-status.pending{font-size:13px;letter-spacing:0;color:#86969d}
-body.mal-chat-mode .msg-status.delivered{color:#667781}
-body.mal-chat-mode .msg-status.read{color:#34a9e8}
+/* Delivery and read indicators: visible on the active chat bubbles */
+body.mal-chat-mode .m .tm{display:flex;align-items:center;justify-content:flex-end;gap:5px;min-height:16px;line-height:1.2}
+body.mal-chat-mode .m .msg-time{display:inline-block}
+body.mal-chat-mode .m .msg-status{display:inline-flex!important;align-items:center;justify-content:center;flex:0 0 auto;width:20px;height:16px;margin:0!important;opacity:1!important;color:#657780;vertical-align:middle}
+body.mal-chat-mode .m .msg-status svg{display:block;width:18px;height:15px;overflow:visible;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+body.mal-chat-mode .m .msg-status.pending{width:16px;color:#657780}
+body.mal-chat-mode .m .msg-status.pending svg{width:15px;height:15px;stroke-width:2}
+body.mal-chat-mode .m.out .msg-status.sent,body.mal-chat-mode .m.out .msg-status.delivered,body.mal-chat-mode .m.out .msg-status.pending{color:#fff}
+body.mal-chat-mode .m.out .msg-status.read{color:#a9e5ff}
 
 /* Modern message interactions — scoped to the conversation view */
 .m{cursor:pointer;position:relative;transition:transform .14s ease,box-shadow .14s ease;box-shadow:0 2px 8px rgba(58,18,36,.06);overflow-wrap:anywhere}
