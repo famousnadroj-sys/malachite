@@ -551,7 +551,7 @@ nav button.on{background:#fff0f5!important;color:#d81b60!important}
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#D81B60"/><stop offset="1" stop-color="#FF6B9D"/></linearGradient></defs></svg><main id="v"></main><nav id="nav"></nav>
 <script>
 var sb=supabase.createClient('https://tscsmemsvgacqioncash.supabase.co','sb_publishable_XDpqSzsPNeVduv6aGyjuoA_suakeFN0');
-var me=null,mine=null,profileDraft={},signupDraft={},signupStep=1,pendingSignupPhoto=null,pendingSignupPreview='',pendingSignupEmail='',phUrls=[],loadSeq=0,loadedUid=null,profileEditing=false,pendingProfileFile=null,pendingProfilePreview='',profileSaving=false,privLoadFailed=false,admSuspensions=[],ADM='famousnadroj@gmail.com',av2=null,mutual=false,ct=null,lastSig='',rdvFor=null,fresh=false,adm=[],sigs=[],blocked=[],blockedProfiles=[],blockedCurrent=false,blockedCheckedFor=null,NUM='',rdvs=[],pos='',priv={},profs=[],st={},tab='home',open=null,msgs=[],convs=[],ph=[],msg='',F={g:'',c:'',a:18,b:99},timer,mode='in';
+var me=null,mine=null,profileDraft={},signupDraft={},signupStep=1,signupOtpPending=false,signupOtpPhone='',pendingSignupPhoto=null,pendingSignupPreview='',pendingSignupEmail='',phUrls=[],loadSeq=0,loadedUid=null,profileEditing=false,pendingProfileFile=null,pendingProfilePreview='',profileSaving=false,privLoadFailed=false,admSuspensions=[],ADM='famousnadroj@gmail.com',av2=null,mutual=false,ct=null,lastSig='',rdvFor=null,fresh=false,adm=[],sigs=[],blocked=[],blockedProfiles=[],blockedCurrent=false,blockedCheckedFor=null,NUM='',rdvs=[],pos='',priv={},profs=[],st={},tab='home',open=null,msgs=[],convs=[],ph=[],msg='',F={g:'',c:'',a:18,b:99},timer,mode='in';
 var $=function(i){return document.getElementById(i)};
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 function on(t){return t&&new Date(t)>new Date()}
@@ -588,7 +588,7 @@ async function ensureSignupProfile(user,metadata){
   var privateFields={age:age,genre:md.genre||'H',commune:md.commune||'Lubumbashi',quartier:md.quartier||'',profession:md.profession||'',bio:md.bio||'',interets:[],photos:photos,prompts:[]};
   var prefs={profile_visibility:{mode:isPrivate?'private':'public'},profile_private:privateFields,relation_pref:md.relation_pref||'Amour'};
   var pub={id:uid,prenom:md.prenom,age:isPrivate?null:age,genre:isPrivate?null:(md.genre||'H'),commune:isPrivate?null:(md.commune||'Lubumbashi'),quartier:isPrivate?null:(md.quartier||''),profession:isPrivate?null:(md.profession||''),bio:isPrivate?null:(md.bio||''),interets:[],photos:isPrivate?photos.slice(0,1):photos,prompts:[],profile_private:isPrivate};
-  var privData={nom_complet:md.nom_complet||md.prenom,adresse:'',telephone:'',profile_age:age,prefs:prefs};
+  var privData={nom_complet:md.nom_complet||md.prenom,adresse:'',telephone:md.telephone||user.phone||'',profile_age:age,prefs:prefs};
   var saved=await sb.rpc('save_my_profile',{p_profile:pub,p_private:privData});
   if(saved.error||!saved.data||saved.data.id!==uid)throw new Error(saved.error?saved.error.message:'La base n’a pas confirmé le profil.');
   pendingSignupPhoto=null;pendingProfileFile=null;pendingSignupEmail='';signupDraft={};
@@ -651,26 +651,31 @@ async function load(){
 }
 function authView(){
  var up=mode==='up';
- var imgs=[
- 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=700&h=950&fit=crop&crop=faces',
- 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=700&h=950&fit=crop&crop=faces',
- 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=700&h=950&fit=crop&crop=faces'
- ];
+ var imgs=['https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=700&h=950&fit=crop&crop=faces','https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=700&h=950&fit=crop&crop=faces','https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=700&h=950&fit=crop&crop=faces'];
  if(up){
-  var step=signupStep||1, d=signupDraft||{};
-  var hero=step===1?'<img src="'+imgs[0]+'" alt="Portrait photographique d’illustration"><img src="'+imgs[1]+'" alt="Portrait photographique d’illustration">':step===2?'<img src="'+imgs[1]+'" alt="Portrait photographique d’illustration"><img src="'+imgs[2]+'" alt="Portrait photographique d’illustration">':'<img src="'+imgs[2]+'" alt="Portrait photographique d’illustration"><img src="'+imgs[0]+'" alt="Portrait photographique d’illustration">';
+  var step=signupStep||1,d=signupDraft||{};
+  var hero=step===1?'<img src="'+imgs[0]+'" alt="Portrait d’illustration"><img src="'+imgs[1]+'" alt="Portrait d’illustration">':step===2?'<img src="'+imgs[1]+'" alt="Portrait d’illustration"><img src="'+imgs[2]+'" alt="Portrait d’illustration">':'<img src="'+imgs[2]+'" alt="Portrait d’illustration"><img src="'+imgs[0]+'" alt="Portrait d’illustration">';
   var fields='';
-  if(step===1)fields='<div class="mal-step-fields"><label>Prénom *<input id="suFirst" autocomplete="given-name" value="'+esc(d.prenom||'')+'" placeholder="Ton prénom"></label><label>Nom complet<input id="suFull" autocomplete="name" value="'+esc(d.nom_complet||'')+'" placeholder="Ton nom et prénom"></label><div class="g2"><label>Âge *<input id="suAge" type="number" min="18" max="100" inputmode="numeric" value="'+esc(d.age||'')+'" placeholder="18 ans ou plus"></label><label>Je suis<select id="suGender"><option value="H" '+(d.genre!=='F'?'selected':'')+'>Un homme</option><option value="F" '+(d.genre==='F'?'selected':'')+'>Une femme</option></select></label></div><label>Commune à Lubumbashi<select id="suCommune">'+['Lubumbashi','Kampemba','Katuba','Kenya','Ruashi','Annexe','Golf','Bel-Air','Autre'].map(function(x){return '<option '+((d.commune||'Lubumbashi')===x?'selected':'')+'>'+x+'</option>'}).join('')+'</select></label><label>Quartier / avenue<input id="suQuarter" value="'+esc(d.quartier||'')+'" placeholder="Ton quartier (facultatif)"></label></div>';
+  if(step===1)fields='<div class="mal-step-fields"><label>Prénom / nom affiché *<input id="suFirst" autocomplete="given-name" value="'+esc(d.prenom||'')+'" placeholder="Le nom que les autres verront"></label><label>Nom complet<input id="suFull" autocomplete="name" value="'+esc(d.nom_complet||'')+'" placeholder="Ton nom complet"></label><label>Numéro de téléphone *<input id="suPhone" type="tel" autocomplete="tel" inputmode="tel" value="'+esc(d.telephone||'')+'" placeholder="+243 81 234 5678"></label><label>Mot de passe *<input id="suPassword" type="text" autocomplete="new-password" value="'+esc(d.password||'')+'" placeholder="12 caractères minimum"></label><label>Confirmer le mot de passe *<input id="suPasswordConfirm" type="text" autocomplete="new-password" value="'+esc(d.passwordConfirm||'')+'" placeholder="Répète le même mot de passe"></label><div class="g2"><label>Âge *<input id="suAge" type="number" min="18" max="100" inputmode="numeric" value="'+esc(d.age||'')+'" placeholder="18 ans ou plus"></label><label>Je suis<select id="suGender"><option value="H" '+(d.genre!=='F'?'selected':'')+'>Un homme</option><option value="F" '+(d.genre==='F'?'selected':'')+'>Une femme</option></select></label></div><label>Commune à Lubumbashi<select id="suCommune">'+['Lubumbashi','Kampemba','Katuba','Kenya','Ruashi','Annexe','Golf','Bel-Air','Autre'].map(function(x){return '<option '+((d.commune||'Lubumbashi')===x?'selected':'')+'>'+x+'</option>'}).join('')+'</select></label><label>Quartier / avenue<input id="suQuarter" value="'+esc(d.quartier||'')+'" placeholder="Ton quartier (facultatif)"></label><small>Ton numéro reste privé. Il ne sera jamais affiché publiquement dans ton profil.</small></div>';
   if(step===2)fields='<div class="mal-step-fields"><label>Activité / profession<input id="suJob" autocomplete="organization-title" value="'+esc(d.profession||'')+'" placeholder="Étudiant(e), entrepreneur(e), etc."></label><label>Quelques mots sur toi<textarea id="suBio" rows="4" maxlength="300" placeholder="Ta personnalité, tes passions, ce qui te rend unique…">'+esc(d.bio||'')+'</textarea></label><div class="mal-relation"><b>Quel type de lien souhaites-tu créer ?</b><div class="mal-relation-grid">'+[['Amour','💗'],['Amitié','🤝'],['Rencontre','✨'],['Autre','🌿']].map(function(x){return '<label class="mal-relation-option"><input type="radio" name="suRelation" value="'+x[0]+'" '+((d.relation||'Amour')===x[0]?'checked':'')+'><span>'+x[1]+' '+x[0]+'</span></label>'}).join('')+'</div></div><label>Visibilité de ton profil<select id="suVisibility"><option value="public" '+((d.profile_visibility||'public')==='public'?'selected':'')+'>🌍 Public — visible dans Découvrir</option><option value="private" '+(d.profile_visibility==='private'?'selected':'')+'>🔒 Privé — détails limités</option></select></label></div>';
-  if(step===3)fields='<div class="mal-step-fields"><div class="mal-signup-photo"><div id="malSignupPreview" class="mal-signup-avatar" style="'+(pendingSignupPreview?'background-image:url('+pendingSignupPreview+')':'')+'">'+(pendingSignupPreview?'':'📷')+'</div><label class="btn">＋ Ajouter ma photo de profil<input id="malSignupPhoto" type="file" accept="image/jpeg,image/png,image/webp,image/gif" onchange="stageSignupPhoto(this)"></label><small id="malSignupPhotoHint">'+(pendingSignupPhoto?'Photo prête à être enregistrée':'Photo recommandée · JPEG, PNG, WebP ou GIF · 5 Mo maximum')+'</small></div><div class="mal-welcome-copy"><span>BIENVENUE CHEZ MALACHITE</span><h2>Les belles histoires commencent par une rencontre.</h2><p>Je souhaite des échanges sincères, des découvertes respectueuses et de belles connexions. À toi d’écrire la suite. 💗</p></div><label>Adresse e-mail *<input id="em" type="email" autocomplete="email" inputmode="email" value="'+esc(d.email||'')+'" placeholder="ton@email.com"></label><label>Mot de passe *<input id="pw" type="password" autocomplete="new-password" placeholder="12 caractères minimum"></label><label class="mal-consent-row"><input id="malConsent" type="checkbox" '+(d.consent?'checked':'')+' onchange="signupConsentChanged(this)"><span>J’ai 18 ans ou plus et j’accepte les conditions d’utilisation ainsi que la politique de confidentialité.</span></span></label></div>';
-  return '<main class="ml-auth-wrap mal-signup-shell"><section class="mal-signup-heading"><span class="ml-auth-kicker">MALACHITE · LUBUMBASHI, HAUT-KATANGA</span><h1>Une belle rencontre peut <i>tout changer.</i></h1><p>Une communauté qui commence à Lubumbashi, puis s’ouvrira progressivement à d’autres villes et pays.</p><div class="mal-signup-photos">'+hero+'</div></section><section class="box ml-auth-card mal-step-card"><div class="seg"><button onclick="mode=\'in\';msg=\'\';draw()">Connexion</button><button class="sel">Inscription</button></div><div class="mal-step-progress"><span>ÉTAPE '+step+' SUR 3</span><b>'+['','Ton identité','Faisons connaissance','Ta photo et bienvenue'][step]+'</b><div><i style="width:'+(step*33.333)+'%"></i></div></div><div class="mal-step-content" key="'+step+'"><div class="mal-step-kicker">'+['','01 · IDENTITÉ','02 · TES ENVIES','03 · DERNIÈRE TOUCHE'][step]+'</div><h2>'+['','Qui es-tu ?','Qu’aimerais-tu partager ?','Prêt(e) à faire de belles rencontres ?'][step]+'</h2><p class="ml-auth-sub">'+['','Commençons simplement. Tu pourras modifier ces informations plus tard.','Aide les autres à mieux te connaître et indique ce que tu recherches.','Ajoute une photo, crée ton accès et rejoins la communauté.'][step]+'</p>'+fields+'<div class="mal-step-actions">'+(step>1?'<button type="button" onclick="signupBack()">← Retour</button>':'<button type="button" onclick="mode=\'in\';draw()">Annuler</button>')+(step<3?'<button type="button" class="b1" onclick="signupNext()">Continuer →</button>':'<button type="button" id="malFinishSignup" class="b1" onclick="auth()" '+(d.consent?'':'disabled')+'>Créer mon compte et découvrir ♡</button>')+'</div><div class="err" id="ae">'+esc(msg)+'</div></div><p class="ml-auth-foot">Réservé aux personnes de 18 ans et plus. Respect, sécurité et confidentialité sont essentiels.</p></section></main>';
+  if(step===3)fields='<div class="mal-step-fields"><div class="mal-signup-photo"><div id="malSignupPreview" class="mal-signup-avatar" style="'+(pendingSignupPreview?'background-image:url('+pendingSignupPreview+')':'')+'">'+(pendingSignupPreview?'':'📷')+'</div><label class="btn">＋ Ajouter ma photo de profil<input id="malSignupPhoto" type="file" accept="image/jpeg,image/png,image/webp,image/gif" onchange="stageSignupPhoto(this)"></label><small id="malSignupPhotoHint">'+(pendingSignupPhoto?'Photo prête à être enregistrée':'Photo recommandée · JPEG, PNG, WebP ou GIF · 5 Mo maximum')+'</small></div><div class="mal-welcome-copy"><span>BIENVENUE CHEZ MALACHITE</span><h2>Les belles histoires commencent par une rencontre.</h2><p>Je souhaite des échanges sincères, des découvertes respectueuses et de belles connexions. À toi d’écrire la suite. 💗</p></div><label class="mal-consent-row"><input id="malConsent" type="checkbox" '+(d.consent?'checked':'')+' onchange="signupConsentChanged(this)"><span>J’ai 18 ans ou plus et j’accepte les conditions d’utilisation ainsi que la politique de confidentialité.</span></label>'+(signupOtpPending?'<div class="mal-otp-box"><b>Vérifie ton numéro</b><p>Un code de confirmation a été envoyé au '+esc(signupOtpPhone)+'.</p><label>Code reçu par SMS<input id="signupOtp" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="Code de vérification"></label></div>':'')+'</div>';
+  return '<main class="ml-auth-wrap mal-signup-shell"><section class="mal-signup-heading"><span class="ml-auth-kicker">MALACHITE · LUBUMBASHI, HAUT-KATANGA</span><h1>Une belle rencontre peut <i>tout changer.</i></h1><p>Une communauté qui commence à Lubumbashi, puis s’ouvrira progressivement à d’autres villes et pays.</p><div class="mal-signup-photos">'+hero+'</div></section><section class="box ml-auth-card mal-step-card"><div class="seg"><button onclick="mode=\'in\';msg=\'\';draw()">Connexion</button><button class="sel">Inscription</button></div><div class="mal-step-progress"><span>ÉTAPE '+step+' SUR 3</span><b>'+['','Ton accès et ton identité','Faisons connaissance','Ta photo et bienvenue'][step]+'</b><div><i style="width:'+(step*33.333)+'%"></i></div></div><div class="mal-step-content"><div class="mal-step-kicker">'+['','01 · TON COMPTE','02 · TES ENVIES','03 · DERNIÈRE TOUCHE'][step]+'</div><h2>'+['','Commençons par toi.','Qu’aimerais-tu partager ?','Prêt(e) à faire de belles rencontres ?'][step]+'</h2><p class="ml-auth-sub">'+['','Un numéro et un mot de passe suffisent pour créer ton accès.','Aide les autres à mieux te connaître et indique ce que tu recherches.','Ajoute ta photo, accepte les règles et rejoins la communauté.'][step]+'</p>'+fields+'<div class="mal-step-actions">'+(step>1?'<button type="button" onclick="signupBack()">← Retour</button>':'<button type="button" onclick="mode=\'in\';draw()">Annuler</button>')+(step<3?'<button type="button" class="b1" onclick="signupNext()">Continuer →</button>':(signupOtpPending?'<button type="button" class="b1" onclick="verifySignupOtp()">Vérifier mon numéro →</button>':'<button type="button" id="malFinishSignup" class="b1" onclick="auth()" '+(d.consent?'':'disabled')+'>Créer mon compte et découvrir ♡</button>'))+'</div><div class="err" id="ae">'+esc(msg)+'</div></div><p class="ml-auth-foot">Réservé aux personnes de 18 ans et plus. Respect, sécurité et confidentialité sont essentiels.</p></section></main>';
  }
- return '<main class="ml-auth-wrap"><section class="ml-auth-story"><span class="ml-auth-kicker">♡ MALACHITE · LUBUMBASHI, HAUT-KATANGA</span><h1>Les belles rencontres commencent <i>ici.</i></h1><p>Malachite commence à Lubumbashi, dans le Haut-Katanga. Notre ambition : ouvrir progressivement la communauté à d’autres villes, provinces et pays.</p><div class="ml-auth-promises"><span>♡ Rencontres sincères</span><span>⌕ Découvertes locales</span><span>✦ Respect &amp; confiance</span></div><div class="ml-portrait-scene"><div class="ml-portrait one"><img src="'+imgs[0]+'" alt="Portrait photographique d’illustration"></div><div class="ml-portrait two"><img src="'+imgs[1]+'" alt="Portrait photographique d’illustration"></div><div class="ml-portrait three"><img src="'+imgs[2]+'" alt="Portrait photographique d’illustration"></div><div class="ml-portrait-note">Et si c’était le début de quelque chose ? ✨</div></div></section><section class="box list ml-auth-card"><div class="ml-auth-card-kicker">BIENVENUE À NOUVEAU</div><div><h2>Heureux de te revoir</h2><p class="ml-auth-sub">Retrouve ton espace et tes conversations.</p></div><div class="seg"><button class="sel">Connexion</button><button onclick="mode=\'up\';signupStep=1;signupDraft={};msg=\'\';draw()">Inscription</button></div><label>Adresse e-mail<input id="em" type="email" autocomplete="email" inputmode="email" placeholder="ton@email.com"></label><label>Mot de passe<span class="pw"><input id="pw" type="password" autocomplete="current-password" placeholder="Ton mot de passe"><button type="button" onclick="var i=$(\'pw\');i.type=i.type==\'password\'?\'text\':\'password\'" aria-label="Afficher le mot de passe">👁</button></span></label><button class="b1 big" onclick="auth()">Me connecter →</button><div class="err" id="ae">'+esc(msg)+'</div><p class="ml-auth-foot">La communauté Malachite est réservée aux adultes de 18 ans et plus.</p></section></main>';
+ return '<main class="ml-auth-wrap"><section class="ml-auth-story"><span class="ml-auth-kicker">♡ MALACHITE · LUBUMBASHI, HAUT-KATANGA</span><h1>Les belles rencontres commencent <i>ici.</i></h1><p>Malachite commence à Lubumbashi, dans le Haut-Katanga. Notre ambition : ouvrir progressivement la communauté à d’autres villes, provinces et pays.</p><div class="ml-auth-promises"><span>♡ Rencontres sincères</span><span>⌕ Découvertes locales</span><span>✦ Respect &amp; confiance</span></div><div class="ml-portrait-scene"><div class="ml-portrait one"><img src="'+imgs[0]+'" alt="Portrait d’illustration"></div><div class="ml-portrait two"><img src="'+imgs[1]+'" alt="Portrait d’illustration"></div><div class="ml-portrait three"><img src="'+imgs[2]+'" alt="Portrait d’illustration"></div><div class="ml-portrait-note">Et si c’était le début de quelque chose ? ✨</div></div></section><section class="box list ml-auth-card"><div class="ml-auth-card-kicker">BIENVENUE À NOUVEAU</div><div><h2>Heureux de te revoir</h2><p class="ml-auth-sub">Retrouve ton espace et tes conversations.</p></div><div class="seg"><button class="sel">Connexion</button><button onclick="mode=\'up\';signupStep=1;signupDraft={};signupOtpPending=false;msg=\'\';draw()">Inscription</button></div><label>Téléphone ou e-mail d’un ancien compte<input id="loginId" type="text" autocomplete="username" inputmode="text" placeholder="+243 81 234 5678"></label><label>Mot de passe<input id="pw" type="text" autocomplete="current-password" placeholder="Ton mot de passe"></label><button class="b1 big" onclick="auth()">Me connecter →</button><div class="err" id="ae">'+esc(msg)+'</div><p class="ml-auth-foot">Tu peux encore utiliser l’adresse e-mail de tes anciens comptes. Les nouveaux comptes utilisent le téléphone.</p></section></main>';
+}
+function normalizeMalPhone(v){
+ var x=String(v||'').trim().replace(/[\s().-]/g,'');
+ if(x.indexOf('00')===0)x='+'+x.slice(2);
+ if(x.charAt(0)!=='+'){if(x.charAt(0)==='0')x='+243'+x.slice(1);else x='+243'+x}
+ return /^\+[1-9]\d{7,14}$/.test(x)?x:'';
 }
 function signupCollect(){
  var d=signupDraft||{};
  if($('suFirst'))d.prenom=$('suFirst').value.trim();
  if($('suFull'))d.nom_complet=$('suFull').value.trim();
+ if($('suPhone'))d.telephone=normalizeMalPhone($('suPhone').value);
+ if($('suPassword'))d.password=$('suPassword').value;
+ if($('suPasswordConfirm'))d.passwordConfirm=$('suPasswordConfirm').value;
  if($('suAge'))d.age=$('suAge').value;
  if($('suGender'))d.genre=$('suGender').value;
  if($('suCommune'))d.commune=$('suCommune').value;
@@ -679,14 +684,20 @@ function signupCollect(){
  if($('suBio'))d.bio=$('suBio').value.trim();
  if($('suVisibility'))d.profile_visibility=$('suVisibility').value;
  var rel=document.querySelector('input[name="suRelation"]:checked');if(rel)d.relation=rel.value;
- if($('em'))d.email=$('em').value.trim();
  if($('malConsent'))d.consent=$('malConsent').checked;
  signupDraft=d;
 }
 function signupConsentChanged(el){signupCollect();var b=$('malFinishSignup');if(b)b.disabled=!el.checked}
 function signupNext(){
  signupCollect();var d=signupDraft||{};
- if(signupStep===1){var age=Number(d.age);if(!d.prenom){msg='Indique ton prénom pour continuer.';draw();return}if(!Number.isInteger(age)||age<18||age>100){msg='Malachite est réservé aux adultes de 18 ans ou plus.';draw();return}}
+ if(signupStep===1){
+  var age=Number(d.age);
+  if(!d.prenom){msg='Indique le nom qui apparaîtra sur ton profil.';draw();return}
+  if(!d.telephone){msg='Indique un numéro valide au format +243…';draw();return}
+  if(!Number.isInteger(age)||age<18||age>100){msg='Malachite est réservé aux adultes de 18 ans ou plus.';draw();return}
+  if(d.password.length<12||!/[a-z]/.test(d.password)||!/[A-Z]/.test(d.password)||!/[0-9]/.test(d.password)||!/[^A-Za-z0-9]/.test(d.password)){msg='Le mot de passe doit contenir 12 caractères, une majuscule, une minuscule, un chiffre et un symbole.';draw();return}
+  if(d.password!==d.passwordConfirm){msg='Les deux mots de passe ne correspondent pas.';draw();return}
+ }
  signupStep=Math.min(3,signupStep+1);msg='';draw();
 }
 function signupBack(){signupCollect();signupStep=Math.max(1,signupStep-1);msg='';draw()}
@@ -694,33 +705,59 @@ function stageSignupPhoto(el){var f=el.files&&el.files[0];if(!f)return;if(['imag
 async function auth(){
  if(window.bz)return;window.bz=1;var unlock=function(){window.bz=0};msg='';
  try{
-  var e=$('em')?$('em').value.trim():'',p=$('pw')?$('pw').value:'';
   if(mode==='up'){
-   signupCollect();var d=signupDraft||{},age=Number(d.age);
+   signupCollect();var d=signupDraft||{},age=Number(d.age),phone=d.telephone;
    if(signupStep!==3)throw new Error('Termine les trois étapes avant de créer ton compte.');
-   if(!d.prenom||!Number.isInteger(age)||age<18||age>100)throw new Error('Prénom et âge valide (18 ans ou plus) obligatoires.');
-   if(!e||!/^\S+@\S+\.\S+$/.test(e))throw new Error('Indique une adresse e-mail valide.');
-   if(p.length<12||!/[a-z]/.test(p)||!/[A-Z]/.test(p)||!/[0-9]/.test(p)||!/[^A-Za-z0-9]/.test(p))throw new Error('Utilise au moins 12 caractères avec une minuscule, une majuscule, un chiffre et un symbole.');
+   if(!d.prenom||!Number.isInteger(age)||age<18||age>100)throw new Error('Nom affiché et âge valide (18 ans ou plus) obligatoires.');
+   if(!phone)throw new Error('Numéro de téléphone invalide. Utilise le format +243…');
+   if(d.password.length<12||!/[a-z]/.test(d.password)||!/[A-Z]/.test(d.password)||!/[0-9]/.test(d.password)||!/[^A-Za-z0-9]/.test(d.password))throw new Error('Le mot de passe doit contenir 12 caractères, une majuscule, une minuscule, un chiffre et un symbole.');
+   if(d.password!==d.passwordConfirm)throw new Error('Les deux mots de passe ne correspondent pas.');
    if(!d.consent)throw new Error('Tu dois accepter les conditions et la politique de confidentialité.');
-   pendingSignupEmail=e;pendingProfileFile=pendingSignupPhoto;pendingProfilePreview=pendingSignupPreview;
-   var metadata={prenom:d.prenom,nom_complet:d.nom_complet||d.prenom,age:age,profession:d.profession||'',genre:d.genre||'H',commune:d.commune||'Lubumbashi',quartier:d.quartier||'',bio:d.bio||'',profile_visibility:d.profile_visibility||'public',relation_pref:d.relation||'Amour',malachite_consent:true};
-   var r=await sb.auth.signUp({email:e,password:p,options:{data:metadata}});
+   pendingSignupEmail='';pendingProfileFile=pendingSignupPhoto;pendingProfilePreview=pendingSignupPreview;signupOtpPhone=phone;
+   var metadata={prenom:d.prenom,nom_complet:d.nom_complet||d.prenom,telephone:phone,age:age,profession:d.profession||'',genre:d.genre||'H',commune:d.commune||'Lubumbashi',quartier:d.quartier||'',bio:d.bio||'',profile_visibility:d.profile_visibility||'public',relation_pref:d.relation||'Amour',malachite_consent:true};
+   var r=await sb.auth.signUp({phone:phone,password:d.password,options:{data:metadata}});
    if(r.error)throw r.error;
-   if(!r.data.session){msg='Compte créé. Vérifie ton adresse e-mail, puis connecte-toi avec cette adresse et ton mot de passe. Tes informations de départ sont conservées.';mode='in';signupStep=1;draw();var ae=$('ae');if(ae)ae.textContent=msg;return}
-   if(pendingSignupPhoto){pendingProfileFile=pendingSignupPhoto;pendingProfilePreview=pendingSignupPreview}
-   tab='home';signupDraft={};signupStep=1;
+   if(!r.data.session){
+    signupOtpPending=true;msg='Un code SMS a été demandé. Saisis-le ci-dessus pour confirmer ton numéro.';
+    draw();return;
+   }
+   signupOtpPending=false;signupDraft={};tab='home';
   }else{
-   if(!e||!p)throw new Error('Indique ton adresse e-mail et ton mot de passe.');
-   var r=await sb.auth.signInWithPassword({email:e,password:p});
+   var ident=$('loginId')?$('loginId').value.trim():'',p=$('pw')?$('pw').value:'';
+   if(!ident||!p)throw new Error('Indique ton numéro de téléphone (ou l’e-mail de ton ancien compte) et ton mot de passe.');
+   var r;
+   if(ident.indexOf('@')>-1)r=await sb.auth.signInWithPassword({email:ident,password:p});
+   else{var phone=normalizeMalPhone(ident);if(!phone)throw new Error('Pour te connecter, utilise le numéro de téléphone lié au compte, au format +243…');r=await sb.auth.signInWithPassword({phone:phone,password:p})}
    if(r.error)throw r.error;
    tab='home';
   }
- }catch(err){msg=err&&err.message?err.message:'Impossible de traiter cette demande.';var ae=$('ae');if(ae)ae.textContent=msg}
+ }catch(err){
+  var raw=err&&err.message?err.message:'Impossible de traiter cette demande.';
+  if(/phone.*(disabled|not enabled|unsupported)|unsupported.*phone/i.test(raw))raw='La connexion par téléphone n’est pas encore activée dans Supabase. Il faut activer le fournisseur Téléphone et configurer un service SMS avant de pouvoir créer des comptes.';
+  msg=raw;var ae=$('ae');if(ae)ae.textContent=msg;
+ }finally{unlock()}
+}
+async function verifySignupOtp(){
+ if(window.bz)return;window.bz=1;var unlock=function(){window.bz=0};
+ try{
+  var token=$('signupOtp')?$('signupOtp').value.trim():'';
+  if(!token||token.length<4)throw new Error('Saisis le code reçu par SMS.');
+  var r=await sb.auth.verifyOtp({phone:signupOtpPhone,token:token,type:'sms'});
+  if(r.error)throw r.error;
+  signupOtpPending=false;signupDraft={};pendingProfileFile=pendingSignupPhoto;pendingProfilePreview=pendingSignupPreview;tab='home';msg='';
+ }catch(e){msg=e&&e.message?e.message:'Le code n’a pas pu être vérifié.';var ae=$('ae');if(ae)ae.textContent=msg}
  finally{unlock()}
 }
 async function out(){await sb.auth.signOut()}
 function mascotHint(){return '<aside class="mascot-hint" aria-label="Conseil Malachite"><div class="mascot" role="img" aria-label="Mascotte Malachite"><i class="eyes"></i><i class="smile"></i><span class="heart">💗</span></div><div><b>Un petit conseil de Malachite</b><div class="note">Prends le temps de découvrir les personnes et reste toi-même. Les belles rencontres commencent par une conversation sincère.</div></div></aside>'}
-function home(){var o=others();return '<section class="ml-home-hero"><div><span class="ml-auth-kicker">MALACHITE · DÉCOUVRIR</span><h1>Et si votre prochaine histoire commençait <i>ici ?</i></h1><p>Des visages, des personnalités, des passions à découvrir. Prenez le temps de rencontrer quelqu’un qui vous ressemble.</p><div class="ml-home-actions"><button class="b1" onclick="go(\'search\')">🔎 Découvrir les profils</button>'+(mine?'':'<button onclick="go(\'me\')">＋ Créer mon profil</button>')+'</div></div><div class="ml-home-visual"><div class="ml-home-portraits"><img src="https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=500&amp;h=650&amp;fit=crop&amp;crop=faces" alt="Portrait d’illustration" loading="lazy"><img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=500&amp;h=650&amp;fit=crop&amp;crop=faces" alt="Portrait d’illustration" loading="lazy"></div><div class="ml-home-stat"><strong>'+o.length+'</strong><span>profil'+(o.length>1?'s':'')+' à découvrir</span><div class="ml-home-hearts">♡　✦　♡</div></div></div></section><section class="mal-local-intro"><strong>Malachite commence à Lubumbashi 💗</strong><p>Une communauté locale du Haut-Katanga, appelée à s’ouvrir progressivement à d’autres villes, provinces et pays. Les portraits ci-dessous sont des images d’illustration ; les profils authentiques proviennent des membres inscrits.</p></section><div class="mal-inspo-gallery"><img src="https://images.unsplash.com/photo-1529333166437-7750a6dd5a70?w=400&h=500&fit=crop" alt="Couple souriant, image d’illustration" loading="lazy"><img src="https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=400&h=500&fit=crop" alt="Couple, image d’illustration" loading="lazy"><img src="https://images.unsplash.com/photo-1511895426328-dc8714191300?w=400&h=500&fit=crop" alt="Famille souriante, image d’illustration" loading="lazy"><img src="https://images.unsplash.com/photo-1522673607200-164d1b6ce486?w=400&h=500&fit=crop" alt="Couple, image d’illustration" loading="lazy"></div>'+mascotHint()+deck()+pour()+(mine?'':'<div class="wall pop"><b>Ton profil est ta première impression.</b><p class="note">Ajoute une belle photo, une biographie et tes centres d’intérêt pour permettre aux autres de te découvrir.</p><button class="b1" style="width:100%" onclick="go(\'me\')">📷 Compléter mon profil</button></div>')+'<div class="ml-section-heading"><div><span class="ml-auth-kicker">LES MEMBRES</span><h2>Des personnes à découvrir</h2></div><button onclick="go(\'search\')">Tout explorer →</button></div><div class="ml-member-grid">'+(o.length?o.map(card).join(''):'<div class="box ml-empty-state"><div class="ml-empty-face">🐰</div><b>Les premières rencontres arrivent bientôt.</b><p class="note">Il n’y a pas encore d’autres membres à afficher. Reviens bientôt ou invite tes amis à rejoindre Malachite.</p></div>')+'</div>'}
+function discoverCard(p){
+ var photos=(p.photoUrls||[]).filter(Boolean),cover=photos[0]||'',locked=!!p.profile_private;
+ return '<article class="mal-discover-card" onclick="viewProf(\''+p.id+'\')"><div class="mal-discover-photo" '+(cover?'style="background-image:url('+esc(cover)+')"':'')+'>'+(cover?'':'<span>' + esc((p.prenom||'M')[0])+'</span>')+(online(p)?'<i>● En ligne</i>':'')+'</div><div class="mal-discover-info"><b>'+esc(p.prenom||'Membre')+(locked?'':(p.age?', '+esc(p.age):''))+'</b><small>'+ (locked?'Profil privé':esc(p.commune||'Lubumbashi')+(p.profession?' · '+esc(p.profession):''))+'</small><div><button type="button" onclick="event.stopPropagation();viewProf(\''+p.id+'\')">Voir le profil</button><button type="button" class="b1" onclick="event.stopPropagation();talk(\''+p.id+'\')">Écrire</button></div></div></article>';
+}
+function home(){
+ var o=others();
+ return '<section class="mal-discover-top"><div><span class="ml-auth-kicker">MALACHITE · HAUT-KATANGA</span><h1>Les rencontres commencent <i>ici.</i></h1><p>Découvre les membres de Malachite à Lubumbashi.</p></div><div class="mal-discover-count"><b>'+o.length+'</b><small>membre'+(o.length>1?'s':'')+'</small></div></section><div class="mal-discover-photo-strip"><img src="https://images.unsplash.com/photo-1529333166437-7750a6dd5a70?w=360&h=440&fit=crop" alt="Couple souriant, photo d’illustration" loading="lazy"><img src="https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=360&h=440&fit=crop" alt="Couple, photo d’illustration" loading="lazy"><img src="https://images.unsplash.com/photo-1511895426328-dc8714191300?w=360&h=440&fit=crop" alt="Famille, photo d’illustration" loading="lazy"><img src="https://images.unsplash.com/photo-1522673607200-164d1b6ce486?w=360&h=440&fit=crop" alt="Couple, photo d’illustration" loading="lazy"></div><div class="mal-discover-section-head"><div><span class="ml-auth-kicker">À RENCONTRER</span><h2>Les membres</h2><p>Fais défiler les profils de gauche à droite.</p></div><button class="b1" onclick="go(\'search\')">Tout découvrir →</button></div><div class="mal-discover-carousel" aria-label="Profils des membres">'+(o.length?o.map(discoverCard).join(''):'<div class="box" style="min-width:100%;text-align:center"><b>Les premières rencontres arrivent bientôt.</b><p class="note">Les profils des membres apparaîtront ici dès leur inscription.</p></div>')+'</div><div class="mal-discover-footer"><span>📍 Lubumbashi · Haut-Katanga</span><span>Les portraits du bandeau sont des images d’illustration.</span></div>'+mascotHint();
+}
 function prof(id){return profs.filter(function(p){return p.id==id})[0]}
 async function loadChat(){if(open){if(blockedCheckedFor!==open){var bx=await sb.rpc('is_blocked_with',{p_other:open});blockedCurrent=!bx.error&&!!bx.data;blockedCheckedFor=open}var r=await sb.from('messages').select('*').or('and(de.eq.'+me.id+',a.eq.'+open+'),and(de.eq.'+open+',a.eq.'+me.id+')').order('created_at');msgs=r.data||[];await Promise.all(msgs.map(resolveMessageMedia));if(tab=='chat'){markSeen(open);updNav()}var a=await sb.from('avis_match').select('ok').eq('autre',open).maybeSingle();av2=a.data?a.data.ok:null;var mm=await sb.rpc('est_match',{p_autre:open});mutual=!!mm.data;if(mutual&&av2&&!cel[open]){cel[open]=1;celebrate()}ct=null;if(mutual){var cc=await sb.rpc('contact_de',{p_autre:open});ct=cc.data&&cc.data[0]?cc.data[0]:null}}else{var c=await sb.from('messages').select('de,a,texte,created_at').order('created_at',{ascending:false}).limit(200);var seen={};convs=[];(c.data||[]).forEach(function(m){var o=m.de==me.id?m.a:m.de;if(!seen[o]){seen[o]=1;convs.push({o:o,t:m.texte,at:m.created_at,me:m.de==me.id})}})}
 var sg=JSON.stringify([open,msgs.length,convs.length,av2,mutual,!!ct,payOpen]);if(tab=='chat'&&sg!=lastSig){lastSig=sg;draw(true)}}
@@ -1298,6 +1335,41 @@ IC.centre='<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>';
 .mal-inspo-gallery img{width:100%;height:118px;object-fit:cover;border-radius:15px;box-shadow:0 8px 20px #6d19301a;animation:malStepIn .6s both}
 .mal-inspo-gallery img:nth-child(2){animation-delay:.07s}.mal-inspo-gallery img:nth-child(3){animation-delay:.14s}.mal-inspo-gallery img:nth-child(4){animation-delay:.21s}
 @media(max-width:420px){.mal-inspo-gallery img{height:96px;border-radius:12px}}
+</style>
+
+<style id="malachite-auth-discovery-v2">
+.mal-step-fields input[type=text],.mal-step-fields input[type=tel]{letter-spacing:.01em}
+.mal-otp-box{padding:14px;border:1px solid #E9B8CB;border-radius:16px;background:#FFF5F9}
+.mal-otp-box p{font-size:13px;color:#806574}
+.mal-discover-top{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:18px 16px;border-radius:22px;background:linear-gradient(120deg,#FFF0F6,#fff 62%,#FCE3ED);border:1px solid #F2D2DF;animation:malStepIn .45s both}
+.mal-discover-top h1{font:600 clamp(25px,6vw,34px)/1.1 Fraunces,Georgia,serif;margin:6px 0}
+.mal-discover-top h1 i{color:#D81B60}
+.mal-discover-top p{font-size:13px;color:#806574;margin:0}
+.mal-discover-count{flex:none;width:64px;height:64px;border-radius:50%;display:grid;place-content:center;text-align:center;background:linear-gradient(145deg,#D81B60,#FF8FB8);color:#fff;box-shadow:0 8px 22px #d81b6030}
+.mal-discover-count b{font-size:21px;line-height:1}.mal-discover-count small{font-size:10px}
+.mal-discover-photo-strip{display:flex;gap:9px;overflow-x:auto;scroll-snap-type:x mandatory;padding:13px 2px 7px;scrollbar-width:none}
+.mal-discover-photo-strip::-webkit-scrollbar,.mal-discover-carousel::-webkit-scrollbar{display:none}
+.mal-discover-photo-strip img{flex:0 0 25%;min-width:0;height:96px;object-fit:cover;border-radius:15px;scroll-snap-align:start;box-shadow:0 7px 17px #7b1c3b20}
+.mal-discover-section-head{display:flex;align-items:end;justify-content:space-between;gap:10px;margin:16px 0 10px}
+.mal-discover-section-head h2{font:600 24px Fraunces,Georgia,serif;margin:2px 0}
+.mal-discover-section-head p{font-size:12px;color:#806574;margin:0}
+.mal-discover-section-head button{flex:none;padding:9px 12px;font-size:12px}
+.mal-discover-carousel{display:flex;gap:13px;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;padding:3px 2px 16px;scrollbar-width:none}
+.mal-discover-card{flex:0 0 min(78vw,290px);scroll-snap-align:start;overflow:hidden;border:1px solid #F1D1DE;border-radius:20px;background:#fff;box-shadow:0 10px 25px #541a3010;cursor:pointer;transition:transform .25s,box-shadow .25s;animation:malStepIn .45s both}
+.mal-discover-card:active{transform:scale(.985)}
+.mal-discover-photo{height:230px;background:linear-gradient(135deg,#FCE1EB,#E9C9D6) center/cover;position:relative;display:grid;place-items:center;color:#fff;font-size:44px}
+.mal-discover-photo:after{content:'';position:absolute;inset:35% 0 0;background:linear-gradient(transparent,rgba(35,10,22,.2))}
+.mal-discover-photo i{position:absolute;z-index:1;left:10px;top:10px;font-style:normal;font-size:10px;color:#fff;background:#138B5A;padding:5px 8px;border-radius:20px}
+.mal-discover-info{padding:12px;display:grid;gap:6px}
+.mal-discover-info>b{font-size:18px}.mal-discover-info small{color:#806574;min-height:18px}
+.mal-discover-info>div{display:flex;gap:7px;margin-top:3px}.mal-discover-info button{flex:1;font-size:12px;padding:9px}
+.mal-discover-footer{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;color:#8B7380;font-size:10px;padding:3px 2px 14px}
+.mal-chat-profile{display:flex;align-items:center;gap:8px;flex:1;min-width:0;text-align:left;background:transparent;padding:4px;color:inherit}
+.mal-chat-profile>span{display:grid;min-width:0}.mal-chat-profile small{font-size:11px;color:#856b79}.mal-chat-profile i{font-size:10px;font-style:normal;margin-left:auto;color:#B12A60;white-space:nowrap}
+.sheet .mal-card-cover{height:310px}
+.sheet .mal-profile-card{animation:malStepIn .35s both}
+@media(max-width:420px){.mal-discover-top{padding:14px}.mal-discover-photo-strip img{flex-basis:28%;height:86px}.mal-discover-photo{height:215px}.mal-discover-card{flex-basis:78vw}.mal-chat-profile i{display:none}}
+@media(prefers-reduced-motion:reduce){.mal-discover-top,.mal-discover-card,.mal-step-content{animation:none!important}}
 </style>
 </body>
 </html>
