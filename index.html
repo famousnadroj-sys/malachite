@@ -551,7 +551,7 @@ nav button.on{background:#fff0f5!important;color:#d81b60!important}
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#D81B60"/><stop offset="1" stop-color="#FF6B9D"/></linearGradient></defs></svg><main id="v"></main><nav id="nav"></nav>
 <script>
 var sb=supabase.createClient('https://tscsmemsvgacqioncash.supabase.co','sb_publishable_XDpqSzsPNeVduv6aGyjuoA_suakeFN0');
-var me=null,mine=null,profileDraft={},pendingSignupPhoto=null,pendingSignupPreview='',pendingSignupEmail='',phUrls=[],loadSeq=0,loadedUid=null,profileEditing=false,pendingProfileFile=null,pendingProfilePreview='',profileSaving=false,privLoadFailed=false,admSuspensions=[],ADM='famousnadroj@gmail.com',av2=null,mutual=false,ct=null,lastSig='',rdvFor=null,fresh=false,adm=[],sigs=[],blocked=[],blockedProfiles=[],blockedCurrent=false,blockedCheckedFor=null,NUM='',rdvs=[],pos='',priv={},profs=[],st={},tab='home',open=null,msgs=[],convs=[],ph=[],msg='',F={g:'',c:'',a:18,b:99},timer,mode='in';
+var me=null,mine=null,profileDraft={},signupDraft={},signupStep=1,pendingSignupPhoto=null,pendingSignupPreview='',pendingSignupEmail='',phUrls=[],loadSeq=0,loadedUid=null,profileEditing=false,pendingProfileFile=null,pendingProfilePreview='',profileSaving=false,privLoadFailed=false,admSuspensions=[],ADM='famousnadroj@gmail.com',av2=null,mutual=false,ct=null,lastSig='',rdvFor=null,fresh=false,adm=[],sigs=[],blocked=[],blockedProfiles=[],blockedCurrent=false,blockedCheckedFor=null,NUM='',rdvs=[],pos='',priv={},profs=[],st={},tab='home',open=null,msgs=[],convs=[],ph=[],msg='',F={g:'',c:'',a:18,b:99},timer,mode='in';
 var $=function(i){return document.getElementById(i)};
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 function on(t){return t&&new Date(t)>new Date()}
@@ -614,36 +614,70 @@ async function load(){
  sub();
 }
 function authView(){
- var up=mode=='up';
+ var up=mode==='up';
  var imgs=[
  'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=700&h=950&fit=crop&crop=faces',
  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=700&h=950&fit=crop&crop=faces',
  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=700&h=950&fit=crop&crop=faces'
  ];
- var signupFields=up?'<div class="mal-signup-profile"><div class="mal-signup-title"><span>01 · TON PROFIL</span><b>Présente-toi dès maintenant</b><small>Tu pourras tout modifier dans « Moi » après connexion.</small></div><div class="mal-signup-photo"><div id="malSignupPreview" class="mal-signup-avatar">📷</div><label class="btn">Ajouter ma photo de profil<input id="malSignupPhoto" type="file" accept="image/jpeg,image/png,image/webp,image/gif" onchange="stageSignupPhoto(this)"></label><small id="malSignupPhotoHint">Photo facultative pour commencer · 5 Mo maximum</small></div><label>Prénom<input id="suFirst" autocomplete="given-name" placeholder="Ton prénom"></label><label>Nom complet<input id="suFull" autocomplete="name" placeholder="Ton nom et prénom"></label><div class="g2"><label>Âge<input id="suAge" type="number" min="18" max="100" inputmode="numeric" placeholder="18+"></label><label>Profession<input id="suJob" autocomplete="organization-title" placeholder="Ta profession"></label></div><div class="g2"><label>Je suis<select id="suGender"><option value="H">Un homme</option><option value="F">Une femme</option></select></label><label>Commune<select id="suCommune"><option>Lubumbashi</option><option>Kampemba</option><option>Katuba</option><option>Kenya</option><option>Ruashi</option><option>Annexe</option><option>Golf</option><option>Bel-Air</option><option>Autre</option></select></label></div><label>Quartier / avenue<input id="suQuarter" placeholder="Ton quartier"></label><label>Petite présentation<textarea id="suBio" rows="2" maxlength="300" placeholder="Quelques mots sur toi (facultatif)"></textarea></label><label>Confidentialité du profil<select id="suVisibility"><option value="public">🌍 Profil public</option><option value="private">🔒 Profil privé</option></select></label></div>':'';
- return '<main class="ml-auth-wrap"><section class="ml-auth-story"><span class="ml-auth-kicker">♡ MALACHITE · RENCONTRES AUTHENTIQUES</span><h1>La prochaine belle histoire pourrait <i>commencer ici.</i></h1><p>Et si une simple découverte devenait une belle histoire ? Rencontrez des personnes qui partagent vos envies, prenez le temps de vous découvrir et laissez la confiance ouvrir la voie à une relation sincère.</p><div class="ml-auth-promises"><span>♡ Rencontres sincères</span><span>⌕ Découvertes personnalisées</span><span>✦ Respect &amp; confiance</span></div><button type="button" class="ml-auth-primary" onclick="mode=\'up\';msg=\'\';draw()">Créer mon compte gratuitement <span>→</span></button><div class="ml-auth-trust">Une communauté pour les adultes qui souhaitent construire de vraies connexions.</div><div class="ml-portrait-scene"><div class="ml-portrait one"><img src="'+imgs[0]+'" alt="Portrait photographique d’illustration" loading="eager"></div><div class="ml-portrait two"><img src="'+imgs[1]+'" alt="Portrait photographique d’illustration" loading="eager"></div><div class="ml-portrait three"><img src="'+imgs[2]+'" alt="Portrait photographique d’illustration" loading="eager"></div><div class="ml-portrait-note">Et si c’était le début de quelque chose ? ✨</div></div></section><section class="box list ml-auth-card"><div class="ml-auth-card-kicker">'+(up?'✦ TON HISTOIRE COMMENCE ICI':'BIENVENUE À NOUVEAU')+'</div><div><h2>'+(up?'Faisons connaissance':'Heureux de te revoir')+'</h2><p class="ml-auth-sub">'+(up?'Crée ton espace et commence à découvrir Malachite.':'Retrouve ton espace et tes conversations.')+'</p></div><div class="seg"><button class="'+(up?'':'sel')+'" onclick="mode=\'in\';msg=\'\';draw()">Connexion</button><button class="'+(up?'sel':'')+'" onclick="mode=\'up\';msg=\'\';draw()">Inscription</button></div><label>Adresse e-mail<input id="em" type="email" autocomplete="email" inputmode="email" placeholder="ton@email.com"></label><label>Mot de passe<span class="pw"><input id="pw" type="password" autocomplete="'+(up?'new-password':'current-password')+'" placeholder="'+(up?'12 caractères minimum':'Ton mot de passe')+'"><button type="button" onclick="var i=$(\'pw\');i.type=i.type==\'password\'?\'text\':\'password\'" aria-label="Afficher le mot de passe">👁</button></span></label>'+signupFields+(up?'<label style="display:flex;gap:8px;align-items:flex-start"><input id="malConsent" type="checkbox" style="width:auto;margin-top:4px"> '+mt('consent')+'</label>':'')+'<button class="b1 big" onclick="auth()">'+(up?'Créer mon compte ♡':'Me connecter →')+'</button><div class="err" id="ae">'+esc(msg)+'</div><div class="ml-sms-auth"><hr><h3>'+mt('sms')+'</h3><p class="note">'+mt('smsHelp')+'</p><label>'+mt('phone')+'<div class="pw"><select id="malDial" style="max-width:120px"><option value="+243">RDC +243</option><option value="+33">France +33</option><option value="+32">Belgique +32</option><option value="+1">USA/Canada +1</option><option value="+44">Royaume-Uni +44</option><option value="+27">Afrique du Sud +27</option><option value="+254">Kenya +254</option><option value="+255">Tanzanie +255</option><option value="+256">Ouganda +256</option><option value="+250">Rwanda +250</option><option value="+242">Congo-Brazzaville +242</option></select><input id="malPhone" type="tel" inputmode="tel" placeholder="Numéro sans indicatif"></div></label>'+(malOtpSent?'<label>'+mt('otp')+'<input id="malOtp" inputmode="numeric" maxlength="8"></label><button class="b1" onclick="malVerifyOtp()">'+mt('verify')+'</button>':'<button onclick="malSendOtp()">'+mt('sendCode')+'</button>')+'<div id="malPhoneMsg" class="note"></div></div><p class="ml-auth-foot">Réservé aux personnes de 18 ans et plus.<br>La bienveillance est au cœur de chaque rencontre.</p></section></main>';
+ if(up){
+  var step=signupStep||1, d=signupDraft||{};
+  var hero=step===1?'<img src="'+imgs[0]+'" alt="Portrait photographique d’illustration"><img src="'+imgs[1]+'" alt="Portrait photographique d’illustration">':step===2?'<img src="'+imgs[1]+'" alt="Portrait photographique d’illustration"><img src="'+imgs[2]+'" alt="Portrait photographique d’illustration">':'<img src="'+imgs[2]+'" alt="Portrait photographique d’illustration"><img src="'+imgs[0]+'" alt="Portrait photographique d’illustration">';
+  var fields='';
+  if(step===1)fields='<div class="mal-step-fields"><label>Prénom *<input id="suFirst" autocomplete="given-name" value="'+esc(d.prenom||'')+'" placeholder="Ton prénom"></label><label>Nom complet<input id="suFull" autocomplete="name" value="'+esc(d.nom_complet||'')+'" placeholder="Ton nom et prénom"></label><div class="g2"><label>Âge *<input id="suAge" type="number" min="18" max="100" inputmode="numeric" value="'+esc(d.age||'')+'" placeholder="18 ans ou plus"></label><label>Je suis<select id="suGender"><option value="H" '+(d.genre!=='F'?'selected':'')+'>Un homme</option><option value="F" '+(d.genre==='F'?'selected':'')+'>Une femme</option></select></label></div><label>Commune à Lubumbashi<select id="suCommune">'+['Lubumbashi','Kampemba','Katuba','Kenya','Ruashi','Annexe','Golf','Bel-Air','Autre'].map(function(x){return '<option '+((d.commune||'Lubumbashi')===x?'selected':'')+'>'+x+'</option>'}).join('')+'</select></label><label>Quartier / avenue<input id="suQuarter" value="'+esc(d.quartier||'')+'" placeholder="Ton quartier (facultatif)"></label></div>';
+  if(step===2)fields='<div class="mal-step-fields"><label>Activité / profession<input id="suJob" autocomplete="organization-title" value="'+esc(d.profession||'')+'" placeholder="Étudiant(e), entrepreneur(e), etc."></label><label>Quelques mots sur toi<textarea id="suBio" rows="4" maxlength="300" placeholder="Ta personnalité, tes passions, ce qui te rend unique…">'+esc(d.bio||'')+'</textarea></label><div class="mal-relation"><b>Quel type de lien souhaites-tu créer ?</b><div class="mal-relation-grid">'+[['Amour','💗'],['Amitié','🤝'],['Rencontre','✨'],['Autre','🌿']].map(function(x){return '<label class="mal-relation-option"><input type="radio" name="suRelation" value="'+x[0]+'" '+((d.relation||'Amour')===x[0]?'checked':'')+'><span>'+x[1]+' '+x[0]+'</span></label>'}).join('')+'</div></div><label>Visibilité de ton profil<select id="suVisibility"><option value="public" '+((d.profile_visibility||'public')==='public'?'selected':'')+'>🌍 Public — visible dans Découvrir</option><option value="private" '+(d.profile_visibility==='private'?'selected':'')+'>🔒 Privé — détails limités</option></select></label></div>';
+  if(step===3)fields='<div class="mal-step-fields"><div class="mal-signup-photo"><div id="malSignupPreview" class="mal-signup-avatar" style="'+(pendingSignupPreview?'background-image:url('+pendingSignupPreview+')':'')+'">'+(pendingSignupPreview?'':'📷')+'</div><label class="btn">＋ Ajouter ma photo de profil<input id="malSignupPhoto" type="file" accept="image/jpeg,image/png,image/webp,image/gif" onchange="stageSignupPhoto(this)"></label><small id="malSignupPhotoHint">'+(pendingSignupPhoto?'Photo prête à être enregistrée':'Photo recommandée · JPEG, PNG, WebP ou GIF · 5 Mo maximum')+'</small></div><div class="mal-welcome-copy"><span>BIENVENUE CHEZ MALACHITE</span><h2>Les belles histoires commencent par une rencontre.</h2><p>Je souhaite des échanges sincères, des découvertes respectueuses et de belles connexions. À toi d’écrire la suite. 💗</p></div><label>Adresse e-mail *<input id="em" type="email" autocomplete="email" inputmode="email" value="'+esc(d.email||'')+'" placeholder="ton@email.com"></label><label>Mot de passe *<input id="pw" type="password" autocomplete="new-password" placeholder="12 caractères minimum"></label><label class="mal-consent-row"><input id="malConsent" type="checkbox" '+(d.consent?'checked':'')+'><span>J’ai 18 ans ou plus et j’accepte les <a href="#conditions" onclick="event.preventDefault();alert(\'Consulte les conditions et la politique de confidentialité dans le Centre Malachite.\')">conditions d’utilisation</a> ainsi que la <a href="#confidentialite" onclick="event.preventDefault();alert(\'Consulte la politique de confidentialité dans le Centre Malachite.\')">politique de confidentialité</a>.</span></label></div>';
+  return '<main class="ml-auth-wrap mal-signup-shell"><section class="mal-signup-heading"><span class="ml-auth-kicker">MALACHITE · LUBUMBASHI, HAUT-KATANGA</span><h1>Une belle rencontre peut <i>tout changer.</i></h1><p>Une communauté qui commence à Lubumbashi, puis s’ouvrira progressivement à d’autres villes et pays.</p><div class="mal-signup-photos">'+hero+'</div></section><section class="box ml-auth-card mal-step-card"><div class="seg"><button onclick="mode=\'in\';msg=\'\';draw()">Connexion</button><button class="sel">Inscription</button></div><div class="mal-step-progress"><span>ÉTAPE '+step+' SUR 3</span><b>'+['','Ton identité','Faisons connaissance','Ta photo et bienvenue'][step]+'</b><div><i style="width:'+(step*33.333)+'%"></i></div></div><div class="mal-step-content" key="'+step+'"><div class="mal-step-kicker">'+['','01 · IDENTITÉ','02 · TES ENVIES','03 · DERNIÈRE TOUCHE'][step]+'</div><h2>'+['','Qui es-tu ?','Qu’aimerais-tu partager ?','Prêt(e) à faire de belles rencontres ?'][step]+'</h2><p class="ml-auth-sub">'+['','Commençons simplement. Tu pourras modifier ces informations plus tard.','Aide les autres à mieux te connaître et indique ce que tu recherches.','Ajoute une photo, crée ton accès et rejoins la communauté.'][step]+'</p>'+fields+'<div class="mal-step-actions">'+(step>1?'<button type="button" onclick="signupBack()">← Retour</button>':'<button type="button" onclick="mode=\'in\';draw()">Annuler</button>')+(step<3?'<button type="button" class="b1" onclick="signupNext()">Continuer →</button>':'<button type="button" id="malFinishSignup" class="b1" onclick="auth()" '+(d.consent?'':'disabled')+'>Créer mon compte et découvrir ♡</button>')+'</div><div class="err" id="ae">'+esc(msg)+'</div></div><p class="ml-auth-foot">Réservé aux personnes de 18 ans et plus. Respect, sécurité et confidentialité sont essentiels.</p></section></main>';
+ }
+ return '<main class="ml-auth-wrap"><section class="ml-auth-story"><span class="ml-auth-kicker">♡ MALACHITE · LUBUMBASHI, HAUT-KATANGA</span><h1>Les belles rencontres commencent <i>ici.</i></h1><p>Malachite commence à Lubumbashi, dans le Haut-Katanga. Notre ambition : ouvrir progressivement la communauté à d’autres villes, provinces et pays.</p><div class="ml-auth-promises"><span>♡ Rencontres sincères</span><span>⌕ Découvertes locales</span><span>✦ Respect &amp; confiance</span></div><div class="ml-portrait-scene"><div class="ml-portrait one"><img src="'+imgs[0]+'" alt="Portrait photographique d’illustration"></div><div class="ml-portrait two"><img src="'+imgs[1]+'" alt="Portrait photographique d’illustration"></div><div class="ml-portrait three"><img src="'+imgs[2]+'" alt="Portrait photographique d’illustration"></div><div class="ml-portrait-note">Et si c’était le début de quelque chose ? ✨</div></div></section><section class="box list ml-auth-card"><div class="ml-auth-card-kicker">BIENVENUE À NOUVEAU</div><div><h2>Heureux de te revoir</h2><p class="ml-auth-sub">Retrouve ton espace et tes conversations.</p></div><div class="seg"><button class="sel">Connexion</button><button onclick="mode=\'up\';signupStep=1;signupDraft={};msg=\'\';draw()">Inscription</button></div><label>Adresse e-mail<input id="em" type="email" autocomplete="email" inputmode="email" placeholder="ton@email.com"></label><label>Mot de passe<span class="pw"><input id="pw" type="password" autocomplete="current-password" placeholder="Ton mot de passe"><button type="button" onclick="var i=$(\'pw\');i.type=i.type==\'password\'?\'text\':\'password\'" aria-label="Afficher le mot de passe">👁</button></span></label><button class="b1 big" onclick="auth()">Me connecter →</button><div class="err" id="ae">'+esc(msg)+'</div><p class="ml-auth-foot">La communauté Malachite est réservée aux adultes de 18 ans et plus.</p></section></main>';
 }
+function signupCollect(){
+ var d=signupDraft||{};
+ if($('suFirst'))d.prenom=$('suFirst').value.trim();
+ if($('suFull'))d.nom_complet=$('suFull').value.trim();
+ if($('suAge'))d.age=$('suAge').value;
+ if($('suGender'))d.genre=$('suGender').value;
+ if($('suCommune'))d.commune=$('suCommune').value;
+ if($('suQuarter'))d.quartier=$('suQuarter').value.trim();
+ if($('suJob'))d.profession=$('suJob').value.trim();
+ if($('suBio'))d.bio=$('suBio').value.trim();
+ if($('suVisibility'))d.profile_visibility=$('suVisibility').value;
+ var rel=document.querySelector('input[name="suRelation"]:checked');if(rel)d.relation=rel.value;
+ if($('em'))d.email=$('em').value.trim();
+ if($('malConsent'))d.consent=$('malConsent').checked;
+ signupDraft=d;
+}
+function signupNext(){
+ signupCollect();var d=signupDraft||{};
+ if(signupStep===1){var age=Number(d.age);if(!d.prenom){msg='Indique ton prénom pour continuer.';draw();return}if(!Number.isInteger(age)||age<18||age>100){msg='Malachite est réservé aux adultes de 18 ans ou plus.';draw();return}}
+ signupStep=Math.min(3,signupStep+1);msg='';draw();
+}
+function signupBack(){signupCollect();signupStep=Math.max(1,signupStep-1);msg='';draw()}
 function stageSignupPhoto(el){var f=el.files&&el.files[0];if(!f)return;if(['image/jpeg','image/png','image/webp','image/gif'].indexOf(f.type)<0||f.size>5e6){var h=$('malSignupPhotoHint');if(h)h.textContent='Format non accepté ou fichier supérieur à 5 Mo.';el.value='';return}pendingSignupPhoto=f;if(pendingSignupPreview)URL.revokeObjectURL(pendingSignupPreview);pendingSignupPreview=URL.createObjectURL(f);var p=$('malSignupPreview');if(p){p.style.backgroundImage='url('+pendingSignupPreview+')';p.textContent=''}var hint=$('malSignupPhotoHint');if(hint)hint.textContent='Photo prête : elle sera ajoutée à ton profil après création du compte.'}
 async function auth(){
- if(window.bz)return;window.bz=1;var unlock=function(){window.bz=0},e=$('em').value.trim(),p=$('pw').value;msg='';fresh=mode=='up';
+ if(window.bz)return;window.bz=1;var unlock=function(){window.bz=0};msg='';
  try{
-  if(mode=='up'){
-   var first=$('suFirst').value.trim(),age=Number($('suAge').value),consent=$('malConsent').checked;
-   if(!first){msg='Indique ton prénom pour créer ton profil.';throw new Error(msg)}
-   if(!Number.isInteger(age)||age<18||age>100){msg='Malachite est réservé aux adultes : indique un âge valide de 18 ans ou plus.';throw new Error(msg)}
-   if(!consent){msg='Confirme ton accord avec les conditions pour continuer.';throw new Error(msg)}
-   if(p.length<12||!/[a-z]/.test(p)||!/[A-Z]/.test(p)||!/[0-9]/.test(p)||!/[^A-Za-z0-9]/.test(p)){msg='Utilise au moins 12 caractères avec une minuscule, une majuscule, un chiffre et un symbole.';throw new Error(msg)}
-   pendingSignupEmail=e;var metadata={prenom:first,nom_complet:$('suFull').value.trim(),age:age,profession:$('suJob').value.trim(),genre:$('suGender').value,commune:$('suCommune').value,quartier:$('suQuarter').value.trim(),bio:$('suBio').value.trim(),profile_visibility:$('suVisibility').value,malachite_consent:true};
+  var e=$('em')?$('em').value.trim():'',p=$('pw')?$('pw').value:'';
+  if(mode==='up'){
+   signupCollect();var d=signupDraft||{},age=Number(d.age);
+   if(signupStep!==3)throw new Error('Termine les trois étapes avant de créer ton compte.');
+   if(!d.prenom||!Number.isInteger(age)||age<18||age>100)throw new Error('Prénom et âge valide (18 ans ou plus) obligatoires.');
+   if(!e||!/^\S+@\S+\.\S+$/.test(e))throw new Error('Indique une adresse e-mail valide.');
+   if(p.length<12||!/[a-z]/.test(p)||!/[A-Z]/.test(p)||!/[0-9]/.test(p)||!/[^A-Za-z0-9]/.test(p))throw new Error('Utilise au moins 12 caractères avec une minuscule, une majuscule, un chiffre et un symbole.');
+   if(!d.consent)throw new Error('Tu dois accepter les conditions et la politique de confidentialité.');
+   pendingSignupEmail=e;
+   var metadata={prenom:d.prenom,nom_complet:d.nom_complet||d.prenom,age:age,profession:d.profession||'',genre:d.genre||'H',commune:d.commune||'Lubumbashi',quartier:d.quartier||'',bio:d.bio||'',profile_visibility:d.profile_visibility||'public',relation_pref:d.relation||'Amour',malachite_consent:true};
    var r=await sb.auth.signUp({email:e,password:p,options:{data:metadata}});
+   if(r.error)throw r.error;
+   if(!r.data.session){msg='Compte créé. Vérifie ton adresse e-mail, puis connecte-toi avec cette adresse et ton mot de passe. Tes informations de départ sont conservées.';mode='in';signupStep=1;draw();var ae=$('ae');if(ae)ae.textContent=msg;return}
+   if(pendingSignupPhoto){pendingProfileFile=pendingSignupPhoto;pendingProfilePreview=pendingSignupPreview}
+   tab='home';signupDraft={};signupStep=1;
   }else{
+   if(!e||!p)throw new Error('Indique ton adresse e-mail et ton mot de passe.');
    var r=await sb.auth.signInWithPassword({email:e,password:p});
+   if(r.error)throw r.error;
+   tab='home';
   }
-  if(r.error)throw r.error;
-  if(mode=='up'&&!r.data.session){
-   msg='Compte créé. Vérifie ton adresse e-mail puis connecte-toi. Les informations de ton profil sont conservées pour la première ouverture de « Moi ».';
-   mode='in';draw();var ae=$('ae');if(ae)ae.textContent=msg;return;
-  }
-  if(r.data.session&&mode=='up'){if(pendingSignupPhoto){pendingProfileFile=pendingSignupPhoto;pendingProfilePreview=pendingSignupPreview;}}
  }catch(err){msg=err&&err.message?err.message:'Impossible de traiter cette demande.';var ae=$('ae');if(ae)ae.textContent=msg}
  finally{unlock()}
 }
@@ -870,8 +904,8 @@ async function save(){
 }
 function draw(keep){var y=scrollY,tv=$('mi')?$('mi').value:'';$('v').innerHTML=!me?authView():banner()+{home:home,search:search,chat:chat,rdv:rdv,offres:offres,me:moi,adm:admin}[tab]();if(me&&tab=='search'){fqr();res()}if(tv&&$('mi'))$('mi').value=tv;if(me&&tab=='home')bindDrag();$('nav').innerHTML=me?[['home','💘','Découvrir'],['search','🔍','Recherche'],['chat','💬','Messages'],['rdv','📅','RDV'],['offres','⭐','Offres'],['me','👤','Moi']].concat(me.email==ADM?[['adm','🛠','Admin']]:[]).map(function(x){return '<button data-k="'+x[0]+'" class="'+(tab==x[0]?'on':'')+'" onclick="goTab(\''+x[0]+'\')"><span>'+ico(x[0])+bdg(x[0])+'</span>'+x[2]+'</button>'}).join(''):'';scrollTo(0,(tab=='chat'&&open)?1e6:(keep?y:0))}
 function go(t){document.querySelectorAll('.sheetbg,.viewer,.lbx').forEach(function(e){e.remove()});tab=t;msg='';lastSig='';clearInterval(timer);if(t=='chat'){loadChat();timer=setInterval(loadChat,4000)}else if(t=='home'||t=='search'){load().then(draw)}else if(t=='rdv'){loadRdv().then(draw)}else if(t=='adm'){loadAdm()}draw()}
-sb.auth.onAuthStateChange(function(e,s){me=s?s.user:null;if(me){if(e==='SIGNED_IN'||e==='INITIAL_SESSION')tab='me';load().then(function(){draw();if(fresh){fresh=false}})}else draw()});
-sb.auth.getSession().then(function(r){me=r.data.session?r.data.session.user:null;if(me){tab='me';load().then(draw)}else draw()});
+sb.auth.onAuthStateChange(function(e,s){me=s?s.user:null;if(me){if(e==='SIGNED_IN'||e==='INITIAL_SESSION')tab='home';load().then(function(){draw();if(fresh){fresh=false}})}else draw()});
+sb.auth.getSession().then(function(r){me=r.data.session?r.data.session.user:null;if(me){tab='home';load().then(draw)}else draw()});
 </script>
 <style>
 #malachite-mascot{position:fixed;right:14px;bottom:84px;z-index:9998;border:0;background:transparent;padding:0;cursor:pointer;filter:drop-shadow(0 5px 12px #9b426055)}
@@ -1176,6 +1210,48 @@ IC.centre='<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>';
 
 
 
+
+<style id="malachite-three-step-signup">
+.mal-signup-shell{max-width:760px!important;padding-top:18px!important}
+.mal-signup-heading{text-align:center;padding:10px 8px 16px;animation:malStepIn .55s both}
+.mal-signup-heading h1{font:600 clamp(30px,7vw,42px)/1.08 Fraunces,Georgia,serif;margin:10px 0;color:#311323}
+.mal-signup-heading h1 i{color:#D81B60}
+.mal-signup-heading p{color:#806574;max-width:560px;margin:0 auto 14px}
+.mal-signup-photos{display:flex;justify-content:center;gap:12px;height:132px;overflow:hidden;margin:10px auto 0}
+.mal-signup-photos img{width:108px;height:132px;object-fit:cover;border-radius:24px;box-shadow:0 12px 30px #8b24452a;animation:malPortraitFloat 4s ease-in-out infinite}
+.mal-signup-photos img:nth-child(2){transform:translateY(10px);animation-delay:-1.8s}
+.mal-step-card{max-width:560px;margin:0 auto;padding:18px!important;gap:12px!important;border-radius:24px!important;box-shadow:0 18px 50px rgba(91,26,52,.10)!important}
+.mal-step-progress{display:grid;gap:5px;margin:4px 0 12px}
+.mal-step-progress>span,.mal-step-kicker{font-size:10px;letter-spacing:.16em;font-weight:800;color:#C23A6D}
+.mal-step-progress>b{font:600 20px Fraunces,Georgia,serif}
+.mal-step-progress>div{height:6px;background:#FBE5ED;border-radius:99px;overflow:hidden}
+.mal-step-progress i{display:block;height:100%;background:linear-gradient(90deg,#D81B60,#FF8FB8);border-radius:99px;transition:width .45s}
+.mal-step-content{animation:malStepIn .42s cubic-bezier(.2,.8,.2,1) both}
+.mal-step-content h2{font:600 26px Fraunces,Georgia,serif;margin:5px 0}
+.mal-step-fields{display:grid;gap:12px;margin:16px 0}
+.mal-step-fields label{gap:6px}
+.mal-step-actions{display:flex;gap:10px;margin-top:16px}
+.mal-step-actions button{flex:1;min-height:48px}
+.mal-step-actions button:disabled{opacity:.42;filter:grayscale(.35);cursor:not-allowed}
+.mal-relation{display:grid;gap:9px;padding:13px;border:1px solid #F0D8E2;border-radius:16px;background:linear-gradient(135deg,#FFF6F9,#fff)}
+.mal-relation-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mal-relation-option input{position:absolute;opacity:0;pointer-events:none}
+.mal-relation-option span{display:flex;align-items:center;gap:7px;padding:11px;border:1px solid #EED7E0;border-radius:13px;background:#fff;transition:.2s}
+.mal-relation-option input:checked+span{border-color:#D81B60;background:#FFF0F5;box-shadow:0 0 0 2px #D81B601c;color:#A8174E}
+.mal-welcome-copy{padding:16px;border-radius:18px;background:linear-gradient(135deg,#D81B60,#FF7CA6);color:white;box-shadow:0 12px 28px #d81b6030}
+.mal-welcome-copy>span{font-size:10px;letter-spacing:.16em;font-weight:800}
+.mal-welcome-copy h2{color:#fff;font-size:23px;margin:7px 0}
+.mal-welcome-copy p{margin:0;color:#fff;opacity:.94}
+.mal-consent-row{display:flex!important;align-items:flex-start;gap:10px!important;padding:12px;border:1px solid #F0D8E2;border-radius:14px;background:#FFFAFC;font-weight:500!important}
+.mal-consent-row input{width:20px;height:20px;flex:none;margin-top:2px;accent-color:#D81B60}
+.mal-consent-row span{font-size:13px;line-height:1.5}
+.mal-consent-row a{color:#B41450;text-decoration:underline}
+.mal-step-card .mal-auth-foot{font-size:11px;color:#8B7380;text-align:center;margin:4px 0}
+@keyframes malStepIn{from{opacity:0;transform:translateY(15px) scale(.99);filter:blur(2px)}to{opacity:1;transform:none;filter:none}}
+@keyframes malPortraitFloat{0%,100%{translate:0 0}50%{translate:0 -7px}}
+@media(max-width:420px){.mal-signup-photos{height:112px}.mal-signup-photos img{width:88px;height:112px;border-radius:19px}.mal-step-card{padding:14px!important}.mal-step-content h2{font-size:24px}}
+@media(prefers-reduced-motion:reduce){.mal-step-content,.mal-signup-heading,.mal-signup-photos img{animation:none!important}}
+</style>
 </body>
 </html>
 
