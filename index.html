@@ -638,7 +638,7 @@ async function resolveMessagesMedia(rows){
  (rows||[]).forEach(function(m){
   if(!m||!m.media_url||m.media_type==='call'||m.display_url)return;
   var loc=messageMediaLocation(m),key=loc.bucket+'|'+loc.path,cached=chatMediaUrlCache[key];
-  if(cached&&cached.expiresAt>now+30000){m.display_url=cached.url;if(m.media_type==='document'&&cached.downloadUrl)m.download_url=cached.downloadUrl;return}
+  if(cached&&cached.expiresAt>now+30000){m.display_url=cached.url;if(m.media_type==='document'){if(cached.downloadUrl)m.download_url=cached.downloadUrl;else{if(!docs[loc.bucket])docs[loc.bucket]={};if(!docs[loc.bucket][loc.path])docs[loc.bucket][loc.path]=[];docs[loc.bucket][loc.path].push(m)}}return}
   if(!groups[loc.bucket])groups[loc.bucket]={};
   if(!groups[loc.bucket][loc.path])groups[loc.bucket][loc.path]=[];
   groups[loc.bucket][loc.path].push(m);
@@ -653,12 +653,12 @@ async function resolveMessagesMedia(rows){
     if(url){m.display_url=url;var key=bucket+'|'+path,cache=chatMediaUrlCache[key]||{expiresAt:now+3500000};cache.url=url;chatMediaUrlCache[key]=cache}
    });
   });
-  var docPaths=paths.filter(function(path){return (groups[bucket][path]||[]).some(function(m){return m.media_type==='document'})});
+  var docPaths=Array.from(new Set(paths.filter(function(path){return (groups[bucket][path]||[]).some(function(m){return m.media_type==='document'})}).concat(Object.keys(docs[bucket]||{}))));
   if(docPaths.length){
    var downloads=await sb.storage.from(bucket).createSignedUrls(docPaths,3600,{download:true});
    if(!downloads.error)(downloads.data||[]).forEach(function(item,index){
     var path=item.path||docPaths[index],url=item.signedUrl||'';
-    (groups[bucket][path]||[]).forEach(function(m){if(m.media_type==='document'&&url){m.download_url=url;var key=bucket+'|'+path,cache=chatMediaUrlCache[key]||{expiresAt:now+3500000};cache.downloadUrl=url;chatMediaUrlCache[key]=cache}});
+    (groups[bucket][path]||[]).concat(docs[bucket]&&docs[bucket][path]||[]).forEach(function(m){if(m.media_type==='document'&&url){m.download_url=url;var key=bucket+'|'+path,cache=chatMediaUrlCache[key]||{expiresAt:now+3500000};cache.downloadUrl=url;chatMediaUrlCache[key]=cache}});
    });
   }
  }));
@@ -969,7 +969,7 @@ async function loadChat(){
    chatCursorId=maxId;
    if(mediaRows.length)resolveMessagesMedia(mediaRows).then(function(){if(open===current&&tab==='chat')patchMessageMedia(mediaRows)}).catch(function(error){console.warn('Chargement des médias de la conversation',error)});
    if(firstLoad||fresh.length){markSeen(current);updNav()}
-   if(blockedTask)blockedTask;
+   
    if(firstLoad){
     Promise.all([sb.from('avis_match').select('ok').eq('autre',current).maybeSingle(),sb.rpc('est_match',{p_autre:current})]).then(async function(checks){
      if(open!==current||tab!=='chat')return;
@@ -990,7 +990,7 @@ async function loadChat(){
   }
  }catch(error){
   console.warn('Chargement de conversation Malachite',error);
-  if(open===current&&tab==='chat'&&firstLoad){chatInitialLoading=false;msg='Impossible de charger les messages pour le moment. Réessaie.';draw(true)}
+  if(open===current&&tab==='chat'&&firstLoad){chatCursorFor=null;chatCursorId=0;chatBeforeId=0;chatHasOlder=false;chatInitialLoading=false;msg='Impossible de charger les messages pour le moment. Réessaie.';draw(true)}
  }finally{
   delete chatLoadBusyKeys[key];
   if(chatLoadQueuedKeys[key]){delete chatLoadQueuedKeys[key];if(tab==='chat'&&open===current)loadChat()}
@@ -1612,7 +1612,7 @@ function go(t){
  if(t==="centre"&&!me){malShowLegal();return}
  document.querySelectorAll(".sheetbg,.viewer,.lbx").forEach(function(e){e.remove()});
  tab=t;msg="";lastSig="";clearInterval(timer);persistMalView();
- if(t==="chat"){loadChat();timer=setInterval(loadChat,30000);return}
+ if(t==="chat"){if(open&&chatCursorFor!==open){chatInitialLoading=true;chatCursorId=0;chatBeforeId=0;chatHasOlder=false;msgs=[]}draw(true);loadChat();timer=setInterval(function(){if(tab==="chat"&&!document.hidden)loadChat()},30000);return}
  if(t==="home"||t==="search"){load().then(function(){if(tab===t)draw(true)});draw(true);return}
  if(t==="rdv"){loadRdv().then(function(){if(tab===t)draw(true)});draw(true);return}
  if(t==="adm"){loadAdm();return}
