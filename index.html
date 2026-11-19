@@ -633,7 +633,7 @@ async function auth(){
    if(!Number.isInteger(age)||age<18||age>100){msg='Malachite est réservé aux adultes : indique un âge valide de 18 ans ou plus.';throw new Error(msg)}
    if(!consent){msg='Confirme ton accord avec les conditions pour continuer.';throw new Error(msg)}
    if(p.length<12||!/[a-z]/.test(p)||!/[A-Z]/.test(p)||!/[0-9]/.test(p)||!/[^A-Za-z0-9]/.test(p)){msg='Utilise au moins 12 caractères avec une minuscule, une majuscule, un chiffre et un symbole.';throw new Error(msg)}
-   var metadata={prenom:first,nom_complet:$('suFull').value.trim(),age:age,profession:$('suJob').value.trim(),genre:$('suGender').value,commune:$('suCommune').value,quartier:$('suQuarter').value.trim(),bio:$('suBio').value.trim(),profile_visibility:$('suVisibility').value,malachite_consent:true};
+   pendingSignupEmail=e;var metadata={prenom:first,nom_complet:$('suFull').value.trim(),age:age,profession:$('suJob').value.trim(),genre:$('suGender').value,commune:$('suCommune').value,quartier:$('suQuarter').value.trim(),bio:$('suBio').value.trim(),profile_visibility:$('suVisibility').value,malachite_consent:true};
    var r=await sb.auth.signUp({email:e,password:p,options:{data:metadata}});
   }else{
    var r=await sb.auth.signInWithPassword({email:e,password:p});
