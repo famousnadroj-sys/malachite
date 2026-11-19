@@ -848,11 +848,12 @@ async function insertChatMessage(payload,targetOverride){
   var result=await sb.from('messages').insert(payload).select('*').single();
   if(result.error)throw result.error;
   var row=result.data;if(open!==target)return row;
-  await resolveMessageMedia(row);
   msgs=msgs.filter(function(m){return m.id!==temp.id&&(!row.id||m.id!==row.id)});msgs.push(row);
   msgs.sort(function(a,b){return new Date(a.created_at)-new Date(b.created_at)});
   if(row.created_at&&(!chatCursor||new Date(row.created_at)>new Date(chatCursor)))chatCursor=row.created_at;
-  lastSig='';draw(true);return row;
+  lastSig='';draw(true);
+  if(row.media_url)resolveMessageMedia(row).then(function(){if(open===target){lastSig='';draw(true)}}).catch(function(){});
+  return row;
  }catch(error){if(open===target){msgs=msgs.filter(function(m){return m.id!==temp.id});lastSig='';draw(true)}throw error}
 }
 async function snd(){
