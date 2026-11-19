@@ -923,13 +923,13 @@ async function sendImg(el){
  var f=el&&el.files&&el.files[0];if(!f)return;
  var target=open,clear=function(){if(el)el.value=''};
  if(!target||!me){clear();return}
- var allowed={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif'};
- if(!allowed[f.type]){msg='Format photo non accepté. Choisis JPEG, PNG, WebP ou GIF.';clear();return draw(true)}
+ var imgTypes={'jpg':'image/jpeg','jpeg':'image/jpeg','png':'image/png','webp':'image/webp','gif':'image/gif'},imgExt=(f.name||'').split('.').pop().toLowerCase(),imgMime=imgTypes[imgExt]||f.type,allowed={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif'};
+ if(!allowed[imgMime]){msg='Format photo non accepté. Choisis JPEG, PNG, WebP ou GIF.';clear();return draw(true)}
  if(f.size>5*1024*1024){msg='Photo trop lourde : 5 Mo maximum.';clear();return draw(true)}
- var p=me.id+'/'+target+'/photo-'+Date.now()+'-'+Math.random().toString(36).slice(2,7)+'.'+allowed[f.type];
+ var p=me.id+'/'+target+'/photo-'+Date.now()+'-'+Math.random().toString(36).slice(2,7)+'.'+allowed[imgMime];
  try{
   msg='Envoi de la photo…';draw(true);
-  await uploadChatAsset(p,f);
+  await uploadChatAsset(p,f,imgMime);
   await insertChatMessage({a:target,texte:'📷 Photo',media_url:p,media_type:'image'},target);
   clear();msg='';draw(true);
  }catch(e){try{await sb.storage.from('chat-media').remove([p])}catch(clean){}msg='Photo non envoyée : '+(e&&e.message?e.message:'erreur inconnue');clear();draw(true)}
@@ -1049,7 +1049,7 @@ async function sendDocument(el){
  var target=open,clear=function(){if(el)el.value=''};
  if(!target||!me){clear();return}
  var types={'application/pdf':'pdf','text/plain':'txt','text/csv':'csv','application/msword':'doc','application/vnd.openxmlformats-officedocument.wordprocessingml.document':'docx','application/vnd.ms-excel':'xls','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':'xlsx','application/vnd.ms-powerpoint':'ppt','application/vnd.openxmlformats-officedocument.presentationml.presentation':'pptx'},mimeByExt={pdf:'application/pdf',txt:'text/plain',csv:'text/csv',doc:'application/msword',docx:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',xls:'application/vnd.ms-excel',xlsx:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',ppt:'application/vnd.ms-powerpoint',pptx:'application/vnd.openxmlformats-officedocument.presentationml.presentation'};
- var ext=types[f.type]||(f.name&&f.name.split('.').pop().toLowerCase()),mime=f.type||mimeByExt[ext];
+ var ext=types[f.type]||(f.name&&f.name.split('.').pop().toLowerCase()),mime=mimeByExt[ext]||f.type;
  if(!['pdf','txt','csv','doc','docx','xls','xlsx','ppt','pptx'].includes(ext)){msg='Format non accepté. Utilise PDF, TXT, CSV, Word, Excel ou PowerPoint.';clear();return draw(true)}
  if(f.size>8*1024*1024){msg='Document trop lourd : 8 Mo maximum.';clear();return draw(true)}
  var p=me.id+'/'+target+'/document-'+Date.now()+'-'+Math.random().toString(36).slice(2,7)+'.'+ext;
@@ -1271,7 +1271,7 @@ async function sendVideo(el){
  var target=open,clear=function(){if(el)el.value=''};
  if(!target||!me){clear();return}
  var byExt={'mp4':'video/mp4','webm':'video/webm','mov':'video/quicktime','3gp':'video/3gpp'},extName=(f.name||'').split('.').pop().toLowerCase();
- var mime=f.type||byExt[extName]||'',allowed={'video/mp4':'mp4','video/webm':'webm','video/quicktime':'mov','video/3gpp':'3gp'};
+ var mime=({'video/mp4':1,'video/webm':1,'video/quicktime':1,'video/3gpp':1}[f.type]?f.type:(byExt[extName]||f.type||'')),allowed={'video/mp4':'mp4','video/webm':'webm','video/quicktime':'mov','video/3gpp':'3gp'};
  if(!allowed[mime]){msg='Format vidéo non accepté. Essaie une vidéo MP4, WebM ou MOV.';clear();return draw(true)}
  if(f.size>8*1024*1024){msg='Vidéo trop lourde : 8 Mo maximum pour le moment.';clear();return draw(true)}
  var p=me.id+'/'+target+'/video-'+Date.now()+'-'+Math.random().toString(36).slice(2,7)+'.'+allowed[mime];
