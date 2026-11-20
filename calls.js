@@ -1,0 +1,120 @@
+
+/* Malachite: paid real-time audio/video calls and faster private profile photo loading. */
+(function(){
+ 'use strict';
+ var photoCache=Object.create(null),callInbox=null,sessionChannel=null,callState=null,incoming=null,jitsiApi=null,callBusy=false;
+ if(typeof PRIX==='object')PRIX.Appels='1 $ / 30 jours';
+
+ async function resolveProfilePhotosFast(p){
+  if(!p)return p;
+  var photos=(p.photos||[]).filter(Boolean),items=photos.map(function(raw){
+   var s=String(raw),bucket=s.indexOf('/storage/v1/object/public/photos/')>=0?'photos':'profile-photos';
+   var path=storagePath(bucket,raw),key=bucket+'|'+path;return {bucket:bucket,path:path,key:key};
+  });
+  var byBucket=Object.create(null);items.forEach(function(x){if(!byBucket[x.bucket])byBucket[x.bucket]=[];byBucket[x.bucket].push(x)});
+  var resolved=Object.create(null),now=Date.now();
+  await Promise.all(Object.keys(byBucket).map(async function(bucket){
+   var missing=byBucket[bucket].filter(function(x){var v=photoCache[x.key];if(v&&v.exp>now+30000){resolved[x.key]=v.url;return false}return true});
+   if(!missing.length)return;
+   var paths=Array.from(new Set(missing.map(function(x){return x.path})));
+   try{var r=await sb.storage.from(bucket).createSignedUrls(paths,3600);if(r.error)throw r.error;
+    (r.data||[]).forEach(function(v,i){var path=v.path||paths[i],url=v.signedUrl||'';if(url){var key=bucket+'|'+path;resolved[key]=url;photoCache[key]={url:url,exp:now+3500000}}});
+   }catch(e){console.warn('Photos profil: signature groupée impossible',e)}
+  }));
+  p.photoUrls=items.map(function(x){return resolved[x.key]||''}).filter(Boolean);
+  return p;
+ }
+ window.resolveProfilePhotos=resolveProfilePhotosFast;
+ if(typeof resolveProfilePhotos==='function')resolveProfilePhotos=resolveProfilePhotosFast;
+
+ function overlay(title,body,actions,mount){
+  var old=document.getElementById('malCallOverlay');if(old)old.remove();
+  var html='<div id="malCallOverlay" class="mal-call-overlay"><section class="mal-call-card"><header><b>'+esc(title)+'</b><button onclick="malCloseCallUI()" aria-label="Fermer" style="background:transparent;border:0;color:white;font-size:22px">×</button></header><div class="mal-call-body">'+body+'</div>'+(mount?'<div id="malJitsiMount"></div>':'')+(actions?'<div class="mal-call-actions">'+actions+'</div>':'')+'</section></div>';
+  document.body.insertAdjacentHTML('beforeend',html);
+ }
+ function closeUI(){if(jitsiApi){try{jitsiApi.dispose()}catch(e){}jitsiApi=null}var el=document.getElementById('malCallOverlay');if(el)el.remove()}
+ window.malCloseCallUI=closeUI;
+ function startInbox(){
+  if(!me||callInbox)return;var uid=me.id;
+  callInbox=sb.channel('malachite-call-inbox-'+uid).on('postgres_changes',{event:'INSERT',schema:'public',table:'call_sessions',filter:'callee_id=eq.'+uid},function(ev){
+   var row=ev&&ev.new;if(!row||row.status!=='pending'||new Date(row.expires_at)<=new Date()||incoming||callBusy)return;
+   incoming=row;var p=prof(row.caller_id)||{},name=p.prenom||'Un membre';
+   try{beep();navigator.vibrate&&navigator.vibrate([250,120,250])}catch(e){}
+   overlay(row.mode==='video'?'Appel vidéo entrant':'Appel audio entrant','<div style="font-size:48px">📲</div><h2>'+esc(name)+'</h2><p>Souhaites-tu accepter cet appel ?</p>','<button class="reject" onclick="malRejectCall()">Refuser</button><button class="accept" onclick="malAcceptCall()">Accepter</button>',false);
+  }).subscribe(function(status){if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED')callInbox=null});
+ }
+ async function acceptIncoming(){
+  var row=incoming;if(!row||!me)return;
+  var r=await sb.from('call_sessions').update({status:'accepted'}).eq('id',row.id).eq('callee_id',me.id).eq('status','pending');
+  if(r.error){alert('Impossible d’accepter : '+r.error.message);incoming=null;closeUI();return}
+  callState={id:row.id,caller:false,caller_id:row.caller_id,callee_id:row.callee_id,mode:row.mode,room:row.room,status:'accepted'};
+  incoming=null;await joinJitsi(callState);
+ }
+ async function rejectIncoming(){var row=incoming;if(row&&me)await sb.from('call_sessions').update({status:'rejected'}).eq('id',row.id).eq('callee_id',me.id).eq('status','pending');incoming=null;closeUI()}
+ window.malAcceptCall=acceptIncoming;window.malRejectCall=rejectIncoming;
+ async function hasPass(){
+  var since=new Date(Date.now()-30*86400000).toISOString();
+  var r=await sb.from('paiements').select('id').eq('user_id',me.id).eq('offre','Appels').eq('statut','valide').gte('created_at',since).limit(1);
+  if(r.error)throw r.error;return !!(r.data&&r.data.length);
+ }
+ function subscribeReady(ch){return new Promise(function(resolve,reject){var done=false,t=setTimeout(function(){if(!done){done=true;reject(new Error('Le service temps réel ne répond pas.'))}},12000);ch.subscribe(function(status,error){if(done)return;if(status==='SUBSCRIBED'){done=true;clearTimeout(t);resolve()}else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED'){done=true;clearTimeout(t);reject(error||new Error('Connexion Realtime impossible'))}})})}
+ async function startCall(mode){
+  if(!me||!open){alert('Ouvre une conversation.');return}
+  if(mode!=='audio'&&mode!=='video')mode='audio';
+  if(!mutual){alert('Les appels sont réservés aux matchs réciproques.');return}
+  if(callBusy||callState){alert('Un appel est déjà en cours.');return}
+  callBusy=true;
+  try{
+   if(!(await hasPass())){alert('Le Pass Appels coûte 1 USD pour 30 jours. Soumets la référence dans Offres ; activation après vérification du paiement.');go('offres');return}
+   var target=open,id=crypto.randomUUID(),room='Malachite-'+id.replace(/-/g,'');
+   var ch=sb.channel('malachite-call-session-'+id).on('postgres_changes',{event:'UPDATE',schema:'public',table:'call_sessions',filter:'id=eq.'+id},function(ev){
+    var row=ev&&ev.new;if(!row||!callState||callState.id!==id)return;callState.status=row.status;
+    if(row.status==='accepted'&&callState.caller&&!jitsiApi)joinJitsi(callState);
+    else if(row.status==='rejected'){alert('L’autre membre a refusé l’appel.');finishCall(false)}
+    else if(row.status==='ended'||row.status==='expired'){if(jitsiApi)finishCall(false);else{closeUI();callState=null;alert(row.status==='expired'?'Pas de réponse.':'Appel terminé.')}}
+   });
+   await subscribeReady(ch);sessionChannel=ch;
+   var ins=await sb.from('call_sessions').insert({id:id,caller_id:me.id,callee_id:target,room:room,mode:mode,status:'pending',expires_at:new Date(Date.now()+90000).toISOString()});
+   if(ins.error)throw ins.error;
+   callState={id:id,caller:true,caller_id:me.id,callee_id:target,mode:mode,room:room,status:'pending'};
+   overlay(mode==='video'?'Appel vidéo en cours':'Appel audio en cours','<p>Appel envoyé à '+esc((prof(target)||{}).prenom||'ton match')+'. En attente de réponse…</p>','<button class="hangup" onclick="malHangup()">Annuler l’appel</button>',false);
+   callState.timeout=setTimeout(async function(){if(callState&&callState.id===id&&callState.status==='pending'){await sb.from('call_sessions').update({status:'expired'}).eq('id',id);finishCall(false);alert('Aucune réponse. Réessaie plus tard.')}},90000);
+  }catch(e){console.error('Appel Malachite',e);alert('Appel impossible : '+(e.message||'erreur inconnue'));if(sessionChannel){sb.removeChannel(sessionChannel);sessionChannel=null}callState=null}
+  finally{callBusy=false}
+ }
+ async function loadJitsi(){
+  if(window.JitsiMeetExternalAPI)return;
+  await new Promise(function(resolve,reject){var s=document.querySelector('script[data-mal-jitsi]');if(s){s.addEventListener('load',resolve,{once:true});s.addEventListener('error',function(){reject(new Error('Jitsi ne se charge pas.'))},{once:true});setTimeout(function(){window.JitsiMeetExternalAPI?resolve():reject(new Error('Délai Jitsi dépassé.'))},15000);return}
+   s=document.createElement('script');s.src='https://meet.jit.si/external_api.js';s.async=true;s.dataset.malJitsi='1';s.onload=resolve;s.onerror=function(){reject(new Error('Impossible de charger Jitsi.'))};document.head.appendChild(s);
+  });
+ }
+ async function joinJitsi(state){
+  if(!state||!callState||callState.id!==state.id)return;
+  try{await loadJitsi();var p=prof(state.caller?state.callee_id:state.caller_id)||{},name=(mine&&mine.prenom)||me.email||'Membre Malachite';
+   overlay(state.mode==='video'?'Appel vidéo avec '+(p.prenom||'ton match'):'Appel audio avec '+(p.prenom||'ton match'),'<p>Connexion à Jitsi…</p>','<button class="hangup" onclick="malHangup()">Raccrocher</button>',true);
+   jitsiApi=new JitsiMeetExternalAPI('meet.jit.si',{roomName:state.room,parentNode:document.getElementById('malJitsiMount'),width:'100%',height:'100%',userInfo:{displayName:name},configOverwrite:{prejoinPageEnabled:false,startWithAudioMuted:false,startWithVideoMuted:state.mode==='audio',disableDeepLinking:true,p2p:{enabled:true}},interfaceConfigOverwrite:{TOOLBAR_BUTTONS:['microphone','camera','hangup','chat','tileview','fullscreen']}});
+   jitsiApi.addListener('readyToClose',function(){finishCall(true)});jitsiApi.addListener('videoConferenceLeft',function(){finishCall(true)});
+  }catch(e){alert('Connexion Jitsi impossible : '+e.message+'. Le service public peut demander au créateur de salle de se connecter.');await finishCall(true)}
+ }
+ async function finishCall(updateServer){
+  var s=callState;if(s&&s.timeout)clearTimeout(s.timeout);
+  if(jitsiApi){var api=jitsiApi;jitsiApi=null;try{api.dispose()}catch(e){}}
+  if(updateServer&&s&&me&&s.status!=='ended'&&s.status!=='rejected'&&s.status!=='expired')await sb.from('call_sessions').update({status:'ended'}).eq('id',s.id);
+  closeUI();callState=null;callBusy=false;if(sessionChannel){sb.removeChannel(sessionChannel);sessionChannel=null}
+ }
+ window.malHangup=function(){finishCall(true)};
+ window.call=function(mode){return startCall(mode||'audio')};
+ if(typeof call==='function')call=function(mode){return startCall(mode||'audio')};
+
+ var oldMatch=window.matchBox;
+ if(typeof oldMatch==='function')window.matchBox=function(){return oldMatch().replace('Appels sécurisés indisponibles','Appels audio et vidéo disponibles avec le Pass Appels (1 USD / 30 jours).').replace('<button disabled>📹 Appels sécurisés indisponibles</button>','<button onclick="call(&quot;audio&quot;)">📞 Appel audio</button><button onclick="call(&quot;video&quot;)">🎥 Appel vidéo</button>')};
+ var oldThread=window.thread;
+ if(typeof oldThread==='function')window.thread=function(){return oldThread().replace('Voir le profil ›</i></button>','Voir le profil ›</i></button><button class="mal-call-head" onclick="call(&quot;audio&quot;)" aria-label="Appel audio">📞</button><button class="mal-call-head" onclick="call(&quot;video&quot;)" aria-label="Appel vidéo">🎥</button>')};
+ var oldSub=window.sub;
+ if(typeof oldSub==='function')window.sub=function(){oldSub();startInbox()};
+ window.startCallInbox=startInbox;
+
+ window.offres=function(){return '<h2>⭐ Nos offres</h2><div class="list"><div class="plan"><h3>Gratuit <span>0 $</span></h3><p>Profil, découverte, likes, conversations existantes et jusqu’à 15 nouvelles conversations initiées par jour.</p></div><div class="plan"><h3>Premium <span>3 $ / mois</span></h3><p>Nouvelles conversations sans quota et rendez-vous illimités.</p></div><div class="plan" style="border:2px solid var(--pink)"><h3>Pass Appels audio + vidéo <span>1 $ / 30 jours</span></h3><p>Appels audio et vidéo en direct avec tes matchs réciproques pendant 30 jours, après validation du paiement.</p></div><div class="plan"><h3>Boost 24 h <span>0,50 $</span></h3><p>Visibilité prioritaire pendant 24 heures.</p></div></div><h2>💳 Paiement Mobile Money</h2><div class="box list"><label>Offre<select id="of"><option value="Premium">Premium — 3 USD / mois</option><option value="Appels">Pass Appels audio + vidéo — 1 USD / 30 jours</option><option value="Boost">Boost 24 h — 0,50 USD</option></select></label><label>Opérateur<select id="malOperator"><option value="airtel">Airtel Money — +243 993 315 532</option><option value="orange">Orange Money — +243 848 775 992</option></select></label><label>Référence de transaction<input id="cd" maxlength="100" placeholder="Référence exacte du SMS"></label><p class="note">Envoie le montant exact, garde la référence et soumets-la. L’activation se fait uniquement après vérification manuelle. Ne partage jamais ton PIN ni ton OTP.</p><button class="b1" onclick="pay()">Soumettre le paiement</button><div class="note" id="pm"></div></div>'};
+ window.pay=async function(){var code=document.getElementById('cd').value.trim(),op=document.getElementById('malOperator').value,of=document.getElementById('of').value,msgEl=document.getElementById('pm');if(code.length<4||code.length>100){msgEl.textContent='Référence invalide (4 à 100 caractères).';return}var r=await sb.from('paiements').insert({offre:of,code:code,operateur:op});msgEl.textContent=r.error?'Paiement non enregistré : '+r.error.message:'Demande reçue. Le pass Appels sera activé après vérification réelle du transfert.';if(!r.error)document.getElementById('cd').value=''};
+ var style=document.createElement('style');style.textContent='.mal-call-head{border:0!important;border-radius:50%!important;width:38px;height:38px;padding:0!important;background:#fce9f0!important;color:#9b315e!important;font-size:18px!important;flex:none}.mal-call-overlay{position:fixed;inset:0;z-index:100000;background:#0c1218e8;display:flex;align-items:center;justify-content:center;padding:12px}.mal-call-card{width:min(100%,620px);background:#fff;border-radius:20px;overflow:hidden;color:#25313a}.mal-call-card header{display:flex;justify-content:space-between;padding:14px 16px;background:#075e54;color:#fff}.mal-call-body{text-align:center;padding:18px}.mal-call-actions{display:flex;justify-content:center;gap:10px;padding:14px}.mal-call-actions button{border:0;border-radius:12px;padding:12px 18px;font-weight:700}.mal-call-actions .accept{background:#087e55;color:white}.mal-call-actions .reject,.mal-call-actions .hangup{background:#c62828;color:white}#malJitsiMount{width:100%;height:min(76vh,650px);min-height:360px}@media(max-width:520px){.mal-call-overlay{padding:0}.mal-call-card{width:100%;height:100%;border-radius:0}#malJitsiMount{height:calc(100dvh - 60px);min-height:300px}}';document.head.appendChild(style);
+})();
