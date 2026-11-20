@@ -22,6 +22,7 @@ function App(){
  const [gender,setGender]=useState(new URLSearchParams(location.search).get('gender')==='female'?'female':'male');
  const [saved,setSaved]=useState(false);
  const {pkg,error}=useHumanPackage(ASSETS,{textureSize:'512'});
+ useEffect(()=>{if(pkg)parent.postMessage({source:'malachite-avatar-builder',type:'ready'},location.origin)},[pkg]);
  useEffect(()=>{function receive(e){if(e.origin!==location.origin||!e.data||e.data.source!=='malachite-avatar-parent'||e.data.type!=='set-gender')return;setGender(e.data.gender==='female'?'female':'male');setSaved(false)}window.addEventListener('message',receive);return()=>window.removeEventListener('message',receive)},[]);
  function cancel(){parent.postMessage({source:'malachite-avatar-builder',type:'cancel'},location.origin)}
  function save(config,image){
