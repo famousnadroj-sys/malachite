@@ -1923,7 +1923,7 @@ async function pay(){
   if(r.ok){$('cd').value='';$('malReceipt').value=''}
  }catch(e){$('pm').textContent='Erreur temporaire. Vérifie ta connexion puis réessaie.'}
  finally{if(btn)btn.disabled=false}
-}async async function payC(){
+}async function payC(){
  var c=$('uc').value.trim(),operator=$('malContactOperator')?$('malContactOperator').value:'airtel',file=$('ucProof')&&$('ucProof').files[0],btn=$('um')&&$('um').previousElementSibling;
  if(c.length<4||c.length>100){$('um').textContent='Entre une référence valide (4 à 100 caractères).';return}
  if(btn)btn.disabled=true;
