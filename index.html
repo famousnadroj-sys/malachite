@@ -614,7 +614,7 @@ body.mal-chat-mode .chat .m{max-width:min(84%,520px)}
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#D81B60"/><stop offset="1" stop-color="#FF6B9D"/></linearGradient></defs></svg><main id="v"></main><nav id="nav"></nav>
 <script>
 var sb=supabase.createClient('https://tscsmemsvgacqioncash.supabase.co','sb_publishable_XDpqSzsPNeVduv6aGyjuoA_suakeFN0');
-var me=null,mine=null,profileDraft={},signupDraft={},signupStep=1,pendingSignupPhoto=null,pendingSignupPreview='',pendingSignupEmail='',loginPrefillEmail='',phUrls=[],loadSeq=0,loadedUid=null,profileEditing=false,pendingProfileFile=null,pendingProfilePreview='',profileSaving=false,privLoadFailed=false,admSuspensions=[],ADM='famousnadroj@gmail.com',av2=null,mutual=false,ct=null,lastSig='',rdvFor=null,fresh=false,adm=[],sigs=[],blocked=[],blockedProfiles=[],matchNoticeChecked={},blockedCurrent=false,blockedCheckedFor=null,NUM='',rdvs=[],pos='',priv={},profs=[],st={},tab='home',open=null,msgs=[],convs=[],chatCursor=null,chatCursorId=0,chatCursorFor=null,chatLoadBusy=false,chatLoadQueued=false,chatSending=false,chatBeforeId=0,chatHasOlder=false,chatOlderBusy=false,chatInitialLoading=false,chatLoadBusyKeys=Object.create(null),chatLoadQueuedKeys=Object.create(null),msgRealtimeReady=false,chatMediaUrlCache=Object.create(null),receiptByMessage=Object.create(null),msgChannel=null,subUserId=null,backgroundTimersStarted=false,presenceChannel=null,presenceUserId=null,presenceReady=false,onlineIds=Object.create(null),typingChannel=null,typingTarget=null,typingStopTimer=null,typingHideTimer=null,typingActive=false,ph=[],msg='',F={g:'',c:'',a:18,b:99},timer,mode='in';
+var me=null,mine=null,profileDraft={},signupDraft={},signupStep=1,pendingSignupPhoto=null,pendingSignupPreview='',pendingSignupEmail='',loginPrefillEmail='',phUrls=[],loadSeq=0,loadedUid=null,profileEditing=false,pendingProfileFile=null,pendingProfilePreview='',profileSaving=false,privLoadFailed=false,admSuspensions=[],ADM='famousnadroj@gmail.com',av2=null,mutual=false,ct=null,lastSig='',rdvFor=null,fresh=false,adm=[],sigs=[],blocked=[],blockedProfiles=[],matchNoticeChecked={},blockedCurrent=false,blockedCheckedFor=null,NUM='',ORANGE='',rdvs=[],pos='',priv={},profs=[],st={},tab='home',open=null,msgs=[],convs=[],chatCursor=null,chatCursorId=0,chatCursorFor=null,chatLoadBusy=false,chatLoadQueued=false,chatSending=false,chatBeforeId=0,chatHasOlder=false,chatOlderBusy=false,chatInitialLoading=false,chatLoadBusyKeys=Object.create(null),chatLoadQueuedKeys=Object.create(null),msgRealtimeReady=false,chatMediaUrlCache=Object.create(null),receiptByMessage=Object.create(null),msgChannel=null,subUserId=null,backgroundTimersStarted=false,presenceChannel=null,presenceUserId=null,presenceReady=false,onlineIds=Object.create(null),typingChannel=null,typingTarget=null,typingStopTimer=null,typingHideTimer=null,typingActive=false,ph=[],msg='',F={g:'',c:'',a:18,b:99},timer,mode='in';
 var $=function(i){return document.getElementById(i)};
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 function on(t){return t&&new Date(t)>new Date()}
@@ -807,11 +807,11 @@ async function load(){
    sb.rpc('blocked_user_ids'),
    sb.rpc('my_blocked_profiles'),
    sb.from('statuts').select('*'),
-   sb.from('config').select('valeur').eq('cle','airtel').maybeSingle()
+   sb.from('config').select('cle,valeur').in('cle',['airtel','orange'])
   ]);
   if(seq!==loadSeq||!me||me.id!==uid)return;
   blocked=tasks[0].error?[]:(tasks[0].data||[]);blockedProfiles=tasks[1].error?[]:(tasks[1].data||[]);
-  st={};(tasks[2].data||[]).forEach(function(x){st[x.user_id]=x});NUM=tasks[3].data?tasks[3].data.valeur:'';
+  st={};(tasks[2].data||[]).forEach(function(x){st[x.user_id]=x});NUM='';ORANGE='';(tasks[3].data||[]).forEach(function(x){if(x.cle==='airtel')NUM=x.valeur||'';if(x.cle==='orange')ORANGE=x.valeur||''});
   await Promise.all(othersPhotos);
   await Promise.all([loadRdv(),loadAns(),loadMyAvis()]);
   if(seq!==loadSeq||!me||me.id!==uid)return;
