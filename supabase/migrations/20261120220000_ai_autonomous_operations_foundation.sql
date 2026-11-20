@@ -1,4 +1,5 @@
 -- Additive foundation for scheduled, signed Malachite AI operations.
+create extension if not exists pg_net with schema extensions;
 -- Does not alter existing application data, policies, or RPCs.
 create table if not exists public.ai_ops_runs (
   id bigint generated always as identity primary key,
@@ -103,7 +104,7 @@ select cron.schedule(
     with request_data as (
       select
         extract(epoch from clock_timestamp())::bigint::text as ts,
-        '{"trigger":"cron"}'::text as body,
+        '{"trigger":"cron"}'::jsonb as body,
         (select decrypted_secret from vault.decrypted_secrets
           where name = 'malachite_ai_worker_hmac' limit 1) as secret
     )
@@ -114,14 +115,14 @@ select cron.schedule(
         'x-mal-timestamp', ts,
         'x-mal-signature', encode(
           extensions.hmac(
-            convert_to(ts || '.' || body, 'UTF8'),
+            convert_to(ts || '.' || body::text, 'UTF8'),
             convert_to(secret, 'UTF8'),
             'sha256'
           ),
           'hex'
         )
       ),
-      body := body::jsonb,
+      body := body,
       timeout_milliseconds := 10000
     )
     from request_data
