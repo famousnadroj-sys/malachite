@@ -26,7 +26,10 @@
       '<div class="mal-ai-status" id="malAiState"><i></i><span>Connexion sécurisée · chargement des indicateurs…</span></div>'+
       '<div class="mal-ai-section-title"><b>Vue d’ensemble</b><small id="malAiUpdated">Indicateurs agrégés</small></div>'+
       '<div class="mal-ai-metrics" id="malAiMetrics"><div class="mal-ai-skeleton"></div><div class="mal-ai-skeleton"></div><div class="mal-ai-skeleton"></div><div class="mal-ai-skeleton"></div></div>'+
-      '<div class="mal-ai-section-title"><b>Conseils automatiques</b><small>Basés sur les chiffres réels</small></div><div id="malAiInsights" class="mal-ai-insights">Chargement des priorités…</div><div class="mal-ai-section-title"><b>Actions rapides</b><small>Conseils, aucune action automatique</small></div>'+
+      '<div class="mal-ai-section-title"><b>Centre des opérations</b><small>Informations administrateur · actualisation manuelle</small></div>
+      <div class="mal-ai-ops-actions"><button type="button" onclick="malAiLoadOperations()">↻ Actualiser les dossiers</button></div>
+      <div id="malAiOperations" class="mal-ai-operations"><p class="mal-ai-loading">Chargement des dossiers de gestion…</p></div>
+      <div class="mal-ai-section-title"><b>Conseils automatiques</b><small>Basés sur les chiffres réels</small></div><div id="malAiInsights" class="mal-ai-insights">Chargement des priorités…</div><div class="mal-ai-section-title"><b>Actions rapides</b><small>Conseils, aucune action automatique</small></div>'+
       '<div class="mal-ai-quick">'+
       '<button type="button" onclick="malAiQuickPrompt(\'Prépare mon briefing quotidien à partir des indicateurs actuels. Donne-moi les trois priorités et les risques à surveiller.\')">☀️ Briefing du jour</button>'+
       '<button type="button" onclick="malAiQuickPrompt(\'Analyse les paiements en attente à partir des chiffres agrégés et propose une procédure de vérification fiable.\')">💳 Paiements</button>'+
@@ -82,6 +85,7 @@
         insightBox.innerHTML=tips.map(function(t){return '<div class="mal-ai-insight"><span>'+t[2]+'</span><div><b>'+esc(t[0])+'</b><p>'+esc(t[1])+'</p></div></div>'}).join("");
       }
       if (updated) updated.textContent = "Actualisé à "+new Date(d.generated_at).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
+      window.malAiLoadOperations();
     } catch (e) {
       if (state) state.innerHTML = '<i class="bad"></i><span>Erreur de chargement des indicateurs.</span>';
       root.innerHTML = '<p class="mal-ai-error">'+esc(e.message || "Erreur inconnue")+'</p>';
@@ -133,6 +137,31 @@
       busy = false; button.disabled = false; button.innerHTML = '<span>Envoyer à Malachite AI</span><b>↗</b>'; renderMessages();
     }
   };
+
+  window.malAiLoadOperations = async function () {
+    var root=document.getElementById("malAiOperations");
+    if(!root || !window.sb || !sb.functions || !sb.functions.invoke) return;
+    root.innerHTML='<p class="mal-ai-loading">Actualisation des dossiers…</p>';
+    try{
+      var result=await sb.functions.invoke("malachite-ai-manager",{body:{action:"operations"}});
+      if(result.error || !result.data || !result.data.operations) throw new Error("Dossiers non accessibles. Vérifie la connexion administrateur.");
+      var o=result.data.operations;
+      function group(title,rows,render){
+        return '<section class="mal-ai-op-group"><h4>'+esc(title)+' <span>'+rows.length+' élément(s) récents</span></h4>'+
+          (rows.length?rows.map(render).join(""):'<p class="mal-ai-op-empty">Aucun élément à afficher.</p>')+'</section>';
+      }
+      function item(title,sub,tag){return '<div class="mal-ai-op-item"><b>'+esc(title)+'</b><span>'+esc(sub||"")+'</span>'+(tag?'<span class="mal-ai-op-tag">'+esc(tag)+'</span>':"")+'</div>'}
+      root.innerHTML=
+        group("Paiements à contrôler",o.payments||[],function(x){return item("#"+x.id+" · "+x.offre,"Statut : "+x.statut+" · "+(x.operateur||"opérateur non précisé")+" · "+new Date(x.created_at).toLocaleString("fr-FR"),x.admin_reason||"Contrôle manuel requis")})+
+        group("Signalements",o.reports||[],function(x){return item("Signalement #"+x.id,x.motif+" · "+new Date(x.created_at).toLocaleString("fr-FR"),x.statut)})+
+        group("Comptes suspendus",o.suspensions||[],function(x){return item("Compte "+String(x.user_id).slice(0,8)+"…",x.motif+" · depuis "+new Date(x.depuis).toLocaleDateString("fr-FR"),"Suspendu")})+
+        group("Blocages entre membres",o.blocks||[],function(x){return item(String(x.user_id).slice(0,8)+"… a bloqué "+String(x.cible).slice(0,8)+"…",new Date(x.created_at).toLocaleString("fr-FR"),"Blocage utilisateur")})+
+        group("Avis et commentaires",o.reviews||[],function(x){return item((x.note||"—")+"/5 · "+(x.categorie||"Avis"),x.message+" · "+new Date(x.created_at).toLocaleDateString("fr-FR"),"Avis membre")})+
+        group("Demandes de support",o.support||[],function(x){return item(x.sujet,x.message+" · "+new Date(x.created_at).toLocaleDateString("fr-FR"),x.statut+" · "+x.categorie)});
+      var state=document.getElementById("malAiState");
+      if(state)state.innerHTML='<i class="good"></i><span>Indicateurs et dossiers administrateur actualisés · aucune action exécutée</span>';
+    }catch(e){root.innerHTML='<p class="mal-ai-error">'+esc(e.message||"Erreur de chargement des dossiers.")+'</p>';}
+  };
   var originalDraw = window.draw;
   if (typeof originalDraw === "function") {
     window.draw = function () {
@@ -151,7 +180,7 @@
   .mal-ai-section-title{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.mal-ai-section-title b{font-size:14px}.mal-ai-section-title small{font-size:10px;color:#987486;text-align:right}
   .mal-ai-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.mal-ai-metric{min-width:0;display:flex;gap:9px;align-items:center;background:rgba(255,255,255,.9);border:1px solid #f1dce4;border-radius:14px;padding:10px}.mal-ai-metric>span{font-size:21px}.mal-ai-metric>div{display:grid;min-width:0}.mal-ai-metric small{font-size:10px;color:#8b6a79}.mal-ai-metric b{font-size:20px;line-height:1.2;color:#3d1b2b}.mal-ai-metric em{font-size:9px;font-style:normal;color:#a18793}.mal-ai-skeleton{height:66px;border-radius:14px;background:linear-gradient(90deg,#f8eaf0,#fff,#f8eaf0);background-size:200% 100%;animation:malAiShimmer 1.2s linear infinite}@keyframes malAiShimmer{to{background-position:-200% 0}}
   .mal-ai-insights{display:grid;gap:7px}.mal-ai-insight{display:flex;gap:9px;align-items:flex-start;padding:10px;border:1px solid #f0dce4;background:#fff;border-radius:12px}.mal-ai-insight>span{font-size:18px}.mal-ai-insight b{font-size:11px;color:#643349}.mal-ai-insight p{font-size:11px;color:#866b78;margin:2px 0 0;line-height:1.4}.mal-ai-quick{display:grid;grid-template-columns:1fr 1fr;gap:8px}.mal-ai-quick button{font-size:11px;padding:10px 8px;background:#fff;border:1px solid #ecd4df;color:#70374f;line-height:1.35;text-align:left;min-height:44px}.mal-ai-messages{display:grid;gap:9px;max-height:330px;overflow:auto;padding:11px;background:#fff;border:1px solid #efd9e3;border-radius:15px;min-height:96px}.mal-ai-empty{color:#6d4a5a;font-size:13px;line-height:1.5}.mal-ai-empty p{margin:5px 0 0}.mal-ai-msg{max-width:96%;padding:10px 12px;border-radius:14px;background:#f7f1f5;white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px}.mal-ai-msg.user{justify-self:end;background:#fce5ef}.mal-ai-msg small{display:block;font-size:9px;letter-spacing:.08em;color:#a16b83;font-weight:800;margin-bottom:4px}.mal-ai-input-label{font-size:12px!important;color:#70475a}.mal-ai-input-label textarea{width:100%;min-height:74px;border:1px solid #e9cbd8;border-radius:13px;background:#fff;padding:11px;resize:vertical}.mal-ai-send{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;background:linear-gradient(100deg,#d81b60,#9652b5);color:#fff;border-radius:13px;min-height:47px}.mal-ai-send:disabled{opacity:.65}.mal-ai-footnote{font-size:10px;line-height:1.45;color:#8b6d7a;margin:0}.mal-ai-error{grid-column:1/-1;color:#9d3651;font-size:12px}
-  @media(max-width:350px){.mal-ai-metric{padding:8px 6px;gap:5px}.mal-ai-metric>span{font-size:18px}.mal-ai-metric b{font-size:18px}.mal-ai-quick button{font-size:10px}}
+  .mal-ai-ops-actions{display:flex;justify-content:flex-end}.mal-ai-ops-actions button{border:1px solid #ecd4df;background:#fff;color:#70374f;border-radius:10px;padding:8px 12px;font-size:11px}.mal-ai-operations{display:grid;gap:10px}.mal-ai-op-group{background:#fff;border:1px solid #f0dce4;border-radius:14px;padding:11px;display:grid;gap:8px}.mal-ai-op-group h4{margin:0;font-size:12px;color:#65364b;display:flex;justify-content:space-between;gap:8px}.mal-ai-op-group h4 span{font-size:10px;color:#9a7484;font-weight:500}.mal-ai-op-item{border-top:1px solid #f4e8ed;padding-top:8px;display:grid;gap:3px;font-size:11px;color:#76596a;overflow-wrap:anywhere}.mal-ai-op-item b{color:#4d2b3b;font-size:11px}.mal-ai-op-empty,.mal-ai-loading{font-size:11px;color:#987486;margin:0}.mal-ai-op-stars{color:#a75a21;font-weight:800}.mal-ai-op-tag{display:inline-block;background:#f8edf2;border-radius:7px;padding:2px 6px;font-size:10px;color:#82425e;width:max-content}@media(max-width:350px){.mal-ai-metric{padding:8px 6px;gap:5px}.mal-ai-metric>span{font-size:18px}.mal-ai-metric b{font-size:18px}.mal-ai-quick button{font-size:10px}}
   `;
   document.head.appendChild(style);
 })();
