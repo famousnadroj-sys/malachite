@@ -105,38 +105,20 @@ if(typeof originalSetLang==='function'){
  window.malSetLang=function(l){originalSetLang(l);apply();};
 }
 window.malAvatarState={skin:'medium',hair:'short',shirt:'rose',style:'classic'};
-var skinColors={light:'#F4D2B8',medium:'#C98D68',dark:'#8D573D',deep:'#5B382C'};
-var shirtColors={rose:'#D81B60',blue:'#2878C8',green:'#248A63',purple:'#7652A8',black:'#30323A'};
-function avatarState(a){a=a||{};return {skin:skinColors[a.skin]?a.skin:'medium',hair:['short','curly','long','shaved'].indexOf(a.hair)>=0?a.hair:'short',shirt:shirtColors[a.shirt]?a.shirt:'rose',style:a.style==='round'?'round':'classic'}}
-window.malAvatarSvg=function(a){
- a=avatarState(a);var skin=skinColors[a.skin],shirt=shirtColors[a.shirt];
- var hair=a.hair==='shaved'?'':a.hair==='long'?
- '<path d="M24 42 Q17 8 50 8 Q83 8 76 42 L79 79 Q70 88 65 69 L35 69 Q30 88 21 79Z" fill="#30221F"/>':
- a.hair==='curly'?'<path d="M22 43 Q12 13 31 17 Q38 4 49 15 Q63 3 70 18 Q88 18 78 45 Q71 27 62 30 Q49 19 38 31 Q27 27 22 43Z" fill="#30221F"/>':
- '<path d="M22 43 Q18 10 50 10 Q82 10 78 43 Q68 27 60 28 Q48 18 37 29 Q28 27 22 43Z" fill="#30221F"/>';
- return '<svg viewBox="0 0 100 100" role="img" aria-label="Custom avatar" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="avbg" x2="1" y2="1"><stop stop-color="#fff"/><stop offset="1" stop-color="#f8dce7"/></linearGradient></defs><circle cx="50" cy="50" r="49" fill="url(#avbg)"/><path d="M15 100 Q18 72 39 68 L61 68 Q83 72 86 100" fill="'+shirt+'"/><path d="M39 65 L39 76 Q50 86 61 76 L61 65" fill="'+skin+'"/><ellipse cx="50" cy="44" rx="27" ry="31" fill="'+skin+'"/>'+hair+'<ellipse cx="40" cy="47" rx="2.3" ry="3" fill="#30221F"/><ellipse cx="60" cy="47" rx="2.3" ry="3" fill="#30221F"/><path d="M44 59 Q50 64 56 59" fill="none" stroke="#8D3E45" stroke-width="2.2" stroke-linecap="round"/>'+(a.style==='round'?'<circle cx="31" cy="56" r="4" fill="#E88A8A" opacity=".35"/><circle cx="69" cy="56" r="4" fill="#E88A8A" opacity=".35"/>':'')+'</svg>';
-};
-window.malAvatarSet=function(k,v){if(['skin','hair','shirt','style'].indexOf(k)<0)return;var next=Object.assign({},window.malAvatarState);next[k]=v;window.malAvatarState=avatarState(next);var p=document.getElementById('malAvatarPreview');if(p)p.innerHTML=window.malAvatarSvg(window.malAvatarState)};
-window.malAvatarPreview=function(){var p=document.getElementById('malAvatarPreview');if(p)p.innerHTML=window.malAvatarSvg(window.malAvatarState)};
-window.malSaveAvatar=async function(){
- var out=document.getElementById('malAvMsg');if(!window.me){if(out)out.textContent='Connecte-toi.';return}
- var a=Object.assign({type:'vector'},avatarState(window.malAvatarState));
- var r=await window.sb.from('profiles').update({avatar:a}).eq('id',window.me.id);
- if(r.error){if(out)out.textContent='Avatar non enregistré : '+r.error.message;return}
- if(window.mine)window.mine.avatar=a;
- if(out)out.textContent=current()==='en'?'Avatar saved to your profile.':'Avatar enregistré sur ton profil.';
- if(typeof window.draw==='function')window.draw(true);
-};
+var appAvatarSvg=window.malAvatarSvg,appAvatarSet=window.malAvatarSet,appAvatarPreview=window.malAvatarPreview,appSaveAvatar=window.malSaveAvatar;
+window.malAvatarSvg=function(a){return appAvatarSvg?appAvatarSvg(a&&a.config?a.config:a):''};
+window.malAvatarSet=function(k,v){if(appAvatarSet)appAvatarSet(k,v)};
+window.malAvatarPreview=function(){if(appAvatarPreview)appAvatarPreview()};
+window.malSaveAvatar=async function(){if(appSaveAvatar)return appSaveAvatar()};
 var oldCentre=window.centre;
-window.centre=function(){
- if(window.mine&&window.mine.avatar&&window.mine.avatar.type==='vector')window.malAvatarState=avatarState(window.mine.avatar);
- else if(window.mine&&window.mine.avatar&&window.mine.avatar.emoji)window.malAvatarState=avatarState({});
- return typeof window.malCentre==='function'?window.malCentre():(oldCentre?oldCentre():'');
-};
+window.centre=function(){if(window.mine&&window.mine.avatar&&window.mine.avatar.type==='pro-vector')window.malAvatarState=Object.assign({},window.malAvatarState,window.mine.avatar.config||{});return oldCentre?oldCentre():''};
 var originalAv=window.av;
 window.av=function(p){
- var photo=p&&p.photoUrls&&p.photoUrls[0];if(photo)return '<div class="av" style="background-image:url('+String(photo).replace(/["<>]/g,'')+')"></div>';
- var a=p&&p.avatar;if(a&&a.type==='vector')return '<div class="av mal-vector-avatar">'+window.malAvatarSvg(a)+'</div>';
+ var photo=p&&p.photoUrls&&p.photoUrls[0];
+ if(photo)return '<div class="av" style="background-image:url('+String(photo).replace(/["<>]/g,'')+');background-size:cover;background-position:center"></div>';
+ var a=p&&p.avatar;
+ if(a&&a.type==='pro-vector')return '<div class="av mal-vector-avatar">'+window.malAvatarSvg(a.config)+'</div>';
+ if(a&&a.type==='vector')return '<div class="av mal-vector-avatar">'+window.malAvatarSvg(a)+'</div>';
  if(a&&a.emoji)return '<div class="av" style="background:'+((/^#[0-9a-f]{6}$/i.test(a.color||''))?a.color:'#F7B7D0')+';display:grid;place-items:center;font-size:30px">'+String(a.emoji).replace(/[&<>"]/g,'')+'</div>';
  return originalAv?originalAv(p):'<div class="av">?</div>';
 };
