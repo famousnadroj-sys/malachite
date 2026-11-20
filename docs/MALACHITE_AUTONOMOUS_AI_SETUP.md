@@ -1,51 +1,26 @@
-# Malachite — agent opérationnel autonome (fondation)
+# Malachite — fondation de supervision autonome
 
-## État de cette branche
+## État
+Cette fondation ajoute un worker serveur isolé. Il collecte des indicateurs agrégés et journalise ses exécutions. Elle n'altère aucune table métier existante.
 
-Cette proposition est isolée dans `feature/ai-autonomous-operations`. Elle ne modifie pas `main`, ne touche pas les interfaces existantes et n'est pas déployée en production.
+## Sécurité du déclencheur
+La clé HMAC est créée côté base dans Supabase Vault. pg_cron calcule une signature courte et transmet uniquement le timestamp, le corps et la signature via pg_net. L'Edge Function vérifie la signature par une RPC limitée à service_role. La clé HMAC ne quitte jamais Vault et n'est jamais placée dans la file pg_net.
 
-Elle ajoute une fondation de supervision :
-- un journal serveur de chaque exécution ;
-- des indicateurs agrégés (membres, inscriptions récentes, Premium, paiements en attente, signalements nouveaux, support ouvert, suspensions) ;
-- un rapport IA périodique, limité à un rapport toutes les six heures ;
-- aucune lecture de messages privés, pièces de paiement ou profils individuels ;
-- aucune modification de compte, validation de paiement, sanction, remboursement ou suppression.
+## Planification
+Une tâche nommée `malachite-ai-ops-worker` est planifiée toutes les 15 minutes. Le job ne doit pas être confondu avec le job existant `malachite-entitlement-expiry-notifications`, qui reste inchangé.
 
-## Prérequis manuels avant activation
+## Données lues
+Uniquement des décomptes agrégés : nombre de profils, nouveaux profils sur 7 jours, abonnements Premium actifs, paiements en attente, signalements nouveaux, demandes de support ouvertes et comptes suspendus. Aucun message privé, texte de support, justificatif de paiement ou profil individuel n'est transmis au modèle.
 
-1. Vérifier la clé Gemini dans Supabase Dashboard → Edge Functions → Secrets. Ne jamais la transmettre dans le chat ou la committer dans GitHub.
-2. Générer un secret aléatoire long pour `MALACHITE_WORKER_SECRET` et le définir dans les secrets Edge Functions.
-3. Définir `MALACHITE_AI_AUTONOMY_ENABLED=true` uniquement après validation du budget et des quotas Gemini.
-4. Déployer `malachite-ai-worker` avec `verify_jwt=false`. La fonction exige alors `x-malachite-worker-token` et refuse les appels sans le secret dédié.
-5. Appliquer la migration additive avant le déploiement de la fonction.
-6. Activer `pg_net` uniquement après examen des implications de sécurité ci-dessous.
+## Rapports IA
+Si `MALACHITE_AI_AUTONOMY_ENABLED=true` et `GEMINI_API_KEY` est configurée dans Supabase Edge Function Secrets, un rapport de synthèse peut être généré au maximum toutes les six heures. Si l'une de ces conditions manque, le worker continue les mesures et consigne l'état partiel.
 
-## Planification Supabase
+## Limites
+Cette fondation ne traite pas encore automatiquement les tickets, les signalements ou les opérations métier. Aucune action sur les comptes, paiements, abonnements, sanctions, remboursements ou suppressions n'est exécutée. Ces workflows nécessitent des règles métier spécifiques, un journal d'audit, l'idempotence, des tests et un circuit d'approbation pour les décisions sensibles.
 
-Le projet dispose déjà de `pg_cron`, mais `pg_net` n'était pas activé lors de l'audit du 20 novembre 2026. La planification HTTP exige `pg_net` et un secret stocké dans Vault. La documentation Supabase avertit que les en-têtes déchiffrés peuvent rester temporairement dans `net.http_request_queue`; les privilèges d'accès à cette file doivent donc être vérifiés avant d'y placer un secret.
-
-Après configuration du Vault et activation de `pg_net`, planifier un appel toutes les 15 minutes vers :
-`/functions/v1/malachite-ai-worker`
-avec l'en-tête `x-malachite-worker-token` et le corps `{"trigger":"cron"}`.
-
-Ne pas créer le job cron tant que le secret Vault, les privilèges d'accès à la file et le test d'appel authentifié ne sont pas confirmés. Ne pas réutiliser la clé service_role comme secret de worker.
-
-## Ce que cette fondation ne fait pas encore
-
-Ce n'est pas encore un agent qui exécute toutes les opérations du site. Elle supervise et produit un briefing agrégé. Pour automatiser le support, la modération ou d'autres workflows, il faudra :
-- une base de réponses approuvées et des règles de qualité ;
-- des actions métier étroites et explicitement autorisées, chacune idempotente ;
-- une file de tâches avec reprise, limites de tentatives et journalisation ;
-- un système d'approbation pour les actions sensibles ;
-- des tests multi-comptes, de charge, de sécurité et de reprise.
-
-Les demandes de support et signalements ne sont pas envoyés au fournisseur IA dans cette première étape : leurs textes peuvent contenir des données personnelles. Aucun paiement n'est confirmé par une capture ou une référence saisie. Les suspensions définitives, remboursements, transferts d'argent, suppressions et modifications des moyens de réception restent sous contrôle du fondateur.
-
-## Vérifications requises
-
-- Deno type-check de la fonction.
-- Parsing SQL de la migration.
-- Tests d'appel : token absent/refusé, token correct, secret IA absent, erreur Gemini, succès.
-- Vérifier que les lignes `ai_ops_runs` sont inaccessibles à `anon` et `authenticated`.
-- Vérifier que le rapport ne contient aucune donnée personnelle.
-- Vérifier les exécutions cron et le heartbeat avant toute activation durable.
+## Contrôles avant activation
+- Vérifier le type-check Deno et la migration SQL.
+- Vérifier que les rôles anon/authenticated ne peuvent ni lire le journal ni appeler la RPC de vérification.
+- Vérifier qu'un appel sans signature et avec signature altérée est refusé.
+- Vérifier une exécution planifiée et sa trace dans `ai_ops_runs`.
+- Configurer Gemini seulement après validation des quotas et du budget.
