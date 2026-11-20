@@ -93,6 +93,28 @@ if (callsCheck.status !== 0) {
   process.exit(callsCheck.status || 1);
 }
 if (!html.includes('<script src="calls.js"></script>')) throw new Error('Realtime call client must be loaded by the application.');
+if (!calls.includes('Les appels sécurisés seront réactivés après leur mise en place') ||
+    !calls.includes("h=h.replace('<button disabled title=")) {
+  throw new Error('Mutual-match call actions must replace the legacy disabled call button.');
+}
+for (const item of [
+  "Premium <span>2 $ / 30 jours</span>",
+  "Premium — 2 USD / 30 jours (appels inclus)",
+  'id="malReceipt"',
+  "malSubmitPayment({offer:offer.value,code:code,operator:network,file:proof.files[0]})",
+]) {
+  if (!calls.includes(item)) throw new Error('Secure calls/payment override requirement missing: ' + item);
+}
+if (calls.includes("Premium <span>3 $ / 30 jours</span>") ||
+    calls.includes("Premium — 3 USD / 30 jours") ||
+    calls.includes("sb.from('paiements').insert(payload)")) {
+  throw new Error('Calls offer override must not show the old price or bypass the shared receipt workflow.');
+}
+if (!calls.includes("select('id,offre,statut,created_at,reviewed_at,admin_reason,operateur')") ||
+    calls.includes('au plus tard sous 2 heures') ||
+    calls.includes('réponse visée sous deux heures')) {
+  throw new Error('Payment history must show the actual operator and must not promise an unverified review SLA.');
+}
 for (const item of ['online(targetProfile)', 'malAcceptCall', 'malRejectCall', "executeCommand('toggleAudio')", "executeCommand('toggleVideo')", 'setAudioOutputDevice', 'startInbox']) {
   if (!calls.includes(item)) throw new Error('Call feature requirement missing: ' + item);
 }
@@ -110,6 +132,11 @@ if (swCheck.status !== 0) {
   process.exit(swCheck.status || 1);
 }
 if (!sw.includes('storage') || !sw.includes('Authorization')) throw new Error('Service worker must bypass Supabase private APIs.');
+if (!html.includes("navigator.serviceWorker.addEventListener('controllerchange'") ||
+    !html.includes("id='malSwUpdateNotice'") ||
+    !html.includes("window.location.reload()")) {
+  throw new Error('Existing PWA clients must be prompted to refresh after an app update.');
+}
 
 const migrations = fs.readdirSync('supabase/migrations')
   .filter((name) => name.endsWith('.sql'))
@@ -185,3 +212,87 @@ if (!html.includes('oninput="setTyping()"') || !html.includes('class="chat-typin
 if (!html.includes('class="conv-avatar" onclick="event.stopPropagation();viewProf')) throw new Error('Conversation avatar must open the immersive member profile.');
 if (!html.includes('async function viewProf(id,startIndex)') || !html.includes("window.malOpenProfile=async function(id,startIndex)") || !html.includes("layer.className='mal-profile-viewer'")) throw new Error('Immersive profile viewer must remain available.');
 console.log('Malachite frontend, PWA, private media, SQL policy and Admin security checks passed.');
+
+
+// Malachite launch/payment guardrails (static checks; not a live payment test).
+for (const item of [
+  "Premium — 2 USD / mois",
+  "Boost — 0,50 USD / 24 h",
+  "+243 993 315 532",
+  "+243 848 775 992",
+  "operateur:data.operator",
+  "Une capture d’écran seule ne déclenche jamais Premium.",
+  "Ne communique jamais ton code PIN ni ton OTP.",
+]) {
+  if (!html.includes(item)) throw new Error('Launch payment requirement missing: ' + item);
+}
+if (!html.includes("var payload={offre:data.offer,code:data.code,operateur:data.operator,receipt_path:receipt.path}") ||
+    !html.includes("sb.from('paiements').insert(payload)")) {
+  throw new Error('Payment submission must preserve offer, reference, operator and private receipt path.');
+}
+if (!html.includes("function aiManagerPreview()") || !html.includes("prototype non activé") || !html.includes("Aucune décision automatique")) {
+  throw new Error('AI Manager must remain explicitly marked as inactive until server-side integration is tested.');
+}
+if (html.includes("Premium — 3 $")) {
+  throw new Error('Legacy Premium price of 3 USD remains anywhere in the frontend.');
+}
+if (!html.includes("Premium — 2 USD / mois")) {
+  throw new Error('The active Premium price must be 2 USD per month.');
+}
+
+const paymentMigration = fs.readFileSync('supabase/migrations/20261120130000_restrict_payment_review_rpc.sql', 'utf8');
+for (const item of [
+  'revoke all on function public.traiter_paiement(bigint, boolean) from public, anon',
+  'revoke all on function public.traiter_paiement(bigint, boolean, text) from public, anon',
+  'grant execute on function public.traiter_paiement(bigint, boolean, text) to authenticated',
+  'payment_review_rpc_must_not_be_executable_by_anon',
+]) {
+  if (!paymentMigration.toLowerCase().includes(item.toLowerCase())) {
+    throw new Error('Payment RPC privilege guard missing: ' + item);
+  }
+}
+if (!html.includes('maxlength="100" placeholder="Référence exacte du SMS"') ||
+    !html.includes('c.length<4||c.length>100')) {
+  throw new Error('Payment reference length must match the database RLS policy (4–100 characters).');
+}
+if (html.includes('maxlength="120" placeholder="Référence de transaction"')) {
+  throw new Error('Payment reference input exceeds the database limit.');
+}
+
+const receiptMigration = fs.readFileSync('supabase/migrations/20261120140000_private_payment_receipts.sql', 'utf8');
+for (const item of [
+  "values ('payment-receipts', 'payment-receipts', false, 5242880",
+  "private.is_admin()",
+  "paiements_operator_reference_uidx",
+]) {
+  if (!receiptMigration.toLowerCase().includes(item.toLowerCase())) {
+    throw new Error('Private payment receipt storage control missing: ' + item);
+  }
+}
+const receiptPolicyMigration = fs.readFileSync('supabase/migrations/20261120170000_enforce_payment_receipt_policy.sql', 'utf8');
+for (const item of [
+  "receipt_path is not null",
+  "operateur in ('airtel','orange')",
+  "mutual match",
+  "o.bucket_id = 'payment-receipts'",
+  "o.name = paiements.receipt_path",
+  "(storage.foldername(o.name))[1] = (select auth.uid())::text",
+]) {
+  if (!receiptPolicyMigration.toLowerCase().includes(item.toLowerCase())) {
+    throw new Error('Private payment receipt enforcement missing: ' + item);
+  }
+}
+for (const item of [
+  "async function malUploadPaymentReceipt(file)",
+  "sb.storage.from('payment-receipts').upload",
+  "createSignedUrl(x.receipt_path,300)",
+  "id=\"malReceipt\"",
+  "id=\"ucProof\"",
+  "receipt_path:receipt.path",
+]) {
+  if (!html.includes(item)) throw new Error('Payment receipt workflow missing: ' + item);
+}
+
+if (!html.includes("remove([receipt.path])")) {
+  throw new Error('Failed payment inserts must clean up unlinked private receipt files.');
+}
