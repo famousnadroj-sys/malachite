@@ -877,7 +877,7 @@ async function signupNext(){
   if(!Number.isInteger(age)||age<18||age>100)return showFieldError('suAge','Malachite est réservé aux personnes de 18 ans et plus.');
   if(d.telephone&&!/^\+?[0-9\s().-]{7,20}$/.test(d.telephone))return showFieldError('suPhone','Vérifie le numéro ou laisse ce champ vide.');
  }
- signupStep=Math.min(3,signupStep+1);if(signupStep===3)malWarmAvatarBuilder();msg='';draw();
+ signupStep=Math.min(3,signupStep+1);if(signupStep>=2)malWarmAvatarBuilder();msg='';draw();
 }
 function signupBack(){signupCollect();signupStep=Math.max(1,signupStep-1);msg='';draw()}
 function stageSignupPhoto(el){var f=el.files&&el.files[0];if(!f)return;if(['image/jpeg','image/png','image/webp','image/gif'].indexOf(f.type)<0||f.size>5e6){var h=$('malSignupPhotoHint');if(h)h.textContent='Format non accepté ou fichier supérieur à 5 Mo.';el.value='';return}pendingSignupPhoto=f;if(pendingSignupPreview)URL.revokeObjectURL(pendingSignupPreview);pendingSignupPreview=URL.createObjectURL(f);var p=$('malSignupPreview');if(p){p.style.backgroundImage='url('+pendingSignupPreview+')';p.textContent=''}var hint=$('malSignupPhotoHint');if(hint)hint.textContent='Photo prête : elle sera ajoutée à ton profil après création du compte.'}
