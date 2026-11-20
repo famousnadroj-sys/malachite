@@ -107,7 +107,7 @@
  if(typeof call==='function')call=function(mode){return startCall(mode||'audio')};
 
  var oldMatch=window.matchBox;
- if(typeof oldMatch==='function')window.matchBox=function(){return oldMatch().replace('Appels sécurisés indisponibles','Appels audio et vidéo disponibles avec le Pass Appels (1 USD / 30 jours).').replace('<button disabled>📹 Appels sécurisés indisponibles</button>','<button onclick="call(&quot;audio&quot;)">📞 Appel audio</button><button onclick="call(&quot;video&quot;)">🎥 Appel vidéo</button>')};
+ if(typeof oldMatch==='function')window.matchBox=function(){var h=oldMatch().replace('<button disabled>📹 Appels sécurisés indisponibles</button>','<button onclick="call(&quot;audio&quot;)">📞 Appel audio</button><button onclick="call(&quot;video&quot;)">🎥 Appel vidéo</button>');return h.replace('Appels sécurisés indisponibles','Appels audio et vidéo disponibles avec le Pass Appels (1 USD / 30 jours).')};
  var oldThread=window.thread;
  if(typeof oldThread==='function')window.thread=function(){return oldThread().replace('Voir le profil ›</i></button>','Voir le profil ›</i></button><button class="mal-call-head" onclick="call(&quot;audio&quot;)" aria-label="Appel audio">📞</button><button class="mal-call-head" onclick="call(&quot;video&quot;)" aria-label="Appel vidéo">🎥</button>')};
  var oldSub=window.sub;
