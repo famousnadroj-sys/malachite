@@ -1766,7 +1766,7 @@ function openMalAvatarBuilder(){
  var overlay=document.createElement('div');overlay.id='malAvatarBuilderOverlay';overlay.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(16,17,22,.72);display:flex;align-items:center;justify-content:center;padding:0';
  var frame=malAvatarPreloadFrame;
  if(frame){frame.style.cssText='width:min(100%,900px);height:100%;max-height:100dvh;border:0;border-radius:0;background:#fff;opacity:1;pointer-events:auto;position:relative;left:auto;top:auto;z-index:auto';}
- else{frame=document.createElement('iframe');frame.title='Créateur d’avatar 3D Malachite';frame.src='avatar-builder.html?gender='+gender;frame.style.cssText='width:min(100%,900px);height:100%;max-height:100dvh;border:0;border-radius:0;background:#fff';frame.setAttribute('allow','fullscreen');}
+ else{frame=document.createElement('iframe');frame.title='Créateur d’avatar 3D Malachite';frame.src='avatar-builder.html?gender='+gender;frame.style.cssText='width:min(100%,900px);height:100%;max-height:100dvh;border:0;border-radius:0;background:#fff';frame.setAttribute('allow','fullscreen');malAvatarPreloadFrame=frame;frame.addEventListener('load',function(){malAvatarPreloadReady=true},{once:true});}
  frame.title='Créateur d’avatar 3D Malachite';
  overlay.appendChild(frame);var sendGender=function(){if(frame.contentWindow)frame.contentWindow.postMessage({source:'malachite-avatar-parent',type:'set-gender',gender},location.origin)};if(malAvatarPreloadReady)sendGender();else frame.addEventListener('load',sendGender,{once:true});overlay.addEventListener('click',function(e){if(e.target===overlay)closeMalAvatarBuilder()});document.body.appendChild(overlay);
 }
