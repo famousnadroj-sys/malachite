@@ -1905,7 +1905,9 @@ async function malSubmitPayment(data){
  if(receipt.error)return {error:receipt.error};
  var payload={offre:data.offer,code:data.code,operateur:data.operator,receipt_path:receipt.path};
  if(data.target)payload.cible=data.target;
- var result=await sb.from('paiements').insert(payload);
+ var result;
+ try{result=await sb.from('paiements').insert(payload)}
+ catch(e){await sb.storage.from('payment-receipts').remove([receipt.path]);return {error:'Connexion interrompue. Le justificatif temporaire a été nettoyé si possible ; réessaie.'}}
  if(result.error){
   await sb.storage.from('payment-receipts').remove([receipt.path]);
   return {error:'Demande non enregistrée : '+result.error.message};
