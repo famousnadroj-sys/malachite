@@ -10,7 +10,7 @@ Le dépôt a une validation CI verte, mais plusieurs dépendances de production 
 
 ## Vérifications positives
 
-- GitHub Actions : validation du commit `d6b7005b5bce7a703cbfac23718e824b7e9a95cc` terminée avec succès ([run 44802439637](https://github.com/famousnadroj-sys/malachite/actions/runs/44802439637)).
+- GitHub Actions : validation du commit `7b5d6034d3351ceea03933824b185ca57ed1f172` terminée avec succès ([run 44802728540](https://github.com/famousnadroj-sys/malachite/actions/runs/44802439637)).
 - Les migrations RPC, stockage privé, optimisation support et politique stricte de reçus ont passé un essai transactionnel combiné dans l'ordre prévu, ensuite annulé ; aucune modification n'a persisté dans la base active.
 - Le déploiement des reçus est scindé en deux étapes pour ne pas casser l'ancien formulaire : migration additive `20261120140000` d'abord, puis déploiement du nouveau frontend, puis politique stricte `20261120170000`.
 - Le projet conserve son application existante ; les changements sont isolés dans une branche et une pull request.
