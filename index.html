@@ -1409,6 +1409,7 @@ function refreshPresenceUI(){
  var profileNode=document.querySelector('.mal-profile-presence');
  if(profileNode)profileNode.innerHTML=presence(malProfileViewerUser||prof(open)||{});
  if(tab==='chat'&&open){var node=$('pst');if(node)node.innerHTML=presence(prof(open)||{})}
+ else if(tab==='chat')draw(true);
 }
 function trackPresence(){if(!presenceChannel||!me||document.hidden)return;presenceChannel.track({user_id:me.id,online:true}).catch(function(error){console.warn('Présence Malachite non publiée',error)})}
 function startPresence(){if(!me)return;if(presenceChannel&&presenceUserId===me.id)return;if(presenceChannel){sb.removeChannel(presenceChannel);presenceChannel=null}presenceUserId=me.id;presenceReady=false;onlineIds=Object.create(null);presenceChannel=sb.channel('malachite-online-v1').on('presence',{event:'sync'},refreshPresenceUI).on('presence',{event:'join'},refreshPresenceUI).on('presence',{event:'leave'},refreshPresenceUI).subscribe(function(status,error){if(status==='SUBSCRIBED'){refreshPresenceUI();trackPresence()}else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED')console.warn('Canal de présence indisponible : '+status,error||'')})}
