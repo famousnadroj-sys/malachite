@@ -25,6 +25,7 @@ jobs:
         run: |
           deno check supabase/functions/admin-user-moderation/index.ts
           deno check supabase/functions/malachite-ai-manager/index.ts
+          deno check supabase/functions/malachite-ai-worker/index.ts
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
