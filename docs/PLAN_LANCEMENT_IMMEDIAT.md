@@ -13,7 +13,8 @@ Préparer le site comme si la mise en ligne devait avoir lieu dès demain. La da
 - Objectif : disponibilité dès demain, uniquement si tous les critères GO sont vérifiés.
 - La mise en ligne reste bloquée tant qu'un point critique est non testé ou non sécurisé.
 - Les changements de cette branche ne sont pas fusionnés dans `main`.
-- Aucune migration de base, clé secrète, activation de fournisseur, dépense ou mise en production n'est effectuée par ce plan.
+- Les migrations RPC, reçus additifs et optimisation support ont maintenant été appliquées et vérifiées en production ; la politique stricte des reçus reste différée jusqu'au déploiement du frontend compatible.
+- Aucun fournisseur IA ou paiement marchand n'a été activé ; aucune dépense payante n'a été engagée.
 
 ## État vérifié au 20 novembre
 
@@ -22,11 +23,11 @@ Préparer le site comme si la mise en ligne devait avoir lieu dès demain. La da
 | Frontend | Application web/PWA dans `index.html`, avec scripts et avatar builder séparés | Tests réels Android, navigation, réseau lent, accessibilité |
 | Premium | Affichage à 2 USD / 30 jours dans la branche | Valider devise, montant réellement encaissé, renouvellement et mentions commerciales |
 | Airtel / Orange | Choix d'opérateur et références déclarées dans l'interface | Vérifier l'éligibilité marchand, obtenir les accès officiels et tester sandbox |
-| Paiement | Demande avec opérateur, référence et justificatif privé ; index anti-doublon préparé ; contrôle manuel admin via RPC | Appliquer les migrations en staging, exécuter `supabase/tests/payment_receipts_security_checks.sql`, tester les politiques RLS, le nettoyage des fichiers orphelins et confirmer les paiements auprès de l'opérateur ; intégration webhook toujours à faire |
-| Reçus | Stockage privé et règles d'accès préparés dans la branche ; le schéma Supabase actif ne contient pas encore `paiements.receipt_path` et le bucket n'est pas confirmé comme déployé. | Appliquer les migrations en environnement de test, vérifier RLS, accès signé, nettoyage et parcours complet avant production |
+| Paiement | Colonne `receipt_path`, bucket privé, règles Storage et index anti-doublon appliqués ; validation manuelle admin via RPC | Déployer le nouveau frontend, appliquer ensuite la politique stricte, tester avec deux comptes et confirmer manuellement les transferts ; webhook marchand toujours à faire |
+| Reçus | Schéma et bucket privé présents en production ; ancienne politique INSERT maintenue temporairement pour compatibilité | Déployer le frontend compatible, appliquer la politique stricte après vérification de la mise à jour PWA et réaliser les tests multi-comptes |
 | AI Manager | Panneau de prévisualisation uniquement ; aucune fonction IA n'est déployée | Fournisseur IA et secret serveur, Edge Function authentifiée, tâches planifiées, outils autorisés, journal d'audit, tests et budget |
 | Modération | Tables signalements/suspensions et Edge Function admin existantes | Vérifier les cas limites, recours, notification et protection contre abus |
-| Sécurité | RLS et migrations présentes ; une alerte `SECURITY DEFINER` et la protection des mots de passe compromis restent visibles sur la base active. Des migrations de correction et d'optimisation sont préparées dans la branche. | Appliquer et tester les migrations, activer la protection Auth, relancer les advisors et les tests négatifs |
+| Sécurité | RPC paiement restreintes à `authenticated` ; optimisation RLS et index support appliqués ; alerte `start_call_session` et protection des mots de passe compromis encore à traiter | Revue dédiée `start_call_session`, activation Auth via Dashboard, tests négatifs multi-comptes et nouvelle lecture des advisors |
 | Déploiement | Workflow GitHub Actions de validation présent | Exécuter CI sur PR, tester le build et répéter le parcours de déploiement sans publier |
 
 ## Paiements — règle impérative
@@ -121,4 +122,7 @@ La publication est bloquée si l'un des points suivants est vrai :
 - Les six blocs JavaScript du frontend ont été analysés avec le parseur Node.js : aucune erreur de syntaxe détectée.
 - Le formulaire de paiement transmet l'offre, l'opérateur, la référence et le chemin du justificatif privé ; la preuve est téléversée avant l'insertion de la demande.
 - Le workflow GitHub Actions le plus récent est vert : validation JavaScript, contrôle de l'Edge Function et analyse syntaxique des migrations SQL.
-- Les migrations de stockage privé et de restriction RPC restent à tester sur une base de staging avant application à la base active.
+- Le contrôle CI du commit `b6e51cf54a7846da0d8538fe3859ee40996e9d2c` est vert (run 44806673988).
+- Les migrations RPC, reçus additifs et optimisation support sont appliquées en production ; les 7 paiements existants sont restés intacts.
+- La politique stricte de paiement avec justificatif n'est pas encore appliquée : elle attend le déploiement du frontend qui téléverse effectivement le reçu.
+- Les tests réels Android, les tests multi-comptes RLS et la restauration restent non réalisés.
