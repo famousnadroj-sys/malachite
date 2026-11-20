@@ -109,7 +109,10 @@ Deno.serve(async (req: Request) => {
     "Ne demande jamais de mots de passe, codes OTP, PIN, clés API ou données personnelles sensibles. Signale les limites et donne des étapes concrètes."
   ].join(" ");
 
-  const conversation = Array.isArray(body.history) ? body.history.slice(-8).filter((item: any) => item && (item.role === "user" || item.role === "model") && typeof item.text === "string").map((item: any) => ({ role: item.role, parts: [{ text: item.text.slice(0, 2000) }] })) : [];\n  conversation.push({ role: "user", parts: [{ text: message }] });\n\n  const endpoint = "https://generativelanguage.googleapis.com/v1beta/models/" +
+  const conversation = Array.isArray(body.history) ? body.history.slice(-8).filter((item: any) => item && (item.role === "user" || item.role === "model") && typeof item.text === "string").map((item: any) => ({ role: item.role, parts: [{ text: item.text.slice(0, 2000) }] })) : [];
+  conversation.push({ role: "user", parts: [{ text: message }] });
+
+  const endpoint = "https://generativelanguage.googleapis.com/v1beta/models/" +
     encodeURIComponent(MODEL) + ":generateContent?key=" + encodeURIComponent(API_KEY);
   let upstream: Response;
   try {
