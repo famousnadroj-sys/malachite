@@ -110,6 +110,11 @@ if (calls.includes("Premium <span>3 $ / 30 jours</span>") ||
     calls.includes("sb.from('paiements').insert(payload)")) {
   throw new Error('Calls offer override must not show the old price or bypass the shared receipt workflow.');
 }
+if (!calls.includes("select('id,offre,statut,created_at,reviewed_at,admin_reason,operateur')") ||
+    calls.includes('au plus tard sous 2 heures') ||
+    calls.includes('réponse visée sous deux heures')) {
+  throw new Error('Payment history must show the actual operator and must not promise an unverified review SLA.');
+}
 for (const item of ['online(targetProfile)', 'malAcceptCall', 'malRejectCall', "executeCommand('toggleAudio')", "executeCommand('toggleVideo')", 'setAudioOutputDevice', 'startInbox']) {
   if (!calls.includes(item)) throw new Error('Call feature requirement missing: ' + item);
 }
