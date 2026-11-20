@@ -26,10 +26,10 @@
       '<div class="mal-ai-status" id="malAiState"><i></i><span>Connexion sécurisée · chargement des indicateurs…</span></div>'+
       '<div class="mal-ai-section-title"><b>Vue d’ensemble</b><small id="malAiUpdated">Indicateurs agrégés</small></div>'+
       '<div class="mal-ai-metrics" id="malAiMetrics"><div class="mal-ai-skeleton"></div><div class="mal-ai-skeleton"></div><div class="mal-ai-skeleton"></div><div class="mal-ai-skeleton"></div></div>'+
-      '<div class="mal-ai-section-title"><b>Centre des opérations</b><small>Informations administrateur · actualisation manuelle</small></div>
-      <div class="mal-ai-ops-actions"><button type="button" onclick="malAiLoadOperations()">↻ Actualiser les dossiers</button></div>
-      <div id="malAiOperations" class="mal-ai-operations"><p class="mal-ai-loading">Chargement des dossiers de gestion…</p></div>
-      <div class="mal-ai-section-title"><b>Conseils automatiques</b><small>Basés sur les chiffres réels</small></div><div id="malAiInsights" class="mal-ai-insights">Chargement des priorités…</div><div class="mal-ai-section-title"><b>Actions rapides</b><small>Conseils, aucune action automatique</small></div>'+
+      '<div class="mal-ai-section-title"><b>Centre des opérations</b><small>Informations administrateur · actualisation manuelle</small></div>'+
+      '<div class="mal-ai-ops-actions"><button type="button" onclick="malAiLoadOperations()">↻ Actualiser les dossiers</button></div>'+
+      '<div id="malAiOperations" class="mal-ai-operations"><p class="mal-ai-loading">Chargement des dossiers de gestion…</p></div>'+
+      '<div class="mal-ai-section-title"><b>Conseils automatiques</b><small>Basés sur les chiffres réels</small></div><div id="malAiInsights" class="mal-ai-insights">Chargement des priorités…</div><div class="mal-ai-section-title"><b>Actions rapides</b><small>Conseils, aucune action automatique</small></div>'+
       '<div class="mal-ai-quick">'+
       '<button type="button" onclick="malAiQuickPrompt(\'Prépare mon briefing quotidien à partir des indicateurs actuels. Donne-moi les trois priorités et les risques à surveiller.\')">☀️ Briefing du jour</button>'+
       '<button type="button" onclick="malAiQuickPrompt(\'Analyse les paiements en attente à partir des chiffres agrégés et propose une procédure de vérification fiable.\')">💳 Paiements</button>'+
