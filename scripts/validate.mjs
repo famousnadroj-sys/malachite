@@ -255,3 +255,7 @@ for (const item of [
 ]) {
   if (!html.includes(item)) throw new Error('Payment receipt workflow missing: ' + item);
 }
+
+if (!html.includes("remove([receipt.path])")) {
+  throw new Error('Failed payment inserts must clean up unlinked private receipt files.');
+}
