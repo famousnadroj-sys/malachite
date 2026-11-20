@@ -230,7 +230,7 @@
  var originalSub=window.sub;
  if(typeof originalSub==='function')window.sub=function(){originalSub();startInbox();startPaymentRealtime();startUserNotifications()};
  var originalGo=window.go;
- if(typeof originalGo==='function')window.go=function(t){originalGo(t);if(t==='offres')setTimeout(loadMyPayments,0);if(t==='adm'&&me&&me.email==='famousnadroj@gmail.com'&&typeof loadAdm==='function')loadAdm()};
+ if(typeof originalGo==='function')window.go=function(t){originalGo(t);if(t==='offres')setTimeout(loadMyPayments,0)};
 
  var style=document.createElement('style');style.textContent='.mal-call-head{border:0!important;border-radius:50%!important;width:38px;height:38px;padding:0!important;background:#fce9f0!important;color:#9b315e!important;font-size:18px!important;flex:none}.mal-call-overlay{position:fixed;inset:0;z-index:100000;background:#0c1218e8;display:flex;align-items:center;justify-content:center;padding:12px}.mal-call-card{width:min(100%,620px);background:#fff;border-radius:20px;overflow:hidden;color:#25313a}.mal-call-card header{display:flex;justify-content:space-between;padding:14px 16px;background:#075e54;color:#fff}.mal-call-body{text-align:center;padding:18px}.mal-call-actions{display:flex;justify-content:center;gap:10px;padding:14px}.mal-call-actions button{border:0;border-radius:12px;padding:12px 18px;font-weight:700}.mal-call-actions .accept{background:#087e55;color:white}.mal-call-actions .reject,.mal-call-actions .hangup{background:#c62828;color:white}#malJitsiMount{width:100%;height:min(76vh,650px);min-height:360px}@media(max-width:520px){.mal-call-overlay{padding:0}.mal-call-card{width:100%;height:100%;border-radius:0}#malJitsiMount{height:calc(100dvh - 60px);min-height:300px}}';document.head.appendChild(style);
 })();
