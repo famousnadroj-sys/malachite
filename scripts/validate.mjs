@@ -132,6 +132,11 @@ if (swCheck.status !== 0) {
   process.exit(swCheck.status || 1);
 }
 if (!sw.includes('storage') || !sw.includes('Authorization')) throw new Error('Service worker must bypass Supabase private APIs.');
+if (!html.includes("navigator.serviceWorker.addEventListener('controllerchange'") ||
+    !html.includes("id='malSwUpdateNotice'") ||
+    !html.includes("window.location.reload()")) {
+  throw new Error('Existing PWA clients must be prompted to refresh after an app update.');
+}
 
 const migrations = fs.readdirSync('supabase/migrations')
   .filter((name) => name.endsWith('.sql'))
