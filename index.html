@@ -1748,31 +1748,28 @@ function malAvatarSet(k,v){
 }
 function malAvatarSelect(label,key,opts){return '<label>'+label+'<select aria-label="'+label+'" onchange="malAvatarSet(\''+key+'\',this.value)">'+opts.map(function(o){return '<option value="'+o[0]+'"'+(malAvatarState[key]===o[0]?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select></label>'}
 var malAvatarPreloadFrame=null,malAvatarPreloadReady=false;
-function malWarmAvatarBuilder(){
- if(malAvatarPreloadFrame||!document.body)return;
- var f=document.createElement('iframe');f.title='Préchargement du créateur 3D';f.src='avatar-builder.html?gender=male&preload=1';
- f.setAttribute('aria-hidden','true');f.tabIndex=-1;
- f.style.cssText='position:fixed;left:-12000px;top:0;width:390px;height:760px;border:0;opacity:.01;pointer-events:none;z-index:-1;background:#fff';
- f.addEventListener('load',function(){f.dataset.loaded='1'});
- document.body.appendChild(f);malAvatarPreloadFrame=f;
-}
+function malWarmAvatarBuilder(){ /* Le créateur est chargé à la demande pour éviter les iframes préchargées bloquées. */ }
 function closeMalAvatarBuilder(){
  var e=$('malAvatarBuilderOverlay');if(!e)return;
- var f=e.querySelector('iframe');
- if(f&&f===malAvatarPreloadFrame){f.style.cssText='position:fixed;left:-12000px;top:0;width:390px;height:760px;border:0;opacity:.01;pointer-events:none;z-index:-1;background:#fff';document.body.appendChild(f)}
- e.remove();
+ var f=e.querySelector('iframe');if(f){f.src='about:blank';f.remove()}
+ e.remove();malAvatarPreloadFrame=null;malAvatarPreloadReady=false;
 }
 function openMalAvatarBuilder(forSignup){
  if(!forSignup&&(!me||!me.id)){alert('Connecte-toi pour créer ton avatar.');return}
  closeMalAvatarBuilder();
  var gender=forSignup?((signupDraft&&signupDraft.genre==='F')?'female':'male'):((mine&&mine.genre==='F')?'female':'male');
- var overlay=document.createElement('div');overlay.id='malAvatarBuilderOverlay';overlay.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(16,17,22,.72);display:flex;align-items:center;justify-content:center;padding:0';
- var frame=malAvatarPreloadFrame;
- if(!frame){frame=document.createElement('iframe');frame.src='avatar-builder.html?gender='+gender;frame.setAttribute('allow','fullscreen');malAvatarPreloadFrame=frame}
- frame.title='Créateur d’avatar 3D Malachite';frame.dataset.gender=gender;frame.style.cssText='width:min(100%,900px);height:100%;max-height:100dvh;border:0;border-radius:0;background:#fff;opacity:1;pointer-events:auto;position:relative;left:auto;top:auto;z-index:auto';
- overlay.appendChild(frame);
- if(frame.dataset.loaded==='1')frame.contentWindow.postMessage({source:'malachite-avatar-parent',type:'set-gender',gender},location.origin);else frame.addEventListener('load',function(){frame.dataset.loaded='1';frame.contentWindow.postMessage({source:'malachite-avatar-parent',type:'set-gender',gender},location.origin)},{once:true});
- overlay.addEventListener('click',function(e){if(e.target===overlay)closeMalAvatarBuilder()});document.body.appendChild(overlay);
+ var overlay=document.createElement('div');overlay.id='malAvatarBuilderOverlay';
+ overlay.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(16,17,22,.82);display:flex;align-items:stretch;justify-content:center;padding:0';
+ var loading=document.createElement('div');loading.id='malAvatarBuilderLoading';
+ loading.style.cssText='position:absolute;inset:0;display:grid;place-content:center;gap:12px;text-align:center;color:#fff;font:600 15px system-ui;z-index:1;pointer-events:none';
+ loading.innerHTML='<div style="font-size:38px">✦</div><div>Préparation de ton avatar 3D…</div><div style="font-size:12px;font-weight:400;opacity:.8">Le premier chargement peut prendre quelques instants</div>';
+ var frame=document.createElement('iframe');frame.title='Créateur d’avatar 3D Malachite';frame.setAttribute('allow','fullscreen');
+ frame.style.cssText='position:relative;z-index:2;width:min(100%,1100px);height:100%;min-height:0;border:0;background:#fff';
+ frame.dataset.gender=gender;frame.src='avatar-builder.html?gender='+gender+'&v=3';
+ overlay.appendChild(loading);overlay.appendChild(frame);
+ frame.addEventListener('load',function(){frame.dataset.loaded='1';if(frame.contentWindow)frame.contentWindow.postMessage({source:'malachite-avatar-parent',type:'set-gender',gender},location.origin)});
+ overlay.addEventListener('click',function(e){if(e.target===overlay)closeMalAvatarBuilder()});
+ document.body.appendChild(overlay);malAvatarPreloadFrame=frame;
 }
 async function malPersistAvatar3d(config,image){
  if(!me||!me.id)throw new Error('Session expirée. Reconnecte-toi.');
@@ -1819,7 +1816,8 @@ async function malAttachPendingSignupAvatar(){
 }
 window.addEventListener('message',async function(event){
  if(event.origin!==location.origin||!event.data||event.data.source!=='malachite-avatar-builder')return;
- if(event.data.type==='ready'){malAvatarPreloadReady=true;return}
+ if(event.data.type==='ready'){malAvatarPreloadReady=true;var loading=$('malAvatarBuilderLoading');if(loading)loading.remove();return}
+ if(event.data.type==='error'){var loadingError=$('malAvatarBuilderLoading');if(loadingError)loadingError.innerHTML='<div style="font-size:34px">⚠️</div><div>Le créateur 3D n’a pas pu charger.</div><div style="font-size:12px;font-weight:400">'+esc(String(event.data.message||'Vérifie ta connexion puis réessaie.'))+'</div><button type="button" onclick="closeMalAvatarBuilder()" style="pointer-events:auto">Fermer</button>';return}
  if(event.data.type==='mounted'){var activeFrame=document.querySelector('#malAvatarBuilderOverlay iframe');if(activeFrame&&activeFrame.contentWindow)activeFrame.contentWindow.postMessage({source:'malachite-avatar-parent',type:'set-gender',gender:activeFrame.dataset.gender||'male'},location.origin);return}
  if(event.data.type==='cancel'){closeMalAvatarBuilder();return}
  if(event.data.type==='save'){
