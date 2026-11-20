@@ -1764,7 +1764,7 @@ async function malPersistAvatar3d(config,image){
  var path=me.id+'/avatar-'+Date.now()+'.png';
  var upload=await sb.storage.from('profile-photos').upload(path,blob,{contentType:'image/png',upsert:false});
  if(upload.error)throw upload.error;
- var avatar={type:'humanforge-3d',version:1,config:config,imagePath:path};
+ var avatar={type:'humanforge-3d',version:1,config:config,imagePath:path};avatar.imageUrl=await signedUrl('profile-photos',path);
  try{
   if(mine&&mine.id){
    var r=await sb.from('profiles').update({avatar:avatar}).eq('id',me.id).select('id,avatar').maybeSingle();
@@ -1783,7 +1783,7 @@ window.addEventListener('message',function(event){
   malPersistAvatar3d(event.data.config,event.data.image).catch(function(e){alert('Avatar non enregistré : '+(e.message||'erreur inconnue'))});
  }
 });
-function malAvatarPanel(){return '<div class="mal-panel mal-avatar-builder"><h3>Créer mon avatar 3D réaliste</h3><p class="note">Choisis Homme ou Femme, puis personnalise le visage, la peau, les cheveux et les vêtements sur un véritable personnage 3D.</p><button class="b1" type="button" onclick="openMalAvatarBuilder()">Ouvrir le créateur d’avatars 3D</button><div class="note">Ton avatar sera enregistré et affiché sur ton profil.</div></div>'}
+function malAvatarPanel(){var a=malAvatar3dDraft||mine&&mine.avatar||{},preview=a.imageUrl?'<div class="mal-avatar-preview"><img src="'+esc(a.imageUrl)+'" alt="Mon avatar 3D" style="width:100%;max-width:190px;border-radius:16px;display:block;margin:8px auto"></div>':'';return '<div class="mal-panel mal-avatar-builder"><h3>Créer mon avatar 3D réaliste</h3><p class="note">Choisis Homme ou Femme, puis personnalise le visage, la peau, les cheveux et les vêtements sur un véritable personnage 3D.</p>'+preview+'<button class="b1" type="button" onclick="openMalAvatarBuilder()">'+(a.imageUrl?'Modifier mon avatar 3D':'Ouvrir le créateur d’avatars 3D')+'</button><div class="note">Ton avatar sera enregistré et affiché sur ton profil.</div></div>'}
 
 
 var MAL_TEXT={
