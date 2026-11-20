@@ -72,7 +72,9 @@
         metric("Paiements à vérifier",d.pending_payments,"À traiter manuellement","💳")+
         metric("Signalements nouveaux",d.new_reports,"À examiner","🛡️")+
         metric("Support ouvert",d.open_support,"Demandes en cours","💬")+
-        metric("Comptes suspendus",d.suspended_members,"État actuel","⛔");
+        metric("Comptes suspendus",d.suspended_members,"État actuel","⛔")+
+        metric("Avis des membres",d.member_reviews,"Notes et commentaires","⭐")+
+        metric("Blocages",d.member_blocks,"Entre membres","🚫");
       if (state) state.innerHTML = '<i class="'+(d.ai_ready ? "good" : "warn")+'"></i><span>'+(d.ai_ready ? "Tableau connecté · moteur IA prêt" : "Tableau connecté · clé du moteur IA à configurer")+'</span>';
       var insightBox=document.getElementById("malAiInsights");
       if(insightBox){
