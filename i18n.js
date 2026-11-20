@@ -114,10 +114,9 @@ var oldCentre=window.centre;
 window.centre=function(){if(window.mine&&window.mine.avatar&&(window.mine.avatar.type==='pro-vector'||window.mine.avatar.type==='pro-photo'))window.malAvatarState=Object.assign({},window.malAvatarState,window.mine.avatar.config||{});return oldCentre?oldCentre():''};
 var originalAv=window.av;
 window.av=function(p){
- var photo=p&&p.photoUrls&&p.photoUrls[0],a=p&&p.avatar,c=a&&a.config||{};
- if(a&&(a.type==='pro-vector'||a.type==='pro-photo')&&c.useAsProfilePhoto!==false)return '<div class="av mal-vector-avatar">'+window.malAvatarSvg(c)+'</div>';
+ var photo=p&&p.photoUrls&&p.photoUrls[0],a=p&&p.avatar;
+ if(a&&a.type==='humanforge-3d'&&a.imageUrl)return '<div class="av mal-human-avatar"><img src="'+String(a.imageUrl).replace(/["<>]/g,'')+'" alt="Avatar 3D"></div>';
  if(photo)return '<div class="av" style="background-image:url('+String(photo).replace(/["<>]/g,'')+');background-size:cover;background-position:center"></div>';
- if(a&&(a.type==='pro-vector'||a.type==='pro-photo'))return '<div class="av mal-vector-avatar">'+window.malAvatarSvg(c)+'</div>';
  if(a&&a.type==='vector')return '<div class="av mal-vector-avatar">'+window.malAvatarSvg(a)+'</div>';
  if(a&&a.emoji)return '<div class="av" style="background:'+((/^#[0-9a-f]{6}$/i.test(a.color||''))?a.color:'#F7B7D0')+';display:grid;place-items:center;font-size:30px">'+String(a.emoji).replace(/[&<>"]/g,'')+'</div>';
  return originalAv?originalAv(p):'<div class="av">?</div>';
