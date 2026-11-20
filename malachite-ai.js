@@ -113,6 +113,9 @@
       var conversation = history.slice(-9,-1).map(function(m){return {role:m.role==="assistant"?"model":"user",text:m.text}});
       var result = await sb.functions.invoke("malachite-ai-manager", {body:{action:"chat",message:message,history:conversation}});
       var detail = result.data && result.data.error;
+      if (result.error && !detail && result.error.context && typeof result.error.context.clone === "function") {
+        try { var errorPayload = await result.error.context.clone().json(); detail = errorPayload && errorPayload.error; } catch (_) {}
+      }
       if (result.error) {
         if (detail === "ai_provider_not_configured") throw new Error("Le tableau de gestion fonctionne, mais le moteur de réponse nécessite encore la clé GEMINI_API_KEY dans les secrets Supabase.");
         if (detail === "admin_only") throw new Error("Accès réservé au compte administrateur.");
