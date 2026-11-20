@@ -1,4 +1,4 @@
-# Malachite AI Manager — plan de préparation 2027
+# Malachite AI Manager — plan de lancement — 31 décembre 2026
 
 ## Statut et garde-fous
 - Cette branche est une préparation isolée. Elle n'est ni fusionnée dans `main`, ni publiée, ni déployée.
@@ -67,4 +67,4 @@ Le code actuel accepte une référence dans `paiements.code`. La table ne contie
 7. Audit de sécurité et accord explicite du propriétaire avant toute fusion, migration de production, activation de service ou publication.
 
 ## Décision de lancement
-La date cible publique est 2027. Jusqu'à nouvel accord explicite, aucune fusion vers `main`, migration Supabase, activation d'API payante, publication ou déploiement n'est autorisé.
+La date cible publique est le 31 décembre 2026. Cette date est un objectif conditionnel : aucune publication ne doit avoir lieu si un contrôle critique échoue. Jusqu'à nouvel accord explicite, aucune fusion vers `main`, migration Supabase, activation d'API payante, publication ou déploiement n'est autorisé.
