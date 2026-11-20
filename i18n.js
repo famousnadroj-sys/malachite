@@ -72,8 +72,9 @@ function translateNode(n){
  if(!original||!original.trim())return;
  if(!originals.has(n))originals.set(n,original);
  var key=original.trim(),dict=LANGS[current()],translated=dict&&dict[key];
- if(translated)n.nodeValue=original.replace(key,translated);
- else n.nodeValue=original;
+ var next=translated?original.replace(key,translated):original;
+ // Avoid writing identical text: MutationObserver would otherwise observe its own write forever.
+ if(n.nodeValue!==next)n.nodeValue=next;
 }
 function translateAttrs(el){
  if(!el||el.nodeType!==1)return;
