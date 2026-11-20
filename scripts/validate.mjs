@@ -257,17 +257,24 @@ if (html.includes('maxlength="120" placeholder="Référence de transaction"')) {
 const receiptMigration = fs.readFileSync('supabase/migrations/20261120140000_private_payment_receipts.sql', 'utf8');
 for (const item of [
   "values ('payment-receipts', 'payment-receipts', false, 5242880",
-  "receipt_path is not null",
-  "operateur in ('airtel','orange')",
   "private.is_admin()",
   "paiements_operator_reference_uidx",
+]) {
+  if (!receiptMigration.toLowerCase().includes(item.toLowerCase())) {
+    throw new Error('Private payment receipt storage control missing: ' + item);
+  }
+}
+const receiptPolicyMigration = fs.readFileSync('supabase/migrations/20261120170000_enforce_payment_receipt_policy.sql', 'utf8');
+for (const item of [
+  "receipt_path is not null",
+  "operateur in ('airtel','orange')",
   "mutual match",
   "o.bucket_id = 'payment-receipts'",
   "o.name = paiements.receipt_path",
   "(storage.foldername(o.name))[1] = (select auth.uid())::text",
 ]) {
-  if (!receiptMigration.toLowerCase().includes(item.toLowerCase())) {
-    throw new Error('Private payment receipt control missing: ' + item);
+  if (!receiptPolicyMigration.toLowerCase().includes(item.toLowerCase())) {
+    throw new Error('Private payment receipt enforcement missing: ' + item);
   }
 }
 for (const item of [
