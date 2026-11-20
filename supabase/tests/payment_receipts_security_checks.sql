@@ -3,6 +3,8 @@ do $$
 declare
   v_public boolean;
   v_check text;
+  v_limit bigint;
+  v_mime text[];
 begin
   if not exists (
     select 1 from information_schema.columns
@@ -11,9 +13,18 @@ begin
     raise exception 'payment_receipt_path_column_missing';
   end if;
 
-  select public into v_public from storage.buckets where id='payment-receipts';
+  select public, file_size_limit, allowed_mime_types
+    into v_public, v_limit, v_mime
+  from storage.buckets where id='payment-receipts';
   if v_public is distinct from false then
     raise exception 'payment_receipts_bucket_must_be_private';
+  end if;
+  if v_limit is distinct from 5242880 then
+    raise exception 'payment_receipts_bucket_size_limit_must_be_5mb';
+  end if;
+  if not (v_mime @> array['image/jpeg','image/png','image/webp']::text[])
+     or cardinality(v_mime) <> 3 then
+    raise exception 'payment_receipts_bucket_mime_types_invalid';
   end if;
 
   if not exists (select 1 from pg_policies where schemaname='storage' and tablename='objects' and policyname='payment receipts owner upload') then
@@ -32,8 +43,10 @@ begin
   if v_check is null
      or position('receipt_path is not null' in v_check)=0
      or position('operateur' in v_check)=0
-     or position('avis_match' in v_check)=0 then
-    raise exception 'payment_insert_policy_missing_receipt_operator_or_mutual_match_checks';
+     or position('avis_match' in v_check)=0
+     or position('storage.objects' in v_check)=0
+     or position('foldername' in v_check)=0 then
+    raise exception 'payment_insert_policy_missing_receipt_operator_storage_ownership_or_mutual_match_checks';
   end if;
 
   if not exists (
