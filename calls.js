@@ -203,7 +203,12 @@
  if(typeof call==='function')call=function(mode){return startCall(mode||'audio')};
 
  var oldMatch=window.matchBox;
- if(typeof oldMatch==='function')window.matchBox=function(){var h=oldMatch().replace('<button disabled>📹 Appels sécurisés indisponibles</button>','<button onclick="call(&quot;audio&quot;)">📞 Appel audio</button><button onclick="call(&quot;video&quot;)">🎥 Appel vidéo</button>');return h.replace('Appels sécurisés indisponibles','Appels audio et vidéo inclus dans Premium ; sinon Pass Appels à 1 USD / 7 jours.')};
+ if(typeof oldMatch==='function')window.matchBox=function(){
+  var h=oldMatch();
+  h=h.replace('<button disabled title="Les appels sécurisés seront réactivés après leur mise en place">📹 Appel indisponible</button>','<button onclick="call(&quot;audio&quot;)">📞 Appel audio</button><button onclick="call(&quot;video&quot;)">🎥 Appel vidéo</button>');
+  h=h.replace('<button disabled>📹 Appels sécurisés indisponibles</button>','<button onclick="call(&quot;audio&quot;)">📞 Appel audio</button><button onclick="call(&quot;video&quot;)">🎥 Appel vidéo</button>');
+  return h.replace('Appels sécurisés indisponibles','Appels audio et vidéo inclus dans Premium ; sinon Pass Appels à 1 USD / 7 jours.');
+ };
  var oldThread=window.thread;
  if(typeof oldThread==='function')window.thread=function(){return oldThread().replace('Voir le profil ›</i></button>','Voir le profil ›</i></button><button class="mal-call-head" onclick="call(&quot;audio&quot;)" aria-label="Appel audio">📞</button><button class="mal-call-head" onclick="call(&quot;video&quot;)" aria-label="Appel vidéo">🎥</button>')};
  var oldSub=window.sub;
