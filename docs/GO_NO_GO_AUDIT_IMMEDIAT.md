@@ -21,7 +21,7 @@ Le dépôt a une validation CI verte, mais plusieurs dépendances de production 
 1. **Schéma de paiement non aligné avec la branche** : la table `public.paiements` ne contient pas `receipt_path`. Le formulaire de la branche tente pourtant d'insérer cette colonne. Tant que la migration correspondante n'est pas appliquée et testée, le nouveau formulaire ne peut pas être considéré prêt en production.
 2. **AI Manager non opérationnel** : seules les fonctions Edge `admin-user-moderation` et `username-login` sont déployées. Aucune fonction AI Manager n'est présente. Le panneau visible est une maquette, pas un agent permanent.
 3. **Paiements opérateurs non automatisés** : aucun webhook Airtel Money ou Orange Money n'est configuré dans le périmètre vérifié. Une capture ou une référence saisie ne prouve pas le paiement.
-4. **Alerte sécurité traitée dans la branche, pas encore en production** : une migration transforme `public.start_call_session` en `SECURITY INVOKER`. Les privilèges `authenticated` sur la table et la politique RLS d'insertion ont été vérifiés ; la migration a passé un test SQL transactionnel ensuite annulé.
+4. **Alerte SECURITY DEFINER à examiner, non supprimée artificiellement** : `public.start_call_session` doit vérifier des droits sur plusieurs utilisateurs (correspondance mutuelle, droits d'appel et appels déjà actifs). En `SECURITY INVOKER`, les politiques RLS et les privilèges actuels empêchent certaines lectures nécessaires (notamment `profiles` et les correspondances de l'autre utilisateur). La fonction existante est limitée à `authenticated`, vérifie `auth.uid()`, utilise `search_path` vide et des noms de tables qualifiés. L'alerte Supabase reste visible et exige une revue ciblée ; ne pas basculer en invoker sans refonte des contrôles.
 5. **Protection des mots de passe compromis désactivée** dans Supabase Auth.
 6. **Optimisations de performance restantes** : deux clés étrangères de `demandes_support` ne sont pas indexées et deux politiques réévaluent les fonctions Auth par ligne.
 
@@ -29,7 +29,7 @@ Le dépôt a une validation CI verte, mais plusieurs dépendances de production 
 
 - [ ] Aligner et tester le schéma de reçus sur un environnement non-production avant toute application en production.
 - [ ] Tester avec deux comptes distincts les politiques RLS, l'upload privé, la lecture par propriétaire/admin, la suppression et l'expiration des URL signées.
-- [x] Préparer la migration `SECURITY INVOKER` pour `start_call_session` et vérifier les privilèges/table policy ; appliquer et revérifier les advisors en production reste à faire.
+- [ ] Revoir `start_call_session` avec tests de deux comptes et conserver le contrôle `SECURITY DEFINER` actuel tant qu'une alternative sûre ne permet pas les vérifications inter-utilisateurs.
 - [ ] Activer la protection contre les mots de passe compromis dans la configuration Auth.
 - [x] Préparer les deux index FK et optimiser les deux politiques RLS de support ; application et relance des advisors en production restent à faire.
 - [ ] Connecter le fournisseur IA côté serveur avec secret, authentification admin, liste d'outils autorisés, quotas, journal d'audit et approbation humaine des actions sensibles.
