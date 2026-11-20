@@ -155,7 +155,8 @@ Deno.serve(async (req: Request) => {
       status,
       metrics,
       summary,
-      ai_generation_enabled: AI_AUTONOMY_ENABLED,
+      ai_generation_enabled: AI_AUTONOMY_ENABLED && Boolean(AI_KEY),
+      ai_key_configured: Boolean(AI_KEY),
       next_ai_briefing_window_hours: 6,
       duration_ms: Date.now() - started,
     });
