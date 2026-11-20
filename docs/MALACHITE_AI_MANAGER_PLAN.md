@@ -1,8 +1,8 @@
 # Malachite AI Manager — plan d'intégration et d'exploitation
 
 ## Statut et garde-fous
-- La branche de préparation n'est ni fusionnée dans `main`, ni publiée, ni déployée.
-- Les migrations de durcissement RPC, reçus additifs et optimisation support ont été appliquées en production ; la politique stricte de reçus attend le déploiement du frontend compatible.
+- La PR #29 a été fusionnée dans `main` et le frontend est déployé sur GitHub Pages pour une phase de tests techniques limitée.
+- Les migrations RPC, reçus additifs, optimisation support, politique stricte de reçus et restriction des RPC privés sont appliquées en production.
 - Aucune clé API IA, aucun compte marchand ni service payant n'a été activé.
 - Le panneau « Malachite AI Manager » est un prototype visuel marqué comme non activé. Aucune Edge Function AI Manager, clé fournisseur IA, file de tâches ou automatisation autonome n'est déployée.
 
@@ -11,7 +11,7 @@
 - Moyens affichés : Airtel Money et Orange Money.
 - Le formulaire de cette branche demande une référence et un justificatif image, téléversé dans un bucket privé avant l'insertion de la demande.
 - Le code d'administration permet une vérification humaine ; il ne s'agit pas d'une confirmation automatique de l'opérateur.
-- Vérification SQL de production du 20 novembre 2026 : `public.paiements.receipt_path`, le bucket privé `payment-receipts` (5 Mo, JPEG/PNG/WebP), les politiques Storage et l'index anti-doublon sont présents. L'ancienne politique INSERT est conservée temporairement ; déployer le frontend compatible, vérifier les clients PWA, appliquer ensuite la politique stricte et tester avec deux comptes.
+- Vérification SQL de production : `public.paiements.receipt_path`, bucket privé `payment-receipts` (5 Mo, JPEG/PNG/WebP), politiques Storage, index anti-doublon et politique INSERT stricte sont présents. Le script de contrôle des reçus s'exécute sans exception. Les tests réels avec deux comptes restent requis.
 - Une capture d'écran ou une référence saisie ne prouve jamais à elle seule que l'argent est arrivé.
 
 ## Paiements automatiques — architecture requise
@@ -47,21 +47,21 @@
 ## État observé dans Supabase actif — 20 novembre 2026
 - Edge Functions actives observées : `admin-user-moderation` et `username-login`. Aucune fonction webhook de paiement ou AI Manager n'a été trouvée.
 - La fonction privée `private.traiter_paiement` contrôle l'autorisation administrateur et traite les demandes après vérification humaine.
-- **Durcissement RPC effectué :** la migration `restrict_payment_review_rpc` est inscrite en production (`20261120195441`). Vérification SQL : `anon` ne peut appeler aucune des deux surcharges ; `authenticated` conserve l'exécution. Le contrôle interne `private.is_admin()` demeure en place.
+- **Durcissement RPC effectué :** `anon` ne peut appeler aucune surcharge publique ou privée de `traiter_paiement` ; `authenticated` conserve l'exécution des fonctions privées, qui exigent `private.is_admin()`. Le contrôle SQL confirme également l'absence de privilèges de table `anon` et le RLS sur les tables publiques.
 - L'advisor signale `public.start_call_session` en `SECURITY DEFINER`, exécutable par `authenticated`. La fonction contrôle `auth.uid()`, les conditions d'appel et le match réciproque ; ne pas la convertir aveuglément en `SECURITY INVOKER`, car les droits/RLS actuels empêchent certaines lectures nécessaires. Revue dédiée et tests négatifs requis.
 - `private.admins` a RLS sans politique directe ; l'accès direct reste fermé et les contrôles doivent passer par `private.is_admin()`.
 - La protection contre les mots de passe compromis est désactivée dans Supabase Auth.
 - Les deux index FK de `demandes_support` et les optimisations RLS sont appliqués et vérifiés en production.
 
-## Ordre de travail avant activation
-1. Les privilèges RPC paiement ont été corrigés et vérifiés.
-2. La migration additive de reçus a été appliquée ; déployer le frontend compatible, puis seulement appliquer la politique stricte.
-3. Tester avec deux comptes distincts l'upload, les lectures propriétaire/admin, les suppressions, les doublons, les URL signées et les refus d'accès.
-4. Revoir `start_call_session` avec tests de deux comptes et conserver les protections inter-utilisateurs.
-5. Activer la protection contre les mots de passe compromis dans Auth.
+## Ordre de travail avant lancement commercial
+1. Frontend publié sur GitHub Pages et contrôles CI réussis.
+2. Politique stricte des reçus appliquée après publication ; script SQL de contrôle réussi.
+3. Tests avec deux comptes distincts : upload, lecture propriétaire/admin, suppression, doublons, URL signées, refus d'accès.
+4. Revue `start_call_session` avec tests de deux comptes ; ne pas supprimer son `SECURITY DEFINER` sans alternative démontrée sûre.
+5. Activer la protection contre les mots de passe compromis dans Auth (paramètre Dashboard non modifiable via les outils de base disponibles).
 6. Vérifier l'éligibilité marchande Airtel/Orange et obtenir les accès officiels avant toute intégration.
 7. Construire l'agent IA en mode simulation, avec outils autorisés, quotas, journal d'audit, limites de coût et approbation humaine.
-8. Effectuer les tests Android et les tests de reprise/restauration avant tout lancement.
+8. Effectuer les tests Android et les tests de reprise/restauration avant tout lancement commercial.
 
 ## Décision de lancement
-Aucune date fixe ne remplace les critères GO. Pas de fusion, migration de production, activation de fournisseur, dépense ou publication sans tests réussis et approbation explicite du propriétaire.
+La publication actuelle est une phase de tests techniques limitée, pas un lancement commercial. Aucun fournisseur IA payant ni webhook marchand n'est activé. Aucun paiement ne doit déclencher un droit automatiquement sans confirmation officielle de l'opérateur. Les tests Android, multi-comptes, restauration, sécurité Auth et conformité doivent être terminés avant le lancement commercial.
