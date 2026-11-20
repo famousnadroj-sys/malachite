@@ -311,4 +311,5 @@
  });
  window.addEventListener('online',function(){if(me)startInbox()});
  document.addEventListener('visibilitychange',function(){if(!document.hidden&&me)startInbox()});
+ if(me)startInbox();
 })();
