@@ -1790,7 +1790,7 @@ async function malPersistAvatar3d(config,image){
   if(mine&&mine.id){
    var r=await sb.from('profiles').update({avatar:avatar}).eq('id',me.id).select('id,avatar').maybeSingle();
    if(r.error)throw r.error;if(!r.data)throw new Error('Profil introuvable.');
-   mine=Object.assign({},mine,r.data);await resolveProfilePhotos(mine);
+   mine=Object.assign({},mine,r.data);try{await resolveProfilePhotos(mine)}catch(photoError){console.warn('Avatar enregistré; actualisation des autres photos différée.',photoError)}
    var ix=profs.findIndex(function(p){return p.id===me.id});if(ix>=0)profs[ix]=mine;else profs.push(mine);
   }else{malAvatar3dDraft=avatar;profileDraft.avatar=avatar}
   malAvatarTouched=false;closeMalAvatarBuilder();tab='me';profileEditing=false;draw(true);
@@ -1835,7 +1835,18 @@ window.addEventListener('message',async function(event){
    try{var blob=await fetch(event.data.image).then(function(r){return r.blob()});if(pendingSignupPreview)URL.revokeObjectURL(pendingSignupPreview);pendingSignupPreview=URL.createObjectURL(blob)}catch(_){}
    closeMalAvatarBuilder();draw();return;
   }
-  malPersistAvatar3d(event.data.config,event.data.image).catch(function(e){alert('Avatar non enregistré : '+(e.message||'erreur inconnue'))});
+  var previousAvatar=mine&&mine.id?mine.avatar:null;
+  if(mine&&mine.id){
+   var optimisticAvatar={type:'humanforge-3d',version:1,config:event.data.config,imageUrl:event.data.image};
+   mine=Object.assign({},mine,{avatar:optimisticAvatar});
+   var optimisticIndex=profs.findIndex(function(p){return p.id===me.id});if(optimisticIndex>=0)profs[optimisticIndex]=mine;else profs.push(mine);
+   closeMalAvatarBuilder();tab='me';profileEditing=false;draw(true);
+  }
+  malPersistAvatar3d(event.data.config,event.data.image).catch(function(e){
+   if(mine&&mine.id){mine=Object.assign({},mine,{avatar:previousAvatar||null});var rollbackIndex=profs.findIndex(function(p){return p.id===me.id});if(rollbackIndex>=0)profs[rollbackIndex]=mine;draw(true)}
+   var activeFrame=document.querySelector('#malAvatarBuilderOverlay iframe');if(activeFrame)activeFrame.contentWindow.postMessage({source:'malachite-avatar-parent',type:'save-error'},location.origin);
+   alert('Avatar non enregistré : '+(e.message||'erreur inconnue'));
+  });
  }
 });
 function malAvatarPanel(){malWarmAvatarBuilder();var a=malAvatar3dDraft||mine&&mine.avatar||{},preview=a.imageUrl?'<div class="mal-avatar-preview"><img src="'+esc(a.imageUrl)+'" alt="Mon avatar 3D" style="width:100%;max-width:190px;border-radius:16px;display:block;margin:8px auto"></div>':'';return '<div class="mal-panel mal-avatar-builder"><h3>Créer mon avatar 3D réaliste</h3><p class="note">Choisis Homme ou Femme, puis personnalise le visage, la peau, les cheveux et les vêtements sur un véritable personnage 3D.</p>'+preview+'<button class="b1" type="button" onclick="openMalAvatarBuilder()">'+(a.imageUrl?'Modifier mon avatar 3D':'Ouvrir le créateur d’avatars 3D')+'</button><div class="note">Ton avatar sera enregistré et affiché sur ton profil.</div></div>'}
