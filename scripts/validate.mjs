@@ -17,7 +17,7 @@ if (js.status !== 0) {
 }
 
 const requiredFrontend = [
-  "profiles').select('id,prenom,age",
+  "profiles').select('id,username,prenom,age",
   "from('prives').upsert({id:me.id,prefs:merged})",
   "from('chat-media').upload",
   "from('profile-photos').upload",
