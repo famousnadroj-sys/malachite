@@ -1312,7 +1312,7 @@ async function poll(){
   if(!r.error){
    var batch=r.data||[];
    if(pollInit)batch.filter(function(m){return m.a===me.id&&m.de!==me.id}).forEach(function(m){notify('💬 '+((prof(m.de)||{}).prenom||'Nouveau message'),m.media_type==='video'?'🎬 Vidéo':m.media_type==='audio'?'🎤 Message vocal':String(m.texte||'Nouveau message').slice(0,80),'chat',m.de)});
-   if(!pollInit)allMsgs=batch;else allMsgs=batch.concat(allMsgs||[]).filter(function(m,i,arr){return arr.findIndex(function(x){return String(x.id)===String(m.id)})===i}).slice(0,200);
+   allMsgs=batch.concat(allMsgs||[]).filter(function(m,i,arr){return arr.findIndex(function(x){return String(x.id)===String(m.id)})===i}).slice(0,200);
    var mx=batch.reduce(function(a,m){return Math.max(a,Number(m.id)||0)},lastMsgId);lastMsgId=Math.max(lastMsgId,mx);pollInit=true;
   }
  }
