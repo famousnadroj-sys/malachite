@@ -23,11 +23,40 @@ const h=React.createElement,ASSETS='https://cdn.jsdelivr.net/gh/abdulrehman043/h
 function App(){
  const [gender,setGender]=useState(new URLSearchParams(location.search).get('gender')==='female'?'female':'male'),[saving,setSaving]=useState(false);
  const [pkg,setPkg]=useState(null),[editor,setEditor]=useState(null),[config,setConfig]=useState(null),[sectionIndex,setSectionIndex]=useState(0),[customTab,setCustomTab]=useState('tenues'),[framing,setFraming]=useState('face'),[avatarReady,setAvatarReady]=useState(false),[assetsReady,setAssetsReady]=useState(false),[progress,setProgress]=useState({done:0,total:0}),[error,setError]=useState(null),[expression,setExpression]=useState('naturel'),[gesture,setGesture]=useState('aucun');
- const canvas=useRef(null),packagePromise=useRef(null),poseBase=useRef(null),gestureFrame=useRef(0),performanceConfigured=useRef(false);
+ const canvas=useRef(null),packagePromise=useRef(null),poseBase=useRef(null),gestureFrame=useRef(0),performanceConfigured=useRef(false),femaleWarmupStarted=useRef(false);
  const catalog=useMemo(()=>pkg?getHumanCatalog(pkg,{gender}):[],[pkg,gender]);
  const options=useMemo(()=>({gender,sections:['face','skin','eyes','brows','nose','mouth','ears','hair','headwear','hat','body','outfit','shoes'],colors:{hair:['#171311','#39251d','#69432e','#a66a3f','#d6b47b','#eee0c7','#a83e38','#514b83'],eyebrows:['#171311','#39251d','#69432e','#a66a3f','#d6b47b'],garments:['#111827','#374151','#6b7280','#f8fafc','#dc2626','#ea580c','#eab308','#16a34a','#0d9488','#2563eb','#4f46e5','#9333ea','#db2777','#92400e','#d6b48c','#f9a8d4']},defaults:{african:.9,asian:.02,caucasian:.08},detailRange:.75}),[gender]);
  useEffect(()=>{let live=true;setError(null);if(!packagePromise.current)packagePromise.current=loadHumanPackage(ASSETS);packagePromise.current.then(value=>{if(live)setPkg(value)},reason=>{if(live)setError(reason instanceof Error?reason:new Error(String(reason)))});return()=>{live=false}},[]);
  useEffect(()=>{if(!pkg)return;const nextEditor=createHumanEditor(pkg,options);const nextConfig=nextEditor.normalize(null);setEditor(nextEditor);setConfig(nextConfig);setAvatarReady(false);setAssetsReady(true);setProgress({done:0,total:0});setSectionIndex(0);poseBase.current=null;parent.postMessage({source:'malachite-avatar-builder',type:'progress',phase:'Affichage du modèle 3D',done:0,total:0},location.origin)},[pkg,options]);
+ useEffect(()=>{
+  if(!pkg||!editor||gender!=='female'||femaleWarmupStarted.current)return;
+  femaleWarmupStarted.current=true;
+  let cancelled=false;
+  const base=editor.normalize(null);
+  const attrs=getHumanCatalog(pkg,{gender:'female'});
+  const variants=[];
+  for(const key of ['hair.style','outfit.style','headwear.style','shoes.style','skin.tone']){
+   const attr=attrs.find(item=>item.key===key);
+   if(!attr)continue;
+   for(const option of attr.options){
+    if(option.id===null)continue;
+    variants.push(attr.apply(base,option.id));
+   }
+  }
+  // Deux téléchargements à la fois : les fichiers communs sont dédupliqués par les caches HumanForge.
+  let cursor=0;
+  const worker=async()=>{
+   while(!cancelled){
+    const index=cursor++;
+    if(index>=variants.length)return;
+    try{await warmHumanPackage(pkg,{config:variants[index],textureSize:'512',normalMaps:false})}
+    catch(err){console.warn('Préchargement féminin différé :',err)}
+   }
+  };
+  const start=()=>{Promise.all([worker(),worker()]).catch(err=>console.warn('Préchargement des variantes féminines interrompu :',err))};
+  if(typeof requestIdleCallback==='function')requestIdleCallback(start,{timeout:900});else setTimeout(start,350);
+  return()=>{cancelled=true};
+ },[pkg,gender,editor]);
  useEffect(()=>{function receive(e){if(e.origin!==location.origin||!e.data||e.data.source!=='malachite-avatar-parent')return;if(e.data.type==='set-gender'){setSaving(false);setAvatarReady(false);setGender(e.data.gender==='female'?'female':'male')}if(e.data.type==='saving')setSaving(true);if(e.data.type==='save-error'||e.data.type==='saved')setSaving(false)}window.addEventListener('message',receive);parent.postMessage({source:'malachite-avatar-builder',type:'mounted'},location.origin);return()=>window.removeEventListener('message',receive)},[]);
  useEffect(()=>{function report(e){parent.postMessage({source:'malachite-avatar-builder',type:'error',message:String(e.message||'Erreur JavaScript dans le créateur 3D')},location.origin)}function rejected(e){const reason=e.reason;parent.postMessage({source:'malachite-avatar-builder',type:'error',message:String(reason&&reason.message||reason||'Erreur de chargement 3D')},location.origin)}window.addEventListener('error',report);window.addEventListener('unhandledrejection',rejected);return()=>{window.removeEventListener('error',report);window.removeEventListener('unhandledrejection',rejected)}},[]);
  useEffect(()=>{if(error)parent.postMessage({source:'malachite-avatar-builder',type:'error',message:error.message||'Les fichiers 3D ne sont pas accessibles'},location.origin)},[error]);
@@ -63,7 +92,7 @@ function App(){
     if(!b||!q)return;
     b.quaternion.copy(q).multiply(new Quaternion().setFromAxisAngle(axis,angle));
   };
-  const arm=(side,raise,bend)=>{rotate(side+'Arm',new Vector3(0,0,1),raise);rotate(side+'ForeArm',new Vector3(0,0,1),bend)};
+  const arm=(side,raise,bend)=>{rotate(side+'Arm',new Vector3(0,0,1),raise);rotate(side+'Arm',new Vector3(1,0,0),-.28);rotate(side+'ForeArm',new Vector3(0,0,1),bend);rotate(side+'Hand',new Vector3(0,1,0),.58)};
   const fingers=(side,kind)=>{
     const sign=side==='Left'?1:-1;
     for(const finger of ['Index','Middle','Ring','Pinky']){
@@ -75,8 +104,8 @@ function App(){
   reset();
   if(next==='salut'){
     // Un seul bras, coude plié : la main reste près de la tempe et le visage dégagé.
-    arm('Left',.48,-1.05);
-    const wave=()=>{const t=performance.now()/360;rotate('LeftHand',new Vector3(1,0,0),Math.sin(t)*.2);avatar.group.updateMatrixWorld(true);canvas.current?.render();gestureFrame.current=requestAnimationFrame(wave)};
+    arm('Left',.78,-1.38);
+    const wave=()=>{const t=performance.now()/310;rotate('LeftHand',new Vector3(0,1,0),.58+Math.sin(t)*.3);rotate('LeftHand',new Vector3(1,0,0),Math.cos(t)*.12);avatar.group.updateMatrixWorld(true);canvas.current?.render();gestureFrame.current=requestAnimationFrame(wave)};
     wave();
   }else if(next==='victory'){
     // Une seule main près de la tempe : index et majeur ouverts, annulaire et auriculaire repliés.
