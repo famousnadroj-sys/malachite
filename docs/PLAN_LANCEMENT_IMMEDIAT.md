@@ -2,18 +2,19 @@
 
 Dernière révision : 20 novembre 2026  
 Dépôt : `famousnadroj-sys/malachite`  
-Branche de préparation : `work/ai-manager-payment-ux-2026-11-20`
+Branche publiée : `main`
 
 ## Objectif opérationnel
 
-Préparer le site comme si la mise en ligne devait avoir lieu dès demain. La date seule ne donne jamais le feu vert : aucun lancement si un contrôle critique reste rouge.
+Le site est publié sur GitHub Pages pour une phase de tests techniques limitée. Cette publication ne vaut pas lancement commercial ; les tests réels restent obligatoires.
 
 ## Règle de publication
 
 - Objectif : disponibilité dès demain, uniquement si tous les critères GO sont vérifiés.
-- La mise en ligne reste bloquée tant qu'un point critique est non testé ou non sécurisé.
-- Les changements de cette branche ne sont pas fusionnés dans `main`.
-- Les migrations RPC, reçus additifs et optimisation support ont maintenant été appliquées et vérifiées en production ; la politique stricte des reçus reste différée jusqu'au déploiement du frontend compatible.
+- La phase de tests techniques est ouverte ; le lancement commercial reste bloqué jusqu'aux vérifications réelles.
+- La PR #29 est fusionnée dans `main`.
+- Le frontend est déployé : https://famousnadroj-sys.github.io/malachite/.
+- Les migrations RPC, reçus additifs, optimisation support, politique stricte des reçus et restriction des RPC privés sont appliquées et vérifiées en production.
 - Aucun fournisseur IA ou paiement marchand n'a été activé ; aucune dépense payante n'a été engagée.
 
 ## État vérifié au 20 novembre
@@ -23,12 +24,12 @@ Préparer le site comme si la mise en ligne devait avoir lieu dès demain. La da
 | Frontend | Application web/PWA dans `index.html`, avec scripts et avatar builder séparés | Tests réels Android, navigation, réseau lent, accessibilité |
 | Premium | Affichage à 2 USD / 30 jours dans la branche | Valider devise, montant réellement encaissé, renouvellement et mentions commerciales |
 | Airtel / Orange | Choix d'opérateur et références déclarées dans l'interface | Vérifier l'éligibilité marchand, obtenir les accès officiels et tester sandbox |
-| Paiement | Colonne `receipt_path`, bucket privé, règles Storage et index anti-doublon appliqués ; validation manuelle admin via RPC | Déployer le nouveau frontend, appliquer ensuite la politique stricte, tester avec deux comptes et confirmer manuellement les transferts ; webhook marchand toujours à faire |
-| Reçus | Schéma et bucket privé présents en production ; ancienne politique INSERT maintenue temporairement pour compatibilité | Déployer le frontend compatible, appliquer la politique stricte après vérification de la mise à jour PWA et réaliser les tests multi-comptes |
+| Paiement | Frontend publié ; reçu obligatoire par politique RLS stricte ; validation manuelle admin via RPC | Tester avec deux comptes et confirmer manuellement les transferts ; webhook marchand officiel toujours à faire |
+| Reçus | Bucket privé, règles Storage et politique INSERT stricte appliqués après déploiement | Tester propriétaire/admin, refus inter-comptes, doublons, suppressions et URL signées sur deux comptes réels |
 | AI Manager | Panneau de prévisualisation uniquement ; aucune fonction IA n'est déployée | Fournisseur IA et secret serveur, Edge Function authentifiée, tâches planifiées, outils autorisés, journal d'audit, tests et budget |
 | Modération | Tables signalements/suspensions et Edge Function admin existantes | Vérifier les cas limites, recours, notification et protection contre abus |
-| Sécurité | RPC paiement restreintes à `authenticated` ; optimisation RLS et index support appliqués ; alerte `start_call_session` et protection des mots de passe compromis encore à traiter | Revue dédiée `start_call_session`, activation Auth via Dashboard, tests négatifs multi-comptes et nouvelle lecture des advisors |
-| Déploiement | Workflow GitHub Actions de validation présent | Exécuter CI sur PR, tester le build et répéter le parcours de déploiement sans publier |
+| Sécurité | RLS activé sur toutes les tables publiques ; aucun privilège de table `anon` ; RPC paiement privées interdites à `anon` ; `start_call_session` limité à `authenticated` avec `search_path` vide | Tests négatifs multi-comptes, revue ciblée `start_call_session`, activation Auth via Dashboard et nouvelle lecture des advisors |
+| Déploiement | GitHub Pages déployé avec succès depuis `main` ; CI JavaScript, type-check Edge Function et parsing SQL réussis | Vérifier le site et tous les parcours sur Android réel ; contrôler les mises à jour PWA |
 
 ## Paiements — règle impérative
 
@@ -70,15 +71,15 @@ Actions qui exigent une validation humaine :
 
 Un agent 24/7 nécessite un déclencheur serveur, une file de tâches ou un planificateur et un fournisseur IA accessible côté serveur. Une page web ouverte sur le téléphone ou une conversation ChatGPT ne constitue pas un service autonome permanent. Les clés ne doivent jamais être dans `index.html` ni dans Git.
 
-## Ordre de traitement immédiat
+## Travaux restants avant lancement commercial
 
-1. Corriger et vérifier tous les blocages de sécurité et de compatibilité avec la base active.
-2. Appliquer les migrations de reçus sur un environnement de test, puis exécuter les tests RLS et le parcours paiement complet.
-3. Obtenir les accès marchands officiels Airtel/Orange et tester les callbacks signés ; sinon maintenir le paiement manuel sans activation automatique.
-4. Connecter l'AI Manager côté serveur avec un secret fournisseur, une liste d'outils autorisés, des limites et un journal d'audit ; garder les actions sensibles en approbation humaine.
-5. Tester inscription, connexion, profil, avatar, découverte, messagerie, blocage, signalement, appels, Premium, support et suppression de compte sur Android.
-6. Vérifier confidentialité, conditions d'utilisation, politique de sécurité, restauration de sauvegarde, monitoring et procédure de retour arrière.
-7. Répéter le déploiement sur un environnement de test, puis publier seulement après feu vert final du propriétaire.
+1. Tester inscription, connexion, profil, avatar, découverte, messagerie, blocage, signalement, appels, Premium et support sur Android réel.
+2. Tester RLS et stockage avec deux comptes distincts, dont les refus d'accès croisés.
+3. Tester les paiements en mode manuel sans annoncer d'automatisation ; ne pas activer Premium sur simple capture ou référence.
+4. Activer la protection contre les mots de passe compromis dans Supabase Auth.
+5. Obtenir les accès marchands officiels Airtel/Orange avant tout webhook.
+6. Construire et tester l'AI Manager côté serveur, sans clé dans le navigateur, avec approbations humaines.
+7. Vérifier conditions d'utilisation, confidentialité, assistance, sauvegarde/restauration, monitoring et procédure de retour arrière.
 
 ## Critères GO / NO-GO
 
@@ -113,7 +114,7 @@ La publication est bloquée si l'un des points suivants est vrai :
 ## Journal de décision
 
 - 20 nov. 2026 : priorité modifiée en préparation immédiate, avec objectif opérationnel dès demain et décision GO/NO-GO fondée sur les tests.
-- 20 nov. 2026 : préparation isolée autorisée ; publication non immédiate.
+- 20 nov. 2026 : PR #29 fusionnée, frontend déployé sur GitHub Pages pour test technique.
 - 20 nov. 2026 : aucun paiement automatisé déclaré opérationnel tant que les webhooks officiels ne sont pas intégrés et testés.
 
 
@@ -124,5 +125,15 @@ La publication est bloquée si l'un des points suivants est vrai :
 - Le workflow GitHub Actions le plus récent est vert : validation JavaScript, contrôle de l'Edge Function et analyse syntaxique des migrations SQL.
 - Le contrôle CI du commit `b6e51cf54a7846da0d8538fe3859ee40996e9d2c` est vert (run 44806673988).
 - Les migrations RPC, reçus additifs et optimisation support sont appliquées en production ; les 7 paiements existants sont restés intacts.
-- La politique stricte de paiement avec justificatif n'est pas encore appliquée : elle attend le déploiement du frontend qui téléverse effectivement le reçu.
-- Les tests réels Android, les tests multi-comptes RLS et la restauration restent non réalisés.
+- La politique stricte de paiement avec justificatif est appliquée après le déploiement ; le contrôle SQL s'exécute sans exception.
+- Les tests réels Android, les tests multi-comptes RLS et la restauration restent non réalisés et bloquent le lancement commercial.
+
+
+## Déploiement testeurs — 20 novembre 2026
+
+- Pull request #29 fusionnée dans `main`.
+- CI du commit fusionné réussie : https://github.com/famousnadroj-sys/malachite/actions/runs/44812589089.
+- Déploiement GitHub Pages réussi : https://github.com/famousnadroj-sys/malachite/actions/runs/44812589031.
+- URL générée par GitHub Pages : https://famousnadroj-sys.github.io/malachite/.
+- Politique stricte des reçus et migration de restriction RPC privées appliquées en production ; scripts SQL de contrôle exécutés sans exception.
+- Le site est ouvert à une phase de tests techniques ; ce n'est pas encore un lancement commercial ni une preuve de test Android réel.
