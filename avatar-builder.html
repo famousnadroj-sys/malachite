@@ -31,12 +31,12 @@ import{createHumanEditor}from'https://esm.sh/humanforge@0.8.1/web?external=react
 import{HumanAvatar,loadHumanPackage,getHumanCatalog}from'https://esm.sh/humanforge@0.8.1/human?external=three';
 const h=React.createElement,ASSETS='https://cdn.jsdelivr.net/gh/abdulrehman043/humanforge@v0.5.0/assets/human';
 
-const AvatarCanvas=React.forwardRef(function AvatarCanvas({pkg,config,framing,expressions,background,textureSize,onReady,onError},ref){
+const AvatarCanvas=React.forwardRef(function AvatarCanvas({pkg,config,configRevision,framing,expressions,background,textureSize,onReady,onError},ref){
  const host=useRef(null),stage=useRef(null),readyCallback=useRef(onReady),errorCallback=useRef(onError),framingRef=useRef(framing);
  readyCallback.current=onReady;errorCallback.current=onError;framingRef.current=framing;
  useEffect(()=>{
   const el=host.current;if(!el)return;let live=true,configured=false,observer=null,avatar=null,renderer=null,scene=null,camera=null,raf=0,resizeHandler=null;
-  const draw=()=>{if(!renderer||!avatar||!camera||!configured)return;if(raf)cancelAnimationFrame(raf);raf=requestAnimationFrame(()=>{raf=0;const m=avatar.metrics(),face=framingRef.current==='face',target=new Vector3(0,face?m.headY-.08:m.height*.52,0),height=face?.42:m.height*1.12,dist=height/2/Math.tan((camera.fov*Math.PI)/360)/Math.min(1,camera.aspect*1.1);camera.position.set(0,target.y+dist*.03,dist);camera.lookAt(target);renderer.render(scene,camera)})};
+  const draw=()=>{if(!renderer||!avatar||!camera||!configured)return;if(raf)cancelAnimationFrame(raf);raf=requestAnimationFrame(()=>{raf=0;const m=avatar.metrics(),face=framingRef.current==='face',target=new Vector3(0,face?m.headY-.08:m.height*.52,0),height=face?.42:m.height*1.12,dist=height/2/Math.tan((camera.fov*Math.PI)/360)/Math.min(1,camera.aspect*1.1),yaw=stage.current?.yaw||0;camera.position.set(Math.sin(yaw)*dist,target.y+dist*.03,Math.cos(yaw)*dist);camera.lookAt(target);renderer.render(scene,camera)})};
   try{
    renderer=new WebGLRenderer({antialias:false,preserveDrawingBuffer:true,alpha:false,powerPreference:'low-power',failIfMajorPerformanceCaveat:false});
    renderer.setPixelRatio(1);renderer.outputColorSpace=SRGBColorSpace;renderer.toneMapping=ACESFilmicToneMapping;
@@ -45,14 +45,15 @@ const AvatarCanvas=React.forwardRef(function AvatarCanvas({pkg,config,framing,ex
    const key=new DirectionalLight('#fff4e8',1.5);key.position.set(1.2,2.2,2.5);
    const rim=new DirectionalLight('#dfe8ff',.7);rim.position.set(-2,2,-2);scene.add(key,rim,new HemisphereLight('#fff','#b9a99a',.55));
    camera=new PerspectiveCamera(24,1,.05,50);avatar=new HumanAvatar(pkg);avatar.textureSize=textureSize;scene.add(avatar.group);
-   stage.current={avatar,renderer,scene,camera,draw,set configured(v){configured=v}};
+   stage.current={avatar,renderer,scene,camera,draw,yaw:0,set configured(v){configured=v}};
    const resize=()=>{if(!renderer)return;const w=Math.max(1,el.clientWidth),hh=Math.max(1,el.clientHeight);renderer.setSize(w,hh,false);camera.aspect=w/hh;camera.updateProjectionMatrix();draw()};
    if(typeof ResizeObserver!=='undefined'){observer=new ResizeObserver(resize);observer.observe(el)}else{resizeHandler=resize;window.addEventListener('resize',resize)}
    resize();
-   return()=>{live=false;if(observer)observer.disconnect();if(resizeHandler)window.removeEventListener('resize',resizeHandler);if(raf)cancelAnimationFrame(raf);avatar?.dispose();renderer?.dispose();el.replaceChildren();stage.current=null};
+   let dragX=null;const surface=renderer.domElement;const down=e=>{dragX=e.clientX;try{surface.setPointerCapture(e.pointerId)}catch(_){}};const move=e=>{if(dragX===null)return;const dx=e.clientX-dragX;dragX=e.clientX;if(stage.current)stage.current.yaw=Math.max(-1.15,Math.min(1.15,stage.current.yaw-dx*.008));draw()};const up=()=>{dragX=null};surface.addEventListener('pointerdown',down);surface.addEventListener('pointermove',move);surface.addEventListener('pointerup',up);surface.addEventListener('pointercancel',up);
+   return()=>{live=false;surface.removeEventListener('pointerdown',down);surface.removeEventListener('pointermove',move);surface.removeEventListener('pointerup',up);surface.removeEventListener('pointercancel',up);if(observer)observer.disconnect();if(resizeHandler)window.removeEventListener('resize',resizeHandler);if(raf)cancelAnimationFrame(raf);avatar?.dispose();renderer?.dispose();el.replaceChildren();stage.current=null};
   }catch(e){errorCallback.current?.(e);return()=>{live=false;renderer?.dispose();el.replaceChildren()}}
  },[pkg]);
- useEffect(()=>{const s=stage.current;if(!s)return;Promise.resolve(s.avatar.setConfig(config)).then(()=>{s.configured=true;s.draw();readyCallback.current?.(s.avatar)}).catch(e=>errorCallback.current?.(e))},[JSON.stringify(config),pkg]);
+ useEffect(()=>{const s=stage.current;if(!s)return;Promise.resolve(s.avatar.setConfig(config)).then(()=>{s.configured=true;s.draw();readyCallback.current?.(s.avatar)}).catch(e=>errorCallback.current?.(e))},[configRevision,pkg]);
  useEffect(()=>{const s=stage.current;if(!s)return;s.scene.background.set(background);for(const name of s.avatar.expressionNames)s.avatar.setExpression(name,expressions?.[name]??0);s.draw()},[framing,background,JSON.stringify(expressions)]);
  useImperativeHandle(ref,()=>({get avatar(){return stage.current?.avatar||null},render(){stage.current?.draw()},snapshot(){const s=stage.current;if(!s)return null;s.renderer.render(s.scene,s.camera);return s.renderer.domElement.toDataURL('image/png')}}),[]);
  return h('div',{ref:host,style:{position:'relative',overflow:'hidden',width:'100%',height:'100%'}});
@@ -60,12 +61,12 @@ const AvatarCanvas=React.forwardRef(function AvatarCanvas({pkg,config,framing,ex
 
 function App(){
  const [gender,setGender]=useState(new URLSearchParams(location.search).get('gender')==='female'?'female':'male'),[saving,setSaving]=useState(false);
- const [pkg,setPkg]=useState(null),[editor,setEditor]=useState(null),[config,setConfig]=useState(null),[sectionIndex,setSectionIndex]=useState(0),[customTab,setCustomTab]=useState('tenues'),[framing,setFraming]=useState('face'),[avatarReady,setAvatarReady]=useState(false),[assetsReady,setAssetsReady]=useState(false),[progress,setProgress]=useState({done:0,total:0}),[error,setError]=useState(null),[expression,setExpression]=useState('naturel'),[gesture,setGesture]=useState('aucun');
- const canvas=useRef(null),packagePromise=useRef(null),poseBase=useRef(null),gestureFrame=useRef(0),performanceConfigured=useRef(false);
+ const [pkg,setPkg]=useState(null),[editor,setEditor]=useState(null),[config,setConfig]=useState(null),[configRevision,setConfigRevision]=useState(0),[sectionIndex,setSectionIndex]=useState(0),[customTab,setCustomTab]=useState('tenues'),[framing,setFraming]=useState('face'),[avatarReady,setAvatarReady]=useState(false),[assetsReady,setAssetsReady]=useState(false),[progress,setProgress]=useState({done:0,total:0}),[error,setError]=useState(null),[expression,setExpression]=useState('naturel'),[gesture,setGesture]=useState('aucun');
+ const canvas=useRef(null),packagePromise=useRef(null),poseBase=useRef(null),gestureFrame=useRef(0),performanceConfigured=useRef(false),applyTimer=useRef(0);
  const catalog=useMemo(()=>pkg?getHumanCatalog(pkg,{gender}):[],[pkg,gender]);
  const options=useMemo(()=>({gender,sections:['face','skin','eyes','brows','nose','mouth','ears','hair','headwear','hat','body','outfit','shoes'],colors:{hair:['#171311','#39251d','#69432e','#a66a3f','#d6b47b','#eee0c7','#a83e38','#514b83'],eyebrows:['#171311','#39251d','#69432e','#a66a3f','#d6b47b'],garments:['#111827','#374151','#6b7280','#f8fafc','#dc2626','#ea580c','#eab308','#16a34a','#0d9488','#2563eb','#4f46e5','#9333ea','#db2777','#92400e','#d6b48c','#f9a8d4']},defaults:{african:.9,asian:.02,caucasian:.08},detailRange:.55}),[gender]);
  useEffect(()=>{let live=true;setError(null);if(!packagePromise.current)packagePromise.current=loadHumanPackage(ASSETS);packagePromise.current.then(value=>{if(live)setPkg(value)},reason=>{if(live)setError(reason instanceof Error?reason:new Error(String(reason)))});return()=>{live=false}},[]);
- useEffect(()=>{if(!pkg)return;const nextEditor=createHumanEditor(pkg,options);const nextConfig=nextEditor.normalize(null);setEditor(nextEditor);setConfig(nextConfig);setAvatarReady(false);setAssetsReady(true);setProgress({done:0,total:0});setSectionIndex(0);poseBase.current=null;parent.postMessage({source:'malachite-avatar-builder',type:'progress',phase:'Affichage du modèle 3D',done:0,total:0},location.origin)},[pkg,options]);
+ useEffect(()=>{if(!pkg)return;const nextEditor=createHumanEditor(pkg,options);const nextConfig=nextEditor.normalize(null);setEditor(nextEditor);setConfig(nextConfig);setConfigRevision(v=>v+1);setAvatarReady(false);setAssetsReady(true);setProgress({done:0,total:0});setSectionIndex(0);poseBase.current=null;parent.postMessage({source:'malachite-avatar-builder',type:'progress',phase:'Affichage du modèle 3D',done:0,total:0},location.origin)},[pkg,options]);
  useEffect(()=>{
  // Les aperçus sont des vignettes statiques : seules les ressources du look choisi sont chargées.
 function receive(e){if(e.origin!==location.origin||!e.data||e.data.source!=='malachite-avatar-parent')return;if(e.data.type==='set-gender'){setSaving(false);setAvatarReady(false);setGender(e.data.gender==='female'?'female':'male')}if(e.data.type==='saving')setSaving(true);if(e.data.type==='save-error'||e.data.type==='saved')setSaving(false)}window.addEventListener('message',receive);parent.postMessage({source:'malachite-avatar-builder',type:'mounted'},location.origin);return()=>window.removeEventListener('message',receive)},[]);
@@ -74,8 +75,13 @@ function receive(e){if(e.origin!==location.origin||!e.data||e.data.source!=='mal
  function cancel(){parent.postMessage({source:'malachite-avatar-builder',type:'cancel'},location.origin)}
  function save(){if(!config||!canvas.current||!avatarReady||saving)return;const image=canvas.current.snapshot();if(!image){alert('La capture 3D n’a pas pu être créée. Réessaie.');return}setSaving(true);parent.postMessage({source:'malachite-avatar-builder',type:'save',config,image},location.origin)}
  function update(next){
-  // HumanCanvas charge uniquement les ressources du look actuellement sélectionné.
-  setConfig(editor.normalize(next));
+  const normalized=editor.normalize(next),previous=config||{},direct=new Set(['skinTint','hairColor','eyebrowColor','garmentColors']);
+  const keys=new Set([...Object.keys(previous),...Object.keys(normalized)].filter(k=>JSON.stringify(previous[k])!==JSON.stringify(normalized[k])));
+  setConfig(normalized);
+  if(!keys.size||[...keys].every(k=>direct.has(k)))return;
+  if(applyTimer.current)clearTimeout(applyTimer.current);
+  const assetChange=[...keys].some(k=>['gender','skin','eyes','eyebrows','eyelashes','hair','clothes'].includes(k));
+  applyTimer.current=setTimeout(()=>{applyTimer.current=0;setConfigRevision(v=>v+1)},assetChange?0:110);
  }
  function control(ctl){
   const value=ctl.value(config);
@@ -85,43 +91,32 @@ function receive(e){if(e.origin!==location.origin||!e.data||e.data.source!=='mal
   return h('div',{className:'block',key:ctl.id},h('span',{className:'block-title'},ctl.label),h('div',{className:'tiles'},ctl.options.map(o=>h('button',{key:o.id??'none',type:'button',className:'tile'+(o.id===value?' active':''),title:o.label,'aria-label':o.label,onClick:()=>update(ctl.apply(config,o.id))},o.id===null?h('span',null,'Aucun'):o.preview?h('img',{src:o.preview,alt:'',loading:'lazy'}):h('span',null,o.label)))));
  }
  const slotForClothing=(id)=>id.startsWith('shoes')?'shoes':/hijab|amira|shayla|scarf|turban/.test(id)?'headwear':/hat|fedora|cap|helmet/.test(id)?'hat':'outfit';
- useEffect(()=>{
-  if(!avatarReady||!config||!canvas.current?.avatar)return;
-  let cancelled=false,attempt=0,timer=0;
-  const apply=()=>{
-   if(cancelled)return;
-   const avatar=canvas.current?.avatar,proxies=avatar?.proxies;
-   if(!proxies)return;
-   const present=[...proxies.values()].filter(p=>p.meta?.kind==='clothes');
-   const wanted=config.clothes||[];
-   const allReady=wanted.every(id=>present.some(p=>p.meta.id===id));
-   if(!allReady&&attempt++<80){timer=setTimeout(apply,100);return}
-   for(const p of present){
-    const slot=slotForClothing(p.meta.id),color=config.garmentColors?.[slot];
-    if(!color)continue;
-    for(const material of [p.mesh?.material,p.soft?.material]){
-     if(material?.color){material.color.set(color);material.needsUpdate=true}
-    }
-   }
+  function applyAvatarColors(avatar=canvas.current?.avatar){
+   if(!avatar||!config)return;
+   const tint=(material,color)=>{if(!material||!color)return;const list=Array.isArray(material)?material:[material];for(const m of list)if(m?.color)m.color.set(color)};
+   tint(avatar.skinMat,config.skinTint);
+   tint(avatar.proxies?.get('hair')?.mesh?.material,config.hairColor);tint(avatar.proxies?.get('hair')?.soft?.material,config.hairColor);
+   tint(avatar.proxies?.get('eyebrows')?.mesh?.material,config.eyebrowColor);
+   for(const p of avatar.proxies?.values?.()||[]){if(p.meta?.kind!=='clothes'||!p.meta.tintable)continue;const slot=slotForClothing(p.meta.id),color=config.garmentColors?.[slot];if(color){tint(p.mesh?.material,color);tint(p.soft?.material,color)}}
    avatar.group?.updateMatrixWorld(true);canvas.current?.render?.();
-  };
-  timer=setTimeout(apply,0);
-  return()=>{cancelled=true;clearTimeout(timer)};
- },[config,avatarReady]);
- if(error)return h('div',{className:'error'},'Impossible de charger les modèles 3D : '+error.message);
+  }
+  useEffect(()=>{applyAvatarColors()},[config,avatarReady]);
+  useEffect(()=>()=>{if(applyTimer.current)clearTimeout(applyTimer.current)},[]);
+  if(error)return h('div',{className:'error'},'Impossible de charger les modèles 3D : '+error.message);
  if(!pkg||!editor||!config||!assetsReady)return h('div',{className:'loading'},h('div',null,error?'Impossible de charger les modèles 3D : '+error.message:'Préparation du modèle humain 3D…'),h('div',{style:{height:'8px',background:'#eee',borderRadius:'99px',overflow:'hidden',margin:'14px auto',maxWidth:'280px'}},h('div',{style:{height:'100%',width:progress.total?Math.round(progress.done/progress.total*100)+'%':'8%',background:'#b72e63',transition:'width .2s'}})),h('div',{style:{fontSize:'12px'}},progress.total?progress.done+' / '+progress.total+' éléments chargés':'Connexion aux ressources 3D…'));
  const section=editor.sections[Math.min(sectionIndex,editor.sections.length-1)];
  const catalogControl=(key)=>catalog.find(item=>item.key===key);
  const catalogBlock=(key,title,mode)=>{const attr=catalogControl(key);if(!attr)return h('div',{className:'block',key},h('span',{className:'block-title'},title),h('div',{className:'hint'},'Options indisponibles dans le catalogue 3D actuel'));const value=attr.value(config);const choices=key==='hair.style'?[...attr.options].sort((x,y)=>{const rank=id=>({'afro01':0,'braid01':1,'short01':2,'short02':3,'short03':4,'short04':5,'culturalibre_hair_01':6,'culturalibre_hair_02':7}[id]??20);return rank(x.id)-rank(y.id)}):attr.options;return h('div',{className:'block',key},h('span',{className:'block-title'},title),h('div',{className:mode==='colors'?'swatches':'tiles'},choices.map(opt=>h('button',{key:opt.id??'none',type:'button',className:(mode==='colors'?'swatch':'tile')+((opt.id===value)?' active':''),title:opt.label,'aria-label':opt.label,style:mode==='colors'?{background:opt.swatch||'#ddd'}:undefined,onClick:()=>update(attr.apply(config,opt.id),['hair.style','outfit.style','headwear.style','shoes.style','skin.tone'].includes(key))},mode==='colors'?null:opt.preview?h('img',{src:opt.preview,alt:'',loading:'lazy'}):h('span',null,opt.label)))))};
  const garmentColorBlock=(slot,title)=>{
   const palette=options.colors.garments;
-  const value=config.garmentColors?.[slot]||'#ffffff';
+  const activeId=(config.clothes||[]).find(id=>slotForClothing(id)===slot);const activeMeta=pkg?.manifest?.proxies?.find(p=>p.kind==='clothes'&&p.id===activeId);if(!activeMeta?.tintable)return null;
+  const value=config.garmentColors?.[slot]||activeMeta.color||'#ffffff';
   return h('div',{className:'block',key:'color-'+slot},
    h('span',{className:'block-title'},title),
    h('div',{className:'swatches'},palette.map(color=>h('button',{
     key:color,type:'button',className:'swatch'+(value.toLowerCase()===color.toLowerCase()?' active':''),
     style:{background:color},title:color,'aria-label':title+' '+color,
-    onClick:()=>setConfig(editor.normalize({...config,garmentColors:{...config.garmentColors,[slot]:color}}))
+    onClick:()=>update({...config,garmentColors:{...config.garmentColors,[slot]:color}})
    })))
   );
  };
@@ -173,7 +168,7 @@ function receive(e){if(e.origin!==location.origin||!e.data||e.data.source!=='mal
   h('header',{className:'head'},h('div',null,h('div',{className:'title'},'Mon avatar 3D réaliste'),h('div',{className:'hint'},'Personnage virtuel · visage, peau, cheveux et vêtements')),h('button',{className:'close',onClick:cancel,'aria-label':'Retour à la plateforme'},'← Retour à la plateforme')),
   h('div',{className:'gender'},h('button',{className:gender==='male'?'active':'',onClick:()=>{setAvatarReady(false);setGender('male')}},'Homme'),h('button',{className:gender==='female'?'active':'',onClick:()=>{setAvatarReady(false);setGender('female')}},'Femme')),
   h('div',{className:'editor'},
-   h('div',{className:'stage'},h(AvatarCanvas,{ref:canvas,pkg,config,framing,expressions:expressions[expression]||{},background:'#eee9e7',textureSize:'512',onError:e=>setError(e instanceof Error?e:new Error(String(e))),onReady:()=>{setAvatarReady(true);poseBase.current=null;if(gesture!=='aucun')requestAnimationFrame(()=>pose(gesture));parent.postMessage({source:'malachite-avatar-builder',type:'ready'},location.origin)}}),h('div',{className:'toolbar'},h('button',{className:framing==='face'?'active':'',onClick:()=>setFraming('face')},'Visage'),h('button',{className:framing==='body'?'active':'',onClick:()=>setFraming('body')},'Corps'))),
+   h('div',{className:'stage'},h(AvatarCanvas,{ref:canvas,pkg,config,framing,expressions:expressions[expression]||{},background:'#eee9e7',textureSize:'512',onError:e=>setError(e instanceof Error?e:new Error(String(e))),configRevision,onReady:avatar=>{applyAvatarColors(avatar);setAvatarReady(true);poseBase.current=null;if(gesture!=='aucun')requestAnimationFrame(()=>pose(gesture));parent.postMessage({source:'malachite-avatar-builder',type:'ready'},location.origin)}}),h('div',{className:'toolbar'},h('button',{className:framing==='face'?'active':'',onClick:()=>setFraming('face')},'Visage'),h('button',{className:framing==='body'?'active':'',onClick:()=>setFraming('body')},'Corps'))),
    h('div',{className:'panel'},h('div',{className:'tabs'},[['tenues','Vêtements'],['peau','Couleur de peau'],['cheveux','Coiffure']].map(([id,label])=>h('button',{key:id,className:customTab===id?'active':'',onClick:()=>setCustomTab(id)},label)),h('button',{onClick:()=>setCustomTab('autres'),className:customTab==='autres'?'active':''},'Visage & corps')),h('div',{className:'controls'},customTab==='autres'?h(React.Fragment,null,h('div',{className:'tabs'},editor.sections.map((item,i)=>h('button',{key:item.id,className:i===sectionIndex?'active':'',onClick:()=>setSectionIndex(i)},item.label))),editor.sections[Math.min(sectionIndex,editor.sections.length-1)].controls.map(control)):customContent),h('div',{className:'exprbar'},[['naturel','Naturel'],['sourire','Sourire'],['clinOeil','Clin d’œil'],['surpris','Surpris'],['triste','Triste'],['grimace','Grimace']].map(([id,label])=>h('button',{key:id,className:expression===id?'active':'',onClick:()=>setExpression(id)},label))),h('div',{className:'gesturebar'},[['aucun','Repos'],['salut','Salut près du visage 👋'],['victory','V près du visage ✌️'],['super','Pouces levés 👍']].map(([id,label])=>h('button',{key:id,className:gesture===id?'active':'',onClick:()=>pose(id)},label))),h('button',{className:'save',onClick:save,disabled:!avatarReady||saving,style:{opacity:avatarReady&&!saving?1:.55}},saving?'Enregistrement…':avatarReady?'Appliquer sur mon profil':'Préparation du modèle 3D…'))
   )
  );
