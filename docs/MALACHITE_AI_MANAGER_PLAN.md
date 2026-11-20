@@ -23,7 +23,7 @@ Le code actuel accepte une référence dans `paiements.code`. La table ne contie
 - Contrainte d'unicité/idempotence sur l'identifiant de transaction, journal d'événements et protection contre la réutilisation d'un reçu.
 - Activation Premium atomique côté serveur après confirmation opérateur ; 30 jours ajoutés à l'expiration existante.
 - Si l'opérateur ne fournit pas de confirmation exploitable, statut « à vérifier » et aucune activation automatique.
-- Les comptes personnels seuls ne garantissent pas l'accès aux API marchandes ni aux webhooks. Les conditions Airtel/Orange en RDC doivent être confirmées avant de choisir l'intégration.
+- Les comptes personnels seuls ne garantissent pas l'accès aux API marchandes ni aux webhooks. Orange documente une offre Web Payment réservée aux marchands officiellement enregistrés et indique la RDC parmi les pays disponibles : https://developer.orange.com/apis/om-webpay/. Airtel Africa présente son portail API pour les commerçants : https://developers.airtel.africa/developer. Les conditions d'éligibilité et documents KYC en RDC doivent être confirmés directement avant de choisir l'intégration.
 
 ## Malachite AI Manager — périmètre
 ### Automatisations possibles après intégration
@@ -55,7 +55,7 @@ Le code actuel accepte une référence dans `paiements.code`. La table ne contie
 - La base contient déjà les tables `paiements`, `signalements`, `suspensions`, `avis_site` et `admin_actions`.
 - La fonction privée `private.traiter_paiement` vérifie `private.is_admin()`, verrouille la demande et active les droits après validation administrative. Ce n'est pas encore une validation opérateur automatisée.
 - Les Edge Functions observées sont `admin-user-moderation` et `username-login`. Aucune fonction webhook de paiement ni agent IA permanent n'a été trouvée dans la liste consultée.
-- Les alertes Supabase observées comprennent une fonction `start_call_session` SECURITY DEFINER exécutable par authenticated, une table privée `private.admins` sans politique RLS et la protection contre les mots de passe compromis désactivée. Ces points doivent être revus avant lancement.
+- Les advisors signalent `start_call_session` SECURITY DEFINER exécutable par authenticated. Vérification complémentaire : `anon` n'a pas EXECUTE ; le corps vérifie `auth.uid()`, l'abonnement, le match mutuel et l'expiration courte. L'accès authenticated est donc intentionnel mais doit rester couvert par les tests négatifs. `private.admins` a RLS sans politique directe ; le schéma `private` n'est pas exposé et l'accès passe par les fonctions d'autorisation. La protection contre les mots de passe compromis reste désactivée et doit être activée/vérifiée dans la configuration Auth avant lancement.
 
 ## Étapes avant activation
 1. Revoir les règles commerciales et les tarifs finaux (Premium 2 USD/mois confirmé par le propriétaire).
