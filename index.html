@@ -1754,7 +1754,7 @@ function malPlaceAvatarFrame(frame){
  frame.style.cssText='position:relative;z-index:2;display:block;flex:1 1 auto;width:100%;height:100%;min-height:0;min-width:0;border:0;background:#fff;opacity:1;pointer-events:auto;';
 }
 function malWarmAvatarBuilder(){ /* Chargement à la demande : aucun iframe WebGL caché. */ }
-function malShowAvatarLoadFailure(message){var loading=$('malAvatarBuilderLoading');if(!loading)return;loading.style.pointerEvents='auto';loading.innerHTML='<div style="font-size:34px">⚠️</div><div>Le créateur 3D ne démarre pas.</div><div style="font-size:12px;font-weight:400">'+esc(message)+'</div><div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button type="button" onclick="closeMalAvatarBuilder();openMalAvatarBuilder()">Réessayer</button><button type="button" onclick="window.open(\'avatar-builder.html?gender='+((malAvatarPreloadGender==='female')?'female':'male')+'&v=18\',\'_blank\')">Ouvrir séparément</button><button type="button" onclick="closeMalAvatarBuilder()">Fermer</button></div>';}
+function malShowAvatarLoadFailure(message){var loading=$('malAvatarBuilderLoading');if(!loading)return;loading.style.pointerEvents='auto';loading.innerHTML='<div style="font-size:34px">⚠️</div><div>Le créateur 3D ne démarre pas.</div><div style="font-size:12px;font-weight:400">'+esc(message)+'</div><div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button type="button" onclick="closeMalAvatarBuilder();openMalAvatarBuilder()">Réessayer</button><button type="button" onclick="window.open(\'avatar-builder.html?gender='+((malAvatarPreloadGender==='female')?'female':'male')+'&v=19\',\'_blank\')">Ouvrir séparément</button><button type="button" onclick="closeMalAvatarBuilder()">Fermer</button></div>';}
 function closeMalAvatarBuilder(){
  var overlay=$('malAvatarBuilderOverlay');if(!overlay)return;
  var frame=overlay.querySelector('iframe');if(frame){frame.src='about:blank';frame.remove()}
@@ -1770,7 +1770,7 @@ function openMalAvatarBuilder(forSignup){
  loading.style.cssText='position:absolute;inset:0;display:grid;place-content:center;gap:12px;text-align:center;color:#71334b;background:#fff;font:600 15px system-ui;z-index:3;pointer-events:none';
  loading.innerHTML='<div style="font-size:38px">✦</div><div>Préparation de ton avatar 3D…</div><div id="malAvatarBuilderProgress" style="font-size:12px;font-weight:400;opacity:.85">Connexion aux ressources 3D…</div>';
  var frame=document.createElement('iframe');frame.title='Créateur d’avatar 3D Malachite';frame.setAttribute('allow','fullscreen');frame.setAttribute('referrerpolicy','strict-origin-when-cross-origin');
- malPlaceAvatarFrame(frame);frame.dataset.gender=gender;frame.loading='eager';frame.src='avatar-builder.html?gender='+gender+'&v=18';
+ malPlaceAvatarFrame(frame);frame.dataset.gender=gender;frame.loading='eager';frame.src='avatar-builder.html?gender='+gender+'&v=19';
  frame.addEventListener('load',function(){var p=$('malAvatarBuilderProgress');if(p)p.textContent='Page chargée · initialisation du moteur 3D…'});frame.addEventListener('error',function(){malShowAvatarLoadFailure('La page du créateur 3D ne répond pas. Vérifie ta connexion puis réessaie.')});
  overlay.appendChild(frame);overlay.appendChild(loading);
  overlay.addEventListener('click',function(e){if(e.target===overlay)closeMalAvatarBuilder()});
