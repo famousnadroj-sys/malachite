@@ -22,6 +22,23 @@ async function countRows(client: any, table: string, column: string, filter?: (q
   return count || 0;
 }
 
+async function getOperations(adminClient: any) {
+  const specs = [
+    ["payments", "paiements", "id,offre,statut,created_at,operateur,admin_reason"],
+    ["reports", "signalements", "id,motif,created_at,statut"],
+    ["suspensions", "suspensions", "user_id,depuis,motif"],
+    ["blocks", "blocages", "user_id,cible,created_at"],
+    ["reviews", "avis_site", "id,note,categorie,message,created_at"],
+    ["support", "demandes_support", "id,categorie,sujet,message,statut,created_at"],
+  ] as const;
+  const entries = await Promise.all(specs.map(async ([key, table, columns]) => {
+    const { data, error } = await adminClient.from(table).select(columns).order("created_at", { ascending: false }).limit(25);
+    if (error) throw new Error("operations_query_failed:" + table);
+    return [key, data || []] as const;
+  }));
+  return Object.fromEntries(entries);
+}
+
 async function getMetrics(adminClient: any) {
   const now = new Date();
   const since = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
@@ -63,7 +80,7 @@ Deno.serve(async (req: Request) => {
 
   let body: { message?: unknown; action?: unknown; history?: unknown };
   try { body = await req.json(); } catch { return json(400, { error: "invalid_json" }, origin); }
-  const action = body.action === "dashboard" ? "dashboard" : "chat";
+  const action = body.action === "dashboard" ? "dashboard" : body.action === "operations" ? "operations" : "chat";
   const message = typeof body.message === "string" ? body.message.trim() : "";
   if (action === "chat" && (message.length < 2 || message.length > 2000)) {
     return json(400, { error: "invalid_message" }, origin);
@@ -89,6 +106,10 @@ Deno.serve(async (req: Request) => {
   catch { return json(503, { error: "metrics_unavailable" }, origin); }
 
   if (action === "dashboard") return json(200, { metrics }, origin);
+  if (action === "operations") {
+    try { return json(200, { operations: await getOperations(adminClient) }, origin); }
+    catch { return json(503, { error: "operations_unavailable" }, origin); }
+  }
   if (!API_KEY) return json(503, { error: "ai_provider_not_configured", metrics }, origin);
 
   const cutoff = new Date(Date.now() - 60_000).toISOString();
