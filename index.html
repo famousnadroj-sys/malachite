@@ -1242,7 +1242,35 @@ async function sendImg(el){
 }
 function banner(){if(!me)return '';var nb=(tab=='home'&&'Notification' in window&&Notification.permission=='default')?'<div class="wall pop">🔔 <b>Active les notifications</b> pour ne rater aucun message ni rendez-vous.<button class="b1" style="width:100%;margin-top:8px" onclick="askNotif()">Activer</button></div>':'';var t=new Date().toDateString();return nb+rdvs.filter(function(x){return x.statut=='confirme'&&new Date(x.quand).toDateString()==t}).map(function(x){var p=prof(x.de==me.id?x.a:x.de)||{};return '<div class="wall pop">🔔 <b>Aujourd’hui</b> : rendez-vous avec '+esc(p.prenom||'ton match')+' à '+new Date(x.quand).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+' · '+esc(x.lieu)+'</div>'}).join('')}
 function ics(id){var x=rdvs.filter(function(y){return y.id==id})[0];if(!x)return;var d=new Date(x.quand),e=new Date(+d+36e5),f=function(z){return z.toISOString().replace(/[-:]/g,'').split('.')[0]+'Z'};var t='BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:malachite-'+id+'@malachite\r\nDTSTAMP:'+f(new Date())+'\r\nDTSTART:'+f(d)+'\r\nDTEND:'+f(e)+'\r\nSUMMARY:Rendez-vous Malachite\r\nLOCATION:'+String(x.lieu).replace(/[,;\r\n]/g,' ')+'\r\nBEGIN:VALARM\r\nTRIGGER:-PT2H\r\nACTION:DISPLAY\r\nDESCRIPTION:Rendez-vous Malachite\r\nEND:VALARM\r\nEND:VEVENT\r\nEND:VCALENDAR';var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/calendar'}));a.download='rendez-vous.ics';a.click()}
-async function loadAdm(){var r=await sb.from('paiements').select('*').eq('statut','attente').order('created_at');adm=r.data||[];var s=await sb.from('signalements').select('*').order('created_at',{ascending:false}).limit(100);sigs=s.error?[]:(s.data||[]);var z=await sb.from('suspensions').select('user_id,depuis,motif').order('depuis',{ascending:false});admSuspensions=z.error?[]:(z.data||[]);var v=await sb.from('avis_site').select('*').order('created_at',{ascending:false}).limit(50);avs=v.data||[];draw()}
+var admLoadPromise=null,admLoadQueued=false,admLoadedFor=null;
+async function loadAdm(){
+ if(!me||me.email!==ADM||tab!=='adm'||document.hidden)return;
+ if(admLoadPromise){admLoadQueued=true;return admLoadPromise}
+ var uid=me.id;
+ admLoadPromise=(async function(){
+  do{
+   admLoadQueued=false;
+   if(!me||me.id!==uid||me.email!==ADM||tab!=='adm')break;
+   var results=await Promise.all([
+    sb.from('paiements').select('*').eq('statut','attente').order('created_at'),
+    sb.from('signalements').select('*').order('created_at',{ascending:false}).limit(100),
+    sb.from('suspensions').select('user_id,depuis,motif').order('depuis',{ascending:false}),
+    sb.from('avis_site').select('*').order('created_at',{ascending:false}).limit(50)
+   ]);
+   if(!me||me.id!==uid||me.email!==ADM||tab!=='adm')break;
+   var labels=['paiements','signalements','suspensions','avis_site'];
+   results.forEach(function(r,i){if(r.error)console.warn('Chargement admin '+labels[i],r.error)});
+   if(!results[0].error)adm=results[0].data||[];
+   if(!results[1].error)sigs=results[1].data||[];
+   if(!results[2].error)admSuspensions=results[2].data||[];
+   if(!results[3].error)avs=results[3].data||[];
+   admLoadedFor=uid;
+   if(tab==='adm'&&me&&me.id===uid)draw(true);
+  }while(admLoadQueued);
+ })().catch(function(e){console.error('Chargement du tableau administrateur',e)})
+ .finally(function(){admLoadPromise=null});
+ return admLoadPromise;
+}
 function admin0(){return '<h2>Paiements à vérifier</h2><p class="note">Les nouvelles demandes arrivent en direct. Délai de réponse annoncé aux membres : maximum 2 heures.</p><div class="list">'+(adm.length?adm.map(function(x){var p=prof(x.user_id)||{},c=x.cible?prof(x.cible):null;return '<div class="card"><div><b>'+esc(p.prenom||'Membre')+'</b> · '+esc(x.offre)+' · '+(PRIX[x.offre]||'')+'</div>'+(c?'<div class="sub">Contact de : '+esc(c.prenom)+'</div>':'')+'<div>Code de transaction : <b>'+esc(x.code)+'</b></div><div>Moyen : '+esc(x.operateur||'non précisé')+'</div><div class="note">Reçu le '+new Date(x.created_at).toLocaleString('fr-FR')+'. Vérifie le transfert dans le portefeuille destinataire avant de valider.</div><div class="acts"><button class="b1" onclick="trt('+x.id+',true)">✔ Valider et activer</button><button onclick="trt('+x.id+',false)">✗ Refuser avec motif</button></div></div>'}).join(''):'<p class="note">Aucun paiement en attente.</p>')+'</div>'}
 async function trt(id,ok){var r=await sb.rpc('traiter_paiement',{pid:id,accepter:ok});if(r.error)alert('Erreur : '+r.error.message);loadAdm()}
 async function moderate(id,status){var r=await sb.from('signalements').update({statut:status,traite_par:me.id,traite_le:new Date().toISOString()}).eq('id',id);if(r.error){alert('Impossible de traiter le signalement : '+r.error.message);return}loadAdm()}
