@@ -29,7 +29,7 @@
       '<div class="mal-ai-section-title"><b>Centre des opérations</b><small>Informations administrateur · actualisation manuelle</small></div>'+
       '<div class="mal-ai-ops-actions"><button type="button" onclick="malAiLoadOperations()">↻ Actualiser les dossiers</button></div>'+
       '<div id="malAiOperations" class="mal-ai-operations"><p class="mal-ai-loading">Chargement des dossiers de gestion…</p></div>'+
-      '<div class="mal-ai-section-title"><b>Conseils automatiques</b><small>Basés sur les chiffres réels</small></div><div id="malAiInsights" class="mal-ai-insights">Chargement des priorités…</div><div class="mal-ai-section-title"><b>Actions rapides</b><small>Conseils, aucune action automatique</small></div>'+
+      '<div class="mal-ai-section-title"><b>Conseils automatiques</b><small>Basés sur les chiffres réels</small></div><div id="malAiInsights" class="mal-ai-insights">Chargement des priorités…</div><div class="mal-ai-section-title"><b>Actions rapides</b><small>Surveillance automatique et alertes</small></div>'+
       '<div class="mal-ai-quick">'+
       '<button type="button" onclick="malAiQuickPrompt(\'Prépare mon briefing quotidien à partir des indicateurs actuels. Donne-moi les trois priorités et les risques à surveiller.\')">☀️ Briefing du jour</button>'+
       '<button type="button" onclick="malAiQuickPrompt(\'Analyse les paiements en attente à partir des chiffres agrégés et propose une procédure de vérification fiable.\')">💳 Paiements</button>'+
@@ -40,7 +40,7 @@
       '<div id="malAiMessages" class="mal-ai-messages" aria-live="polite"></div>'+
       '<label class="mal-ai-input-label">Ton message<textarea id="malAiPrompt" rows="3" maxlength="2000" placeholder="Ex. Fais le point sur les risques et les priorités de Malachite…"></textarea></label>'+
       '<button id="malAiSend" class="mal-ai-send" type="button" onclick="malAiSendMessage()"><span>Envoyer à Malachite AI</span><b>↗</b></button>'+
-      '<p class="mal-ai-footnote">🔒 Accès réservé à l’administrateur. L’assistant reçoit uniquement ton message et des chiffres agrégés. Il ne lit jamais les messages privés et ne peut pas valider un paiement, suspendre un compte ou modifier le site sans validation humaine.</p>'+
+      '<p class="mal-ai-footnote">🔒 Accès réservé à l’administrateur. L’assistant reçoit uniquement ton message et des chiffres agrégés. Il ne lit jamais les messages privés. Il détecte et suit automatiquement les alertes opérationnelles. Les paiements, sanctions et changements sensibles restent protégés par validation humaine.</p>'+
       '</section>';
   };
   window.malAiLoadDashboard = async function (force) {
@@ -131,7 +131,7 @@
       var answer = result.data && result.data.reply;
       if (!answer) throw new Error("Le service n’a pas retourné de réponse exploitable.");
       history.push({role:"assistant",text:answer});
-      if (state) state.innerHTML = '<i class="good"></i><span>Analyse terminée · aucune action automatique exécutée</span>';
+      if (state) state.innerHTML = '<i class="good"></i><span>Analyse terminée · surveillance automatique active · actions sensibles protégées</span>';
     } catch (e) {
       history.push({role:"assistant",text:"Je ne peux pas encore répondre : "+(e && e.message ? e.message : "service indisponible")});
       if (state) state.innerHTML = '<i class="warn"></i><span>Moteur IA à vérifier</span>';
@@ -160,6 +160,7 @@
         group("Blocages entre membres",o.blocks||[],function(x){return item(String(x.user_id).slice(0,8)+"… a bloqué "+String(x.cible).slice(0,8)+"…",new Date(x.created_at).toLocaleString("fr-FR"),"Blocage utilisateur")})+
         group("Avis et commentaires",o.reviews||[],function(x){return item((x.note||"—")+"/5 · "+(x.categorie||"Avis"),x.message+" · "+new Date(x.created_at).toLocaleDateString("fr-FR"),"Avis membre")})+
         group("Demandes de support",o.support||[],function(x){return item(x.sujet,x.message+" · "+new Date(x.created_at).toLocaleDateString("fr-FR"),x.statut+" · "+x.categorie)});
+        group("Alertes automatiques Malachite AI",o.alerts||[],function(x){return item(x.title, "Détectée : "+new Date(x.first_seen_at).toLocaleString("fr-FR")+" · dernière détection : "+new Date(x.last_seen_at).toLocaleString("fr-FR")+" · éléments : "+((x.details&&x.details.count)||0),x.status==="open"?"Ouverte · "+x.severity:"Résolue")});
       var stamp=document.getElementById("malAiUpdated");
       if(stamp)stamp.textContent="Dossiers actualisés à "+new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
     }catch(e){root.innerHTML='<p class="mal-ai-error">'+esc(e.message||"Erreur de chargement des dossiers.")+'</p>';}
