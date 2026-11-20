@@ -70,7 +70,7 @@ for (const item of ['<script src="i18n.js"></script>', 'option value="en"', 'ava
 }
 if (!html.includes("openMalAvatarBuilder(true)") || !html.includes('malAttachPendingSignupAvatar') || !html.includes('malachite-pending-avatar:')) throw new Error('Signup 3D avatar flow is incomplete.');
 const avatarBuilder = fs.readFileSync('avatar-builder.html', 'utf8');
-if (!avatarBuilder.includes("textureSize:'512'") || !avatarBuilder.includes("type:'ready'") || !avatarBuilder.includes('HumanCanvas') || !avatarBuilder.includes('createHumanEditor') || !avatarBuilder.includes('HumanForge') && !avatarBuilder.includes('humanforge@0.8.1') || !avatarBuilder.includes('malachite-avatar-builder')) {
+if (!avatarBuilder.includes("textureSize:'512'") || !avatarBuilder.includes("type:'ready'") || !(avatarBuilder.includes('HumanCanvas') || avatarBuilder.includes('AvatarCanvas')) || !avatarBuilder.includes('createHumanEditor') || !avatarBuilder.includes('HumanForge') && !avatarBuilder.includes('humanforge@0.8.1') || !avatarBuilder.includes('malachite-avatar-builder')) {
   throw new Error('Realistic 3D avatar builder integration is incomplete.');
 }
 const avatarStart = avatarBuilder.indexOf('<script type="module">');
