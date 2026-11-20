@@ -24,12 +24,41 @@
 })();
 </script>
 <script type="module">
-import React,{useState,useEffect,useMemo,useRef} from 'react';
-import{Quaternion,Vector3}from'three';
+import React,{useState,useEffect,useMemo,useRef,useImperativeHandle} from 'react';
+import{Quaternion,Vector3,Color,Scene,PerspectiveCamera,WebGLRenderer,DirectionalLight,HemisphereLight,ACESFilmicToneMapping,SRGBColorSpace}from'three';
 import{createRoot}from'react-dom/client';
-import{HumanCanvas,createHumanEditor}from'https://esm.sh/humanforge@0.8.1/web?external=react,react-dom,three';
-import{loadHumanPackage,getHumanCatalog}from'https://esm.sh/humanforge@0.8.1/human?external=three';
+import{createHumanEditor}from'https://esm.sh/humanforge@0.8.1/web?external=react,react-dom,three';
+import{HumanAvatar,loadHumanPackage,getHumanCatalog}from'https://esm.sh/humanforge@0.8.1/human?external=three';
 const h=React.createElement,ASSETS='https://cdn.jsdelivr.net/gh/abdulrehman043/humanforge@v0.5.0/assets/human';
+
+const AvatarCanvas=React.forwardRef(function AvatarCanvas({pkg,config,framing,expressions,background,textureSize,onReady,onError},ref){
+ const host=useRef(null),stage=useRef(null),readyCallback=useRef(onReady),errorCallback=useRef(onError);
+ readyCallback.current=onReady;errorCallback.current=onError;
+ useEffect(()=>{
+  const el=host.current;if(!el)return;let live=true,observer=null,avatar=null,renderer=null,scene=null,camera=null,raf=0,resizeHandler=null;
+  const draw=()=>{if(!renderer||!avatar||!camera)return;if(raf)cancelAnimationFrame(raf);raf=requestAnimationFrame(()=>{raf=0;const m=avatar.metrics(),face=framing==='face',target=new Vector3(0,face?m.headY-.08:m.height*.52,0),height=face?.42:m.height*1.12,dist=height/2/Math.tan((camera.fov*Math.PI)/360)/Math.min(1,camera.aspect*1.1);camera.position.set(0,target.y+dist*.03,dist);camera.lookAt(target);renderer.render(scene,camera)})};
+  try{
+   renderer=new WebGLRenderer({antialias:false,preserveDrawingBuffer:true,alpha:false,powerPreference:'low-power',failIfMajorPerformanceCaveat:false});
+   renderer.setPixelRatio(1);renderer.outputColorSpace=SRGBColorSpace;renderer.toneMapping=ACESFilmicToneMapping;
+   Object.assign(renderer.domElement.style,{width:'100%',height:'100%',display:'block',touchAction:'none'});
+   el.replaceChildren(renderer.domElement);scene=new Scene();scene.background=new Color(background);
+   const key=new DirectionalLight('#fff4e8',1.5);key.position.set(1.2,2.2,2.5);
+   const rim=new DirectionalLight('#dfe8ff',.7);rim.position.set(-2,2,-2);scene.add(key,rim,new HemisphereLight('#fff','#b9a99a',.55));
+   camera=new PerspectiveCamera(24,1,.05,50);avatar=new HumanAvatar(pkg);avatar.textureSize=textureSize;scene.add(avatar.group);
+   stage.current={avatar,renderer,scene,camera,draw};
+   const resize=()=>{if(!renderer)return;const w=Math.max(1,el.clientWidth),hh=Math.max(1,el.clientHeight);renderer.setSize(w,hh,false);camera.aspect=w/hh;camera.updateProjectionMatrix();draw()};
+   if(typeof ResizeObserver!=='undefined'){observer=new ResizeObserver(resize);observer.observe(el)}else{resizeHandler=resize;window.addEventListener('resize',resize)}
+   resize();
+   Promise.resolve(avatar.setConfig(config)).then(()=>{if(live){draw();readyCallback.current?.(avatar)}}).catch(e=>{if(live)errorCallback.current?.(e)});
+   return()=>{live=false;if(observer)observer.disconnect();if(resizeHandler)window.removeEventListener('resize',resizeHandler);if(raf)cancelAnimationFrame(raf);avatar?.dispose();renderer?.dispose();el.replaceChildren();stage.current=null};
+  }catch(e){errorCallback.current?.(e);return()=>{live=false;renderer?.dispose();el.replaceChildren()}}
+ },[pkg]);
+ useEffect(()=>{const s=stage.current;if(!s)return;Promise.resolve(s.avatar.setConfig(config)).then(()=>{s.draw();readyCallback.current?.(s.avatar)}).catch(e=>errorCallback.current?.(e))},[JSON.stringify(config),pkg]);
+ useEffect(()=>{const s=stage.current;if(!s)return;s.scene.background.set(background);for(const name of s.avatar.expressionNames)s.avatar.setExpression(name,expressions?.[name]??0);s.draw()},[framing,background,JSON.stringify(expressions)]);
+ useImperativeHandle(ref,()=>({get avatar(){return stage.current?.avatar||null},render(){stage.current?.draw()},snapshot(){const s=stage.current;if(!s)return null;s.renderer.render(s.scene,s.camera);return s.renderer.domElement.toDataURL('image/png')}}),[]);
+ return h('div',{ref:host,style:{position:'relative',overflow:'hidden',width:'100%',height:'100%'}});
+});
+
 function App(){
  const [gender,setGender]=useState(new URLSearchParams(location.search).get('gender')==='female'?'female':'male'),[saving,setSaving]=useState(false);
  const [pkg,setPkg]=useState(null),[editor,setEditor]=useState(null),[config,setConfig]=useState(null),[sectionIndex,setSectionIndex]=useState(0),[customTab,setCustomTab]=useState('tenues'),[framing,setFraming]=useState('face'),[avatarReady,setAvatarReady]=useState(false),[assetsReady,setAssetsReady]=useState(false),[progress,setProgress]=useState({done:0,total:0}),[error,setError]=useState(null),[expression,setExpression]=useState('naturel'),[gesture,setGesture]=useState('aucun');
@@ -145,7 +174,7 @@ function receive(e){if(e.origin!==location.origin||!e.data||e.data.source!=='mal
   h('header',{className:'head'},h('div',null,h('div',{className:'title'},'Mon avatar 3D réaliste'),h('div',{className:'hint'},'Personnage virtuel · visage, peau, cheveux et vêtements')),h('button',{className:'close',onClick:cancel,'aria-label':'Retour à la plateforme'},'← Retour à la plateforme')),
   h('div',{className:'gender'},h('button',{className:gender==='male'?'active':'',onClick:()=>{setAvatarReady(false);setGender('male')}},'Homme'),h('button',{className:gender==='female'?'active':'',onClick:()=>{setAvatarReady(false);setGender('female')}},'Femme')),
   h('div',{className:'editor'},
-   h('div',{className:'stage'},h(HumanCanvas,{ref:canvas,pkg,config,framing,expressions:expressions[expression]||{},background:'#eee9e7',textureSize:'512',pixelRatio:1,antialias:false,maxTextureAnisotropy:1,normalMaps:false,rotatable:true,style:{position:'absolute',inset:0,width:'100%',height:'100%'},onReady:()=>{setAvatarReady(true);const avatar=canvas.current?.avatar;if(avatar&&!performanceConfigured.current){performanceConfigured.current=true;avatar.normalMaps=false;avatar.anisotropy=1;}poseBase.current=null;if(gesture!=='aucun')requestAnimationFrame(()=>pose(gesture));parent.postMessage({source:'malachite-avatar-builder',type:'ready'},location.origin)}}),h('div',{className:'toolbar'},h('button',{className:framing==='face'?'active':'',onClick:()=>setFraming('face')},'Visage'),h('button',{className:framing==='body'?'active':'',onClick:()=>setFraming('body')},'Corps'))),
+   h('div',{className:'stage'},h(AvatarCanvas,{ref:canvas,pkg,config,framing,expressions:expressions[expression]||{},background:'#eee9e7',textureSize:'512',onError:e=>setError(e instanceof Error?e:new Error(String(e))),onReady:()=>{setAvatarReady(true);poseBase.current=null;if(gesture!=='aucun')requestAnimationFrame(()=>pose(gesture));parent.postMessage({source:'malachite-avatar-builder',type:'ready'},location.origin)}),h('div',{className:'toolbar'},h('button',{className:framing==='face'?'active':'',onClick:()=>setFraming('face')},'Visage'),h('button',{className:framing==='body'?'active':'',onClick:()=>setFraming('body')},'Corps'))),
    h('div',{className:'panel'},h('div',{className:'tabs'},[['tenues','Vêtements'],['peau','Couleur de peau'],['cheveux','Coiffure']].map(([id,label])=>h('button',{key:id,className:customTab===id?'active':'',onClick:()=>setCustomTab(id)},label)),h('button',{onClick:()=>setCustomTab('autres'),className:customTab==='autres'?'active':''},'Visage & corps')),h('div',{className:'controls'},customTab==='autres'?h(React.Fragment,null,h('div',{className:'tabs'},editor.sections.map((item,i)=>h('button',{key:item.id,className:i===sectionIndex?'active':'',onClick:()=>setSectionIndex(i)},item.label))),editor.sections[Math.min(sectionIndex,editor.sections.length-1)].controls.map(control)):customContent),h('div',{className:'exprbar'},[['naturel','Naturel'],['sourire','Sourire'],['clinOeil','Clin d’œil'],['surpris','Surpris'],['triste','Triste'],['grimace','Grimace']].map(([id,label])=>h('button',{key:id,className:expression===id?'active':'',onClick:()=>setExpression(id)},label))),h('div',{className:'gesturebar'},[['aucun','Repos'],['salut','Salut près du visage 👋'],['victory','V près du visage ✌️'],['super','Pouces levés 👍']].map(([id,label])=>h('button',{key:id,className:gesture===id?'active':'',onClick:()=>pose(id)},label))),h('button',{className:'save',onClick:save,disabled:!avatarReady||saving,style:{opacity:avatarReady&&!saving?1:.55}},saving?'Enregistrement…':avatarReady?'Appliquer sur mon profil':'Préparation du modèle 3D…'))
   )
  );
