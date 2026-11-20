@@ -160,8 +160,8 @@
         group("Blocages entre membres",o.blocks||[],function(x){return item(String(x.user_id).slice(0,8)+"… a bloqué "+String(x.cible).slice(0,8)+"…",new Date(x.created_at).toLocaleString("fr-FR"),"Blocage utilisateur")})+
         group("Avis et commentaires",o.reviews||[],function(x){return item((x.note||"—")+"/5 · "+(x.categorie||"Avis"),x.message+" · "+new Date(x.created_at).toLocaleDateString("fr-FR"),"Avis membre")})+
         group("Demandes de support",o.support||[],function(x){return item(x.sujet,x.message+" · "+new Date(x.created_at).toLocaleDateString("fr-FR"),x.statut+" · "+x.categorie)});
-      var state=document.getElementById("malAiState");
-      if(state)state.innerHTML='<i class="good"></i><span>Indicateurs et dossiers administrateur actualisés · aucune action exécutée</span>';
+      var stamp=document.getElementById("malAiUpdated");
+      if(stamp)stamp.textContent="Dossiers actualisés à "+new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
     }catch(e){root.innerHTML='<p class="mal-ai-error">'+esc(e.message||"Erreur de chargement des dossiers.")+'</p>';}
   };
   var originalDraw = window.draw;
