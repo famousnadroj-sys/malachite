@@ -5,6 +5,13 @@
  var photoCache=Object.create(null),callInbox=null,sessionChannel=null,callState=null,incoming=null,jitsiApi=null,callBusy=false;
  if(typeof PRIX==='object')PRIX.Appels='1 $ / semaine';
 
+ function readPhotoCache(key,now){
+  var v=photoCache[key];
+  if(v&&v.exp>now+30000)return v;
+  try{var raw=localStorage.getItem('mal_photo_cache:'+key);if(raw){v=JSON.parse(raw);if(v&&v.url&&v.exp>now+30000){photoCache[key]=v;return v}localStorage.removeItem('mal_photo_cache:'+key)}}catch(e){}
+  return null;
+ }
+ function writePhotoCache(key,value){photoCache[key]=value;try{localStorage.setItem('mal_photo_cache:'+key,JSON.stringify(value))}catch(e){}}
  async function resolveProfilePhotosFast(p){
   if(!p)return p;
   var photos=(p.photos||[]).filter(Boolean),items=photos.map(function(raw){
@@ -14,11 +21,11 @@
   var byBucket=Object.create(null);items.forEach(function(x){if(!byBucket[x.bucket])byBucket[x.bucket]=[];byBucket[x.bucket].push(x)});
   var resolved=Object.create(null),now=Date.now();
   await Promise.all(Object.keys(byBucket).map(async function(bucket){
-   var missing=byBucket[bucket].filter(function(x){var v=photoCache[x.key];if(v&&v.exp>now+30000){resolved[x.key]=v.url;return false}return true});
+   var missing=byBucket[bucket].filter(function(x){var v=readPhotoCache(x.key,now);if(v){resolved[x.key]=v.url;return false}return true});
    if(!missing.length)return;
    var paths=Array.from(new Set(missing.map(function(x){return x.path})));
    try{var r=await sb.storage.from(bucket).createSignedUrls(paths,3600);if(r.error)throw r.error;
-    (r.data||[]).forEach(function(v,i){var path=v.path||paths[i],url=v.signedUrl||'';if(url){var key=bucket+'|'+path;resolved[key]=url;photoCache[key]={url:url,exp:now+3500000}}});
+    (r.data||[]).forEach(function(v,i){var path=v.path||paths[i],url=v.signedUrl||'';if(url){var key=bucket+'|'+path;resolved[key]=url;writePhotoCache(key,{url:url,exp:now+3500000})}});
    }catch(e){console.warn('Photos profil: signature groupée impossible',e)}
   }));
   p.photoUrls=items.map(function(x){return resolved[x.key]||''}).filter(Boolean);
@@ -53,8 +60,10 @@
  async function rejectIncoming(){var row=incoming;if(row&&me)await sb.from('call_sessions').update({status:'rejected'}).eq('id',row.id).eq('callee_id',me.id).eq('status','pending');incoming=null;closeUI()}
  window.malAcceptCall=acceptIncoming;window.malRejectCall=rejectIncoming;
  async function hasPass(){
-  var since=new Date(Date.now()-7*86400000).toISOString();
-  var r=await sb.from('paiements').select('id').eq('user_id',me.id).eq('offre','Appels').eq('statut','valide').gte('created_at',since).limit(1);
+  var s=await sb.from('statuts').select('premium_until').eq('user_id',me.id).maybeSingle();
+  if(s.error)throw s.error;
+  if(s.data&&s.data.premium_until&&new Date(s.data.premium_until).getTime()>Date.now())return true;
+  var r=await sb.from('paiements').select('id').eq('user_id',me.id).eq('offre','Appels').eq('statut','valide').gt('entitlement_expires_at',new Date().toISOString()).limit(1);
   if(r.error)throw r.error;return !!(r.data&&r.data.length);
  }
  function subscribeReady(ch){return new Promise(function(resolve,reject){var done=false,t=setTimeout(function(){if(!done){done=true;reject(new Error('Le service temps réel ne répond pas.'))}},12000);ch.subscribe(function(status,error){if(done)return;if(status==='SUBSCRIBED'){done=true;clearTimeout(t);resolve()}else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED'){done=true;clearTimeout(t);reject(error||new Error('Connexion Realtime impossible'))}})})}
@@ -65,7 +74,7 @@
   if(callBusy||callState){alert('Un appel est déjà en cours.');return}
   callBusy=true;
   try{
-   if(!(await hasPass())){alert('Le Pass Appels coûte 1 USD pour 7 jours. Soumets la référence dans Offres ; activation après vérification du paiement.');go('offres');return}
+   if(!(await hasPass())){alert('Les appels sont inclus dans Premium. Sinon, le Pass Appels coûte 1 USD pour 7 jours. Soumets la référence dans Offres ; activation après vérification.');go('offres');return}
    var target=open,id=crypto.randomUUID(),room='Malachite-'+id.replace(/-/g,'');
    var ch=sb.channel('malachite-call-session-'+id).on('postgres_changes',{event:'UPDATE',schema:'public',table:'call_sessions',filter:'id=eq.'+id},function(ev){
     var row=ev&&ev.new;if(!row||!callState||callState.id!==id)return;callState.status=row.status;
@@ -107,14 +116,20 @@
  if(typeof call==='function')call=function(mode){return startCall(mode||'audio')};
 
  var oldMatch=window.matchBox;
- if(typeof oldMatch==='function')window.matchBox=function(){var h=oldMatch().replace('<button disabled>📹 Appels sécurisés indisponibles</button>','<button onclick="call(&quot;audio&quot;)">📞 Appel audio</button><button onclick="call(&quot;video&quot;)">🎥 Appel vidéo</button>');return h.replace('Appels sécurisés indisponibles','Appels audio et vidéo disponibles avec le Pass Appels (1 USD / 30 jours).')};
+ if(typeof oldMatch==='function')window.matchBox=function(){var h=oldMatch().replace('<button disabled>📹 Appels sécurisés indisponibles</button>','<button onclick="call(&quot;audio&quot;)">📞 Appel audio</button><button onclick="call(&quot;video&quot;)">🎥 Appel vidéo</button>');return h.replace('Appels sécurisés indisponibles','Appels audio et vidéo inclus dans Premium ; sinon Pass Appels à 1 USD / 7 jours.')};
  var oldThread=window.thread;
  if(typeof oldThread==='function')window.thread=function(){return oldThread().replace('Voir le profil ›</i></button>','Voir le profil ›</i></button><button class="mal-call-head" onclick="call(&quot;audio&quot;)" aria-label="Appel audio">📞</button><button class="mal-call-head" onclick="call(&quot;video&quot;)" aria-label="Appel vidéo">🎥</button>')};
  var oldSub=window.sub;
  if(typeof oldSub==='function')window.sub=function(){oldSub();startInbox()};
  window.startCallInbox=startInbox;
 
- window.offres=function(){return '<h2>⭐ Nos offres</h2><div class="list"><div class="plan"><h3>Gratuit <span>0 $</span></h3><p>Profil, découverte, likes et conversations.</p></div><div class="plan"><h3>Premium <span>3 $ / mois</span></h3><p>Accès Premium pendant 30 jours après validation. À l’échéance, le statut Premium expire automatiquement et peut être renouvelé.</p></div><div class="plan" style="border:2px solid var(--pink)"><h3>Pass Appels audio + vidéo <span>1 $ / semaine</span></h3><p>Appels audio et vidéo avec tes matchs pendant 7 jours après validation du paiement.</p></div><div class="plan"><h3>Boost 24 h <span>0,50 $</span></h3><p>Visibilité prioritaire pendant 24 heures après validation.</p></div><div class="plan"><h3>Déblocage d’un contact <span>1 $ / personne</span></h3><p>Après un match réciproque, demande un contact depuis la conversation. Ce paiement est vérifié avant activation.</p></div></div><h2>💳 Soumettre un paiement</h2><div class="box list"><label>Offre<select id="of"><option value="Premium">Premium — 3 USD / 30 jours</option><option value="Appels">Pass Appels audio + vidéo — 1 USD / 7 jours</option><option value="Boost">Boost — 0,50 USD / 24 heures</option></select></label><label>Moyen de paiement<select id="malOperator"><option value="airtel">Airtel Money</option><option value="orange">Orange Money</option></select></label><label>Code de transaction<input id="cd" maxlength="100" autocomplete="off" placeholder="Saisis le code de transaction reçu"></label><p class="note">Après soumission, ta demande passe en cours de vérification. Notre équipe répond au plus tard sous 2 heures. N’envoie jamais ton PIN ni ton code OTP.</p><button class="b1" id="malSubmitPayment" onclick="pay()">Soumettre le code de transaction</button><div class="note" id="pm" aria-live="polite"></div></div><section id="malPaymentHistory"><h3>Suivi de mes demandes</h3><p class="note">Chargement…</p></section>'};
+ window.offres=function(){
+  var premiumActive=!!(me&&st[me.id]&&st[me.id].premium_until&&new Date(st[me.id].premium_until).getTime()>Date.now());
+  var callsCard=premiumActive?'<div class="plan" style="border:2px solid var(--pink)"><h3>📞 Appels audio + vidéo</h3><p>Inclus dans ton Premium actif : aucun paiement supplémentaire pour les appels.</p></div>':'<div class="plan"><h3>📞 Pass Appels audio + vidéo <span>1 $ / 7 jours</span></h3><p>Appels audio et vidéo avec tes matchs pendant 7 jours après validation. Si tu passes à Premium, ce pass n’est plus nécessaire : les appels sont inclus.</p></div>';
+  var callOption=premiumActive?'':'<option value="Appels">Pass Appels audio + vidéo — 1 USD / 7 jours</option>';
+  var airtelNumber=NUM?'<div class="card"><b>Numéro Airtel Money destinataire</b><div style="font-size:20px;font-weight:800;letter-spacing:1px">'+esc(NUM)+'</div></div>':'<p class="note">Le numéro destinataire Airtel Money n’est pas encore configuré. Ne transfère pas d’argent avant qu’il soit affiché ici.</p>';
+  return '<h2>⭐ Nos offres</h2><div class="list"><div class="plan"><h3>Gratuit <span>0 $</span></h3><p>Profil, découverte, likes, messages illimités dans les conversations existantes, jusqu’à 15 nouvelles conversations initiées par jour et 1 rendez-vous par semaine.</p></div><div class="plan" style="border:2px solid var(--pink)"><h3>👑 Premium <span>3 $ / 30 jours</span></h3><p>Tout le confort Premium pendant 30 jours : appels audio et vidéo inclus, nouvelles conversations sans quota, rendez-vous illimités et accès aux coordonnées de tes matchs sans payer le déblocage contact séparément. À l’expiration, les avantages Premium s’arrêtent automatiquement ; renouvelle pour les retrouver.</p></div>'+callsCard+'<div class="plan"><h3>🔥 Boost <span>0,50 $ / 24 h</span></h3><p>Ton profil passe en priorité en haut de Découvrir pendant 24 heures pour augmenter sa visibilité. Le Boost n’ajoute pas de fonctionnalités de messagerie ou d’appel.</p></div><div class="plan"><h3>Déblocage d’un contact <span>1 $ / personne</span></h3><p>Pour les membres gratuits : après un match réciproque, déverrouille les coordonnées d’un contact. Inclus sans frais supplémentaires avec Premium.</p></div></div><h2>💳 Payer et soumettre le code de transaction</h2><div class="box list"><p>1. Choisis l’offre et le moyen de paiement configuré. 2. Envoie exactement le montant affiché au numéro destinataire ci-dessous. 3. Copie la référence de transaction reçue d’Airtel Money. 4. Soumets cette référence. L’accès est activé seulement après vérification par l’administrateur, avec une réponse visée sous deux heures.</p>'+airtelNumber+'<label>Offre<select id="of"><option value="Premium">Premium — 3 USD / 30 jours (appels inclus)</option>'+callOption+'<option value="Boost">Boost — 0,50 USD / 24 heures</option></select></label><label>Moyen de paiement<select id="malOperator"><option value="airtel">Airtel Money</option><option value="orange" disabled>Orange Money — pas encore configuré</option></select></label><label>Code de transaction<input id="cd" maxlength="100" autocomplete="off" placeholder="Référence exacte reçue après transfert"></label><p class="note">Ne communique jamais ton PIN ni ton code OTP. Orange Money sera activé lorsque son numéro destinataire sera configuré par l’administrateur.</p><button class="b1" id="malSubmitPayment" onclick="pay()">Soumettre le code de transaction</button><div class="note" id="pm" aria-live="polite"></div></div><section id="malPaymentHistory"><h3>Suivi de mes demandes</h3><p class="note">Chargement…</p></section>';
+ };
  async function loadMyPayments(){
   var node=document.getElementById('malPaymentHistory');if(!node||!me)return;
   var r=await sb.from('paiements').select('id,offre,statut,created_at,reviewed_at,admin_reason').eq('user_id',me.id).order('created_at',{ascending:false}).limit(10);
@@ -147,7 +162,24 @@
   alert(ok?'Paiement validé. L’avantage correspondant est activé.':'Paiement refusé. Le membre recevra le motif.');
   if(typeof loadAdm==='function')await loadAdm();
  };
- var adminPaymentChannel=null,userPaymentChannel=null;
+ var adminPaymentChannel=null,userNotificationChannel=null,seenNotificationIds=Object.create(null);
+ function showUserNotification(row){
+  if(!row||!row.id||seenNotificationIds[row.id])return;
+  seenNotificationIds[row.id]=true;
+  notify(row.title||'Notification Malachite',row.body||'Tu as une nouvelle notification.','offres',String(row.id));
+  if(me)sb.from('user_notifications').update({read_at:new Date().toISOString()}).eq('id',row.id).eq('user_id',me.id).is('read_at',null).then(function(){});
+ }
+ async function startUserNotifications(){
+  if(!me)return;
+  try{
+   await sb.rpc('check_my_entitlement_expirations');
+   var pending=await sb.from('user_notifications').select('id,title,body').eq('user_id',me.id).is('read_at',null).order('created_at',{ascending:false}).limit(8);
+   if(!pending.error)(pending.data||[]).reverse().forEach(showUserNotification);
+  }catch(e){console.warn('Notifications Malachite',e)}
+  if(!userNotificationChannel){
+   userNotificationChannel=sb.channel('mal-user-notifications-'+me.id).on('postgres_changes',{event:'INSERT',schema:'public',table:'user_notifications',filter:'user_id=eq.'+me.id},function(ev){showUserNotification(ev&&ev.new)}).subscribe(function(status){if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED')userNotificationChannel=null});
+  }
+ }
  function startPaymentRealtime(){
   if(!me)return;
   if(me.email==='famousnadroj@gmail.com'&&!adminPaymentChannel){
@@ -157,19 +189,11 @@
     if(tab==='adm'&&typeof loadAdm==='function')loadAdm();
    }).subscribe(function(status){if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED')adminPaymentChannel=null});
   }
-  if(!userPaymentChannel){
-   userPaymentChannel=sb.channel('mal-user-payment-status-'+me.id).on('postgres_changes',{event:'UPDATE',schema:'public',table:'paiements',filter:'user_id=eq.'+me.id},function(ev){
-    var row=ev&&ev.new;if(!row)return;
-    var message=row.statut==='valide'?'Paiement vérifié : '+row.offre+' est activé.':row.statut==='rejete'?'Paiement refusé : '+(row.admin_reason||'Consulte le suivi de tes demandes.'):'Paiement en cours de vérification.';
-    notify('Mise à jour de paiement',message,'offres');
-    if(tab==='offres')loadMyPayments();
-   }).subscribe(function(status){if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED')userPaymentChannel=null});
-  }
  }
  var originalSub=window.sub;
- if(typeof originalSub==='function')window.sub=function(){originalSub();startInbox();startPaymentRealtime()};
+ if(typeof originalSub==='function')window.sub=function(){originalSub();startInbox();startPaymentRealtime();startUserNotifications()};
  var originalGo=window.go;
- if(typeof originalGo==='function')window.go=function(t){originalGo(t);if(t==='offres')setTimeout(loadMyPayments,0);if(t==='adm'&&me&&me.email==='nadroj.famous@gmail.com'&&typeof loadAdm==='function')loadAdm()};
+ if(typeof originalGo==='function')window.go=function(t){originalGo(t);if(t==='offres')setTimeout(loadMyPayments,0);if(t==='adm'&&me&&me.email==='famousnadroj@gmail.com'&&typeof loadAdm==='function')loadAdm()};
 
  var style=document.createElement('style');style.textContent='.mal-call-head{border:0!important;border-radius:50%!important;width:38px;height:38px;padding:0!important;background:#fce9f0!important;color:#9b315e!important;font-size:18px!important;flex:none}.mal-call-overlay{position:fixed;inset:0;z-index:100000;background:#0c1218e8;display:flex;align-items:center;justify-content:center;padding:12px}.mal-call-card{width:min(100%,620px);background:#fff;border-radius:20px;overflow:hidden;color:#25313a}.mal-call-card header{display:flex;justify-content:space-between;padding:14px 16px;background:#075e54;color:#fff}.mal-call-body{text-align:center;padding:18px}.mal-call-actions{display:flex;justify-content:center;gap:10px;padding:14px}.mal-call-actions button{border:0;border-radius:12px;padding:12px 18px;font-weight:700}.mal-call-actions .accept{background:#087e55;color:white}.mal-call-actions .reject,.mal-call-actions .hangup{background:#c62828;color:white}#malJitsiMount{width:100%;height:min(76vh,650px);min-height:360px}@media(max-width:520px){.mal-call-overlay{padding:0}.mal-call-card{width:100%;height:100%;border-radius:0}#malJitsiMount{height:calc(100dvh - 60px);min-height:300px}}';document.head.appendChild(style);
 })();
