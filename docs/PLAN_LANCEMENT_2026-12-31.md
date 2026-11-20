@@ -1,14 +1,17 @@
-# Malachite — plan de lancement du 31 décembre 2026
+# Malachite — plan de mise en ligne immédiate
 
 Dernière révision : 20 novembre 2026  
 Dépôt : `famousnadroj-sys/malachite`  
 Branche de préparation : `work/ai-manager-payment-ux-2026-11-20`
 
-## Décision de calendrier
+## Objectif opérationnel
 
-- Date visée : **jeudi 31 décembre 2026** (heure de Lubumbashi, Africa/Lubumbashi).
-- Cette date est une cible, pas une garantie technique ou commerciale.
-- Le site reste non publié tant que les critères GO ci-dessous ne sont pas satisfaits.
+Préparer le site comme si la mise en ligne devait avoir lieu dès demain. La date seule ne donne jamais le feu vert : aucun lancement si un contrôle critique reste rouge.
+
+## Règle de publication
+
+- Objectif : disponibilité dès demain, uniquement si tous les critères GO sont vérifiés.
+- La mise en ligne reste bloquée tant qu'un point critique est non testé ou non sécurisé.
 - Les changements de cette branche ne sont pas fusionnés dans `main`.
 - Aucune migration de base, clé secrète, activation de fournisseur, dépense ou mise en production n'est effectuée par ce plan.
 
@@ -20,7 +23,7 @@ Branche de préparation : `work/ai-manager-payment-ux-2026-11-20`
 | Premium | Affichage à 2 USD / 30 jours dans la branche | Valider devise, montant réellement encaissé, renouvellement et mentions commerciales |
 | Airtel / Orange | Choix d'opérateur et références déclarées dans l'interface | Vérifier l'éligibilité marchand, obtenir les accès officiels et tester sandbox |
 | Paiement | Demande avec opérateur, référence et justificatif privé ; index anti-doublon préparé ; contrôle manuel admin via RPC | Appliquer les migrations en staging, exécuter `supabase/tests/payment_receipts_security_checks.sql`, tester les politiques RLS, le nettoyage des fichiers orphelins et confirmer les paiements auprès de l'opérateur ; intégration webhook toujours à faire |
-| Reçus | Aucune colonne de reçu ni bucket privé confirmé dans le schéma consulté | Concevoir stockage privé, limites MIME/taille, antivirus/validation, accès signé et suppression |
+| Reçus | Le schéma Supabase actif ne contient pas encore `paiements.receipt_path` ; le bucket privé `payment-receipts` n'est pas confirmé comme déployé. | Concevoir stockage privé, limites MIME/taille, antivirus/validation, accès signé et suppression |
 | AI Manager | Panneau de prévisualisation uniquement | Backend agent, outils autorisés, tâches planifiées, journal d'audit, tests et budget |
 | Modération | Tables signalements/suspensions et Edge Function admin existantes | Vérifier les cas limites, recours, notification et protection contre abus |
 | Sécurité | RLS et migrations présentes ; advisors ont encore des alertes | Revue des alertes, tests négatifs, contrôle de configuration Auth |
@@ -66,19 +69,15 @@ Actions qui exigent une validation humaine :
 
 Un agent 24/7 nécessite un déclencheur serveur, une file de tâches ou un planificateur et un fournisseur IA accessible côté serveur. Une page web ouverte sur le téléphone ou une conversation ChatGPT ne constitue pas un service autonome permanent. Les clés ne doivent jamais être dans `index.html` ni dans Git.
 
-## Calendrier de travail jusqu'au lancement
+## Ordre de traitement immédiat
 
-| Période | Livrable |
-|---|---|
-| 20–23 nov. | Audit code/base, inventaire des fonctions, vérification CI, correction des incohérences certaines |
-| 24–30 nov. | Décision sur statut marchand et canal de paiement ; collecte des documents opérateurs |
-| 1–7 déc. | Implémentation sandbox du canal retenu, stockage privé des reçus si nécessaire |
-| 8–14 déc. | Backend AI Manager en mode simulation, permissions minimales et journal d'audit |
-| 15–20 déc. | Tests fonctionnels et sécurité, essais sur Android et connexion faible |
-| 21–24 déc. | Bêta fermée, retours, corrections bloquantes et sauvegarde/restauration |
-| 25–28 déc. | Gel des fonctionnalités, test de restauration, audit final, vérification légale et support |
-| 29–30 déc. | Répétition du lancement, vérification des DNS/hébergement, sauvegarde et plan de retour arrière |
-| 31 déc. | Publication uniquement si tous les critères GO sont verts et après validation finale du propriétaire |
+1. Corriger et vérifier tous les blocages de sécurité et de compatibilité avec la base active.
+2. Appliquer les migrations de reçus sur un environnement de test, puis exécuter les tests RLS et le parcours paiement complet.
+3. Obtenir les accès marchands officiels Airtel/Orange et tester les callbacks signés ; sinon maintenir le paiement manuel sans activation automatique.
+4. Connecter l'AI Manager côté serveur avec un secret fournisseur, une liste d'outils autorisés, des limites et un journal d'audit ; garder les actions sensibles en approbation humaine.
+5. Tester inscription, connexion, profil, avatar, découverte, messagerie, blocage, signalement, appels, Premium, support et suppression de compte sur Android.
+6. Vérifier confidentialité, conditions d'utilisation, politique de sécurité, restauration de sauvegarde, monitoring et procédure de retour arrière.
+7. Répéter le déploiement sur un environnement de test, puis publier seulement après feu vert final du propriétaire.
 
 ## Critères GO / NO-GO
 
@@ -117,9 +116,9 @@ La publication est bloquée si l'un des points suivants est vrai :
 - 20 nov. 2026 : aucun paiement automatisé déclaré opérationnel tant que les webhooks officiels ne sont pas intégrés et testés.
 
 
-## Dernière vérification technique — 20 novembre 2026
+## État de vérification — 20 novembre 2026
 
 - Les six blocs JavaScript du frontend ont été analysés avec le parseur Node.js : aucune erreur de syntaxe détectée.
 - Le formulaire de paiement transmet l'offre, l'opérateur, la référence et le chemin du justificatif privé ; la preuve est téléversée avant l'insertion de la demande.
-- Le contrôle GitHub Actions précédent a échoué sur un contrôle statique devenu obsolète (`operateur:operator`) ; le validateur a été mis à jour pour vérifier le contrat réel (`operateur:data.operator`). Le nouveau run doit confirmer cette correction.
+- Le workflow GitHub Actions le plus récent est vert : validation JavaScript, contrôle de l'Edge Function et analyse syntaxique des migrations SQL.
 - Les migrations de stockage privé et de restriction RPC restent à tester sur une base de staging avant application à la base active.
