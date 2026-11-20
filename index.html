@@ -2355,3 +2355,49 @@ body.mal-chat-mode .msg-action-sheet{border-radius:14px 14px 0 0!important}
 @media(max-width:420px){body.mal-chat-mode .chtop{padding-left:7px!important;padding-right:7px!important}body.mal-chat-mode .chat{padding:12px 8px 14px!important}body.mal-chat-mode .chat .m{max-width:88%!important}body.mal-chat-mode .sendbar{padding-left:5px!important;padding-right:5px!important}body.mal-chat-mode .sendbar .send{gap:3px!important}body.mal-chat-mode .sendbar .send>label.btn{width:34px;height:38px;min-width:34px}body.mal-chat-mode .sendbar .send>button{width:38px!important;height:38px!important;min-width:38px!important}}
 @media(prefers-reduced-motion:reduce){body.mal-chat-mode *{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
 </style>
+
+<!-- Malachite Professional Avatar Studio v1 -->
+<style id="malachite-pro-avatar-studio">
+.mal-avatar-builder{border:1px solid #dce5e2!important;border-radius:22px!important;background:linear-gradient(145deg,#fff,#f7faf8)!important}
+.mal-avatar-builder h3{color:#183d35!important;letter-spacing:-.02em}
+.mal-avatar-stage{background:radial-gradient(ellipse at 50% 18%,#fff 0,#eef5f1 70%,#e5eee9 100%)!important;border:1px solid #dce8e1!important;border-radius:24px!important;min-height:220px!important}
+.mal-avatar-stage svg{width:min(100%,210px)!important;filter:drop-shadow(0 12px 18px rgba(25,55,44,.16))!important}
+.mal-avatar-controls label{font-size:12px!important;font-weight:650!important;color:#31483f!important}
+.mal-avatar-controls select{width:100%;margin-top:5px;border:1px solid #d8e3dc;border-radius:11px;background:#fff;padding:10px;color:#203a31;font:inherit}
+.mal-avatar-builder .b1{background:#174d40!important;border-radius:13px!important;min-height:44px}
+.mal-avatar-extra{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:12px 0}
+.mal-avatar-extra label{font-size:12px;font-weight:650;color:#31483f}
+.mal-avatar-extra select{display:block;width:100%;margin-top:5px;padding:10px;border:1px solid #d8e3dc;border-radius:11px;background:#fff;color:#203a31}
+.mal-avatar-caption{font-size:12px;color:#66776e;margin:8px 2px 12px;line-height:1.5}
+.mal-vector-avatar{overflow:hidden!important;display:grid!important;place-items:center!important;background:#edf3ef!important}
+.mal-vector-avatar svg{width:100%;height:100%;display:block}
+@media(max-width:390px){.mal-avatar-extra{grid-template-columns:1fr 1fr}}
+</style>
+<script id="malachite-pro-avatar-engine">
+(function(){
+'use strict';
+if(window.__malProAvatarReady)return;window.__malProAvatarReady=true;
+var defaults={skin:'deep',hair:'curly',shirt:'blue',style:'classic',face:'oval',beard:'none',glasses:'none',background:'sage',gender:'man'};
+var palettes={light:'#f1c9aa',medium:'#d99b73',dark:'#a96845',deep:'#75452f'};
+var clothes={rose:'#b85e78',blue:'#315b78',green:'#356c59',purple:'#67517e',black:'#29343b',cream:'#c9b99c'};
+var backs={sage:'#dce9df',navy:'#dce5ef',sand:'#eee5d8',plum:'#e9dfe8',white:'#f1f4f2'};
+var state=Object.assign({},defaults);
+try{var saved=window.mine&&window.mine.avatar;if(saved&&saved.type==='pro-vector')state=Object.assign({},defaults,saved.config||{});}catch(e){}
+window.malAvatarState=state;
+window.malAvatarSvg=function(input){
+var a=Object.assign({},defaults,input||{}),skin=palettes[a.skin]||palettes.deep,shirt=clothes[a.shirt]||clothes.blue,bg=backs[a.background]||backs.sage;
+var hair=a.hair||'curly',beard=a.beard||'none',glasses=a.glasses||'none';
+var hairShape=hair==='long'?'M47 86 Q34 22 100 19 Q167 18 153 90 L151 150 Q133 135 133 102 L66 102 Q63 135 47 150Z':hair==='shaved'?'M52 66 Q52 20 100 20 Q148 20 148 66 Q130 45 100 46 Q70 45 52 66Z':hair==='short'?'M49 78 Q43 24 100 21 Q158 22 151 80 Q137 52 100 51 Q65 50 49 78Z':'M45 78 Q40 18 100 18 Q160 18 155 78 Q146 52 130 48 Q115 28 99 47 Q78 30 62 56Z';
+var beardShape=beard==='none'?'':beard==='short'?'<path d="M66 111 Q100 139 134 111 Q130 145 100 148 Q70 145 66 111Z" fill="#302a27" opacity=".88"/>':'<path d="M65 106 Q100 134 135 106 Q140 157 100 160 Q60 157 65 106Z" fill="#302a27"/>';
+var glassesShape=glasses==='none'?'':'<g fill="none" stroke="#273b36" stroke-width="3"><rect x="61" y="78" width="32" height="23" rx="'+(glasses==='round'?11:5)+'"/><rect x="107" y="78" width="32" height="23" rx="'+(glasses==='round'?11:5)+'"/><path d="M93 87h14"/></g>';
+return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 220" role="img" aria-label="Avatar professionnel"><defs><linearGradient id="mbg" x2="0" y2="1"><stop stop-color="'+bg+'"/><stop offset="1" stop-color="#fff" stop-opacity=".3"/></linearGradient><linearGradient id="mshirt" x2="1" y2="1"><stop stop-color="'+shirt+'"/><stop offset="1" stop-color="#172e2b"/></linearGradient></defs><rect width="200" height="220" rx="28" fill="url(#mbg)"/><circle cx="100" cy="82" r="65" fill="#fff" opacity=".2"/><path d="M23 220 Q28 160 73 151 L100 145 128 151 Q173 160 178 220Z" fill="url(#mshirt)"/><path d="M82 146 L100 169 119 146 112 139H88Z" fill="'+skin+'"/><path d="M53 83 Q49 37 100 34 Q151 37 147 83 L140 112 Q132 143 100 145 Q68 143 60 112Z" fill="'+skin+'"/>'+hairShape+'<path d="M72 91q8-6 16 0M112 91q8-6 16 0" stroke="#382a26" stroke-width="3" fill="none" stroke-linecap="round"/><ellipse cx="82" cy="98" rx="3.6" ry="4.5" fill="#292622"/><ellipse cx="118" cy="98" rx="3.6" ry="4.5" fill="#292622"/><path d="M100 99l-5 16 8 2" stroke="#99654e" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M87 126q13 9 26 0" stroke="#844c43" stroke-width="2.8" fill="none" stroke-linecap="round"/>'+beardShape+glassesShape+'<path d="M73 158l27 25 27-25" fill="none" stroke="#fff" stroke-opacity=".72" stroke-width="3"/><circle cx="100" cy="183" r="3" fill="#fff" opacity=".7"/></svg>';
+};
+window.malAvatarSet=function(k,v){var allowed={skin:['light','medium','dark','deep'],hair:['short','curly','long','shaved'],shirt:['rose','blue','green','purple','black','cream'],style:['classic','round'],face:['oval','round'],beard:['none','short','full'],glasses:['none','round','square'],background:['sage','navy','sand','plum','white'],gender:['man','woman']};if(allowed[k]&&allowed[k].indexOf(v)>=0)state[k]=v;var p=document.getElementById('malAvatarPreview');if(p)p.innerHTML=window.malAvatarSvg(state);};
+var originalCentre=window.centre;
+if(typeof originalCentre==='function')window.centre=function(){var html=originalCentre();var extra='<p class="mal-avatar-caption">Portrait illustré adulte et personnalisable. Il apparaît sur ton profil, dans les conversations et dans les résultats de découverte. Il ne vérifie pas ton identité.</p><div class="mal-avatar-extra"><label>Présentation<select onchange="malAvatarSet(\'gender\',this.value)"><option value="man">Masculine</option><option value="woman">Féminine</option></select></label><label>Barbe<select onchange="malAvatarSet(\'beard\',this.value)"><option value="none">Sans barbe</option><option value="short">Courte</option><option value="full">Complète</option></select></label><label>Lunettes<select onchange="malAvatarSet(\'glasses\',this.value)"><option value="none">Sans lunettes</option><option value="round">Rondes</option><option value="square">Rectangulaires</option></select></label><label>Fond<select onchange="malAvatarSet(\'background\',this.value)"><option value="sage">Vert sauge</option><option value="navy">Bleu doux</option><option value="sand">Sable</option><option value="plum">Prune</option><option value="white">Clair</option></select></label></div>';return html.replace('<button class="b1" onclick="malSaveAvatar()',extra+'<button class="b1" onclick="malSaveAvatar()');};
+window.malSaveAvatar=async function(){var msg=document.getElementById('malAvMsg');if(!window.me){if(msg)msg.textContent='Connecte-toi pour enregistrer ton avatar.';return;}var avatar={type:'pro-vector',version:1,config:Object.assign({},state)};var result=await window.sb.from('profiles').update({avatar:avatar}).eq('id',window.me.id);if(result.error){if(msg)msg.textContent='Échec de l’enregistrement : '+result.error.message;return;}if(window.mine)window.mine.avatar=avatar;if(msg)msg.textContent='Avatar professionnel enregistré sur ton profil.';if(typeof window.draw==='function')window.draw(true);};
+window.av=function(p){var u=p&&p.photoUrls&&p.photoUrls[0];if(u)return '<div class="av" style="background-image:url('+esc(u)+');background-size:cover;background-position:center"></div>';var a=p&&p.avatar;if(a&&a.type==='pro-vector')return '<div class="av mal-vector-avatar">'+window.malAvatarSvg(a.config)+'</div>';if(a&&a.emoji)return '<div class="av">'+esc(a.emoji)+'</div>';return '<div class="av">'+esc(p&&p.prenom?p.prenom[0]:'?')+'</div>';};
+var observer=new MutationObserver(function(){var el=document.getElementById('malAvatarPreview');if(el&&!el.dataset.proReady){el.dataset.proReady='1';el.innerHTML=window.malAvatarSvg(state);var b=document.querySelector('.mal-avatar-builder');if(b)b.querySelectorAll('select').forEach(function(sel){var m=(sel.getAttribute('onchange')||'').match(/malAvatarSet\\('([^']+)'/);if(m&&state[m[1]])sel.value=state[m[1]];});}});
+observer.observe(document.body,{childList:true,subtree:true});
+})();
+</script>
