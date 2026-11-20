@@ -36,6 +36,13 @@ with check (
   and char_length(btrim(code)) between 4 and 100
   and operateur in ('airtel','orange')
   and receipt_path is not null
+  and exists (
+    select 1
+    from storage.objects o
+    where o.bucket_id = 'payment-receipts'
+      and o.name = paiements.receipt_path
+      and (storage.foldername(o.name))[1] = (select auth.uid())::text
+  )
   and (
     (offre = 'Contact'
       and cible is not null
