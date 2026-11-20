@@ -97,6 +97,19 @@ if (!calls.includes('Les appels sécurisés seront réactivés après leur mise 
     !calls.includes("h=h.replace('<button disabled title=")) {
   throw new Error('Mutual-match call actions must replace the legacy disabled call button.');
 }
+for (const item of [
+  "Premium <span>2 $ / 30 jours</span>",
+  "Premium — 2 USD / 30 jours (appels inclus)",
+  'id="malReceipt"',
+  "malSubmitPayment({offer:offer.value,code:code,operator:network,file:proof.files[0]})",
+]) {
+  if (!calls.includes(item)) throw new Error('Secure calls/payment override requirement missing: ' + item);
+}
+if (calls.includes("Premium <span>3 $ / 30 jours</span>") ||
+    calls.includes("Premium — 3 USD / 30 jours") ||
+    calls.includes("sb.from('paiements').insert(payload)")) {
+  throw new Error('Calls offer override must not show the old price or bypass the shared receipt workflow.');
+}
 for (const item of ['online(targetProfile)', 'malAcceptCall', 'malRejectCall', "executeCommand('toggleAudio')", "executeCommand('toggleVideo')", 'setAudioOutputDevice', 'startInbox']) {
   if (!calls.includes(item)) throw new Error('Call feature requirement missing: ' + item);
 }
