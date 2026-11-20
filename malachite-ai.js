@@ -44,7 +44,8 @@
     var root = document.getElementById("malAiMetrics");
     var state = document.getElementById("malAiState");
     var updated = document.getElementById("malAiUpdated");
-    if (dashboardBusy || !root) return;\n    if (!force && lastDashboard && Date.now() - lastDashboardAt < 20000) return;
+    if (dashboardBusy || !root) return;
+    if (!force && lastDashboard && Date.now() - lastDashboardAt < 20000) return;
     if (!window.sb || !sb.functions || !sb.functions.invoke) {
       if (state) state.innerHTML = '<i class="bad"></i><span>Connexion Supabase indisponible.</span>';
       return;
@@ -109,7 +110,8 @@
     busy = true; button.disabled = true; button.innerHTML = '<span>Analyse en cours…</span><b>•••</b>';
     history.push({role:"user",text:message}); input.value = ""; renderMessages();
     try {
-      var conversation = history.slice(-9,-1).map(function(m){return {role:m.role==="assistant"?"model":"user",text:m.text}});\n      var result = await sb.functions.invoke("malachite-ai-manager", {body:{action:"chat",message:message,history:conversation}});
+      var conversation = history.slice(-9,-1).map(function(m){return {role:m.role==="assistant"?"model":"user",text:m.text}});
+      var result = await sb.functions.invoke("malachite-ai-manager", {body:{action:"chat",message:message,history:conversation}});
       var detail = result.data && result.data.error;
       if (result.error) {
         if (detail === "ai_provider_not_configured") throw new Error("Le tableau de gestion fonctionne, mais le moteur de réponse nécessite encore la clé GEMINI_API_KEY dans les secrets Supabase.");
