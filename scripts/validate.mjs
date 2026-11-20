@@ -65,11 +65,12 @@ if (i18nCheck.status !== 0) {
   process.stderr.write(i18nCheck.stderr || i18nCheck.stdout);
   process.exit(i18nCheck.status || 1);
 }
-for (const item of ['<script src="i18n.js"></script>', 'option value="en"', 'avatar-builder.html', 'function openMalAvatarBuilder()', "a.type==='humanforge-3d'"]) {
+for (const item of ['<script src="i18n.js"></script>', 'option value="en"', 'avatar-builder.html', 'function openMalAvatarBuilder(forSignup)', "a.type==='humanforge-3d'"]) {
   if (!html.includes(item)) throw new Error('Personalization/avatar requirement missing: ' + item);
 }
+if (!html.includes("openMalAvatarBuilder(true)") || !html.includes('malAttachPendingSignupAvatar') || !html.includes('malachite-pending-avatar:')) throw new Error('Signup 3D avatar flow is incomplete.');
 const avatarBuilder = fs.readFileSync('avatar-builder.html', 'utf8');
-if (!avatarBuilder.includes('HumanEditor') || !avatarBuilder.includes('HumanForge') && !avatarBuilder.includes('humanforge@0.8.1') || !avatarBuilder.includes('malachite-avatar-builder')) {
+if (!avatarBuilder.includes("textureSize:'512'") || !avatarBuilder.includes("type:'ready'") || !avatarBuilder.includes('HumanEditor') || !avatarBuilder.includes('HumanForge') && !avatarBuilder.includes('humanforge@0.8.1') || !avatarBuilder.includes('malachite-avatar-builder')) {
   throw new Error('Realistic 3D avatar builder integration is incomplete.');
 }
 const avatarStart = avatarBuilder.indexOf('<script type="module">');
