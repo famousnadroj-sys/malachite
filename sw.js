@@ -1,4 +1,4 @@
-const CACHE = "malachite-static-v22";
+const CACHE = "malachite-static-v23";
 const APP_SHELL = ["./", "./manifest.webmanifest", "./icons/malachite.svg", "./calls.js"];
 
 self.addEventListener("install", (event) => {
