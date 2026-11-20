@@ -10,10 +10,11 @@ Le dépôt a une validation CI verte, mais plusieurs dépendances de production 
 
 ## Vérifications positives
 
-- GitHub Actions : dernier workflow de validation terminé avec succès.
+- GitHub Actions : validation du commit `110beae84fef4729c34e34a50082a1e33421239f` terminée avec succès ([run 44801860173](https://github.com/famousnadroj-sys/malachite/actions/runs/44801860173)).
+- Les migrations RPC, reçus privés et optimisation support ont passé un essai transactionnel combiné, ensuite annulé ; aucune modification n'a persisté dans la base active.
 - Le projet conserve son application existante ; les changements sont isolés dans une branche et une pull request.
 - Les migrations de justificatifs privés et de restriction RPC sont présentes dans GitHub.
-- Les deux migrations de paiement ont passé un contrôle SQL transactionnel qui a été annulé ensuite ; cela ne constitue pas un déploiement ni un test fonctionnel complet.
+- La migration de reçus exige désormais que le chemin corresponde à un objet réellement présent dans le bucket privé, dans le dossier de l'utilisateur connecté. Le contrôle reste à tester avec deux comptes authentifiés réels.
 - La fonction de modération administrateur est active dans Supabase et exige une session authentifiée.
 
 ## Bloqueurs confirmés dans Supabase actif
@@ -23,11 +24,12 @@ Le dépôt a une validation CI verte, mais plusieurs dépendances de production 
 3. **Paiements opérateurs non automatisés** : aucun webhook Airtel Money ou Orange Money n'est configuré dans le périmètre vérifié. Une capture ou une référence saisie ne prouve pas le paiement.
 4. **Alerte SECURITY DEFINER à examiner, non supprimée artificiellement** : `public.start_call_session` doit vérifier des droits sur plusieurs utilisateurs (correspondance mutuelle, droits d'appel et appels déjà actifs). En `SECURITY INVOKER`, les politiques RLS et les privilèges actuels empêchent certaines lectures nécessaires (notamment `profiles` et les correspondances de l'autre utilisateur). La fonction existante est limitée à `authenticated`, vérifie `auth.uid()`, utilise `search_path` vide et des noms de tables qualifiés. L'alerte Supabase reste visible et exige une revue ciblée ; ne pas basculer en invoker sans refonte des contrôles.
 5. **Protection des mots de passe compromis désactivée** dans Supabase Auth.
-6. **Optimisations de performance restantes** : deux clés étrangères de `demandes_support` ne sont pas indexées et deux politiques réévaluent les fonctions Auth par ligne.
+6. **Optimisations de performance restantes** : Supabase signale deux clés étrangères de `demandes_support` non indexées et deux politiques réévaluant les fonctions Auth par ligne. Une migration corrective est prête dans la branche, mais n'a pas été appliquée.
+7. **Table d'administration privée** : `private.admins` a RLS activé sans politique. Cela ferme l'accès direct par défaut ; la fonction `private.is_admin()` doit rester le seul chemin contrôlé utilisé par les vérifications.
 
 ## Actions à terminer avant publication
 
-- [ ] Aligner et tester le schéma de reçus sur un environnement non-production avant toute application en production.
+- [ ] Aligner et tester le schéma de reçus sur un environnement non-production avant toute application en production ; la règle d'insertion vérifie aussi l'existence de l'objet privé.
 - [ ] Tester avec deux comptes distincts les politiques RLS, l'upload privé, la lecture par propriétaire/admin, la suppression et l'expiration des URL signées.
 - [ ] Revoir `start_call_session` avec tests de deux comptes et conserver le contrôle `SECURITY DEFINER` actuel tant qu'une alternative sûre ne permet pas les vérifications inter-utilisateurs.
 - [ ] Activer la protection contre les mots de passe compromis dans la configuration Auth.
