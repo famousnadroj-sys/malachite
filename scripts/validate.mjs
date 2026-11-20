@@ -93,6 +93,10 @@ if (callsCheck.status !== 0) {
   process.exit(callsCheck.status || 1);
 }
 if (!html.includes('<script src="calls.js"></script>')) throw new Error('Realtime call client must be loaded by the application.');
+if (!calls.includes('Les appels sécurisés seront réactivés après leur mise en place') ||
+    !calls.includes("h=h.replace('<button disabled title=")) {
+  throw new Error('Mutual-match call actions must replace the legacy disabled call button.');
+}
 for (const item of ['online(targetProfile)', 'malAcceptCall', 'malRejectCall', "executeCommand('toggleAudio')", "executeCommand('toggleVideo')", 'setAudioOutputDevice', 'startInbox']) {
   if (!calls.includes(item)) throw new Error('Call feature requirement missing: ' + item);
 }
