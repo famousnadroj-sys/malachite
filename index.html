@@ -1747,7 +1747,7 @@ function malAvatarSet(k,v){
  var p=$('malAvatarPreview');if(p)p.innerHTML=malAvatarSvg(malAvatarState);
 }
 function malAvatarSelect(label,key,opts){return '<label>'+label+'<select aria-label="'+label+'" onchange="malAvatarSet(\''+key+'\',this.value)">'+opts.map(function(o){return '<option value="'+o[0]+'"'+(malAvatarState[key]===o[0]?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select></label>'}
-var malAvatarPreloadFrame=null,malAvatarPreloadReady=false,malAvatarPreloadGender='male',malAvatarLoadingText='';
+var malAvatarPreloadFrame=null,malAvatarPreloadReady=false,malAvatarPreloadGender='male',malAvatarLoadingText='Chargement des modèles en arrière-plan…';
 function malAvatarGender(forSignup){return forSignup?((signupDraft&&signupDraft.genre==='F')?'female':'male'):((mine&&mine.genre==='F')?'female':'male')}
 function malPlaceAvatarFrame(frame,visible){
  frame.style.cssText=visible?'position:relative;z-index:2;width:min(100%,1100px);height:100%;min-height:0;border:0;background:#fff;display:block;left:auto;top:auto;opacity:1;pointer-events:auto;':'position:fixed;left:-1200px;top:0;width:390px;height:720px;border:0;background:#fff;opacity:.01;pointer-events:none;z-index:-1;';
@@ -1769,7 +1769,7 @@ function openMalAvatarBuilder(forSignup){
  var gender=malAvatarGender(!!forSignup);
  var overlay=$('malAvatarBuilderOverlay');
  if(!overlay){overlay=document.createElement('div');overlay.id='malAvatarBuilderOverlay';overlay.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(16,17,22,.82);display:flex;align-items:stretch;justify-content:center;padding:0';
-  var loading=document.createElement('div');loading.id='malAvatarBuilderLoading';loading.style.cssText='position:absolute;inset:0;display:grid;place-content:center;gap:12px;text-align:center;color:#fff;font:600 15px system-ui;z-index:1;pointer-events:none';loading.innerHTML='<div style="font-size:38px">✦</div><div>Préparation de ton avatar 3D…</div><div id="malAvatarBuilderProgress" style="font-size:12px;font-weight:400;opacity:.85">Chargement des modèles en arrière-plan…</div>';
+  var loading=document.createElement('div');loading.id='malAvatarBuilderLoading';loading.style.cssText='position:absolute;inset:0;display:grid;place-content:center;gap:12px;text-align:center;color:#fff;font:600 15px system-ui;z-index:1;pointer-events:none';loading.innerHTML='<div style="font-size:38px">✦</div><div>Préparation de ton avatar 3D…</div><div id="malAvatarBuilderProgress" style="font-size:12px;font-weight:400;opacity:.85">'+esc(malAvatarLoadingText)+'</div>';
   overlay.appendChild(loading);overlay.addEventListener('click',function(e){if(e.target===overlay)closeMalAvatarBuilder()});document.body.appendChild(overlay);
  }
  if(!malAvatarPreloadFrame){malWarmAvatarBuilder()}
@@ -1822,7 +1822,7 @@ async function malAttachPendingSignupAvatar(){
 }
 window.addEventListener('message',async function(event){
  if(event.origin!==location.origin||!event.data||event.data.source!=='malachite-avatar-builder')return;
- if(event.data.type==='progress'){var progress=$('malAvatarBuilderProgress');if(progress)progress.textContent=event.data.total?String(event.data.phase||'Chargement')+' · '+event.data.done+'/'+event.data.total:String(event.data.phase||'Chargement des ressources 3D…');return}
+ if(event.data.type==='progress'){malAvatarLoadingText=event.data.total?String(event.data.phase||'Chargement')+' · '+event.data.done+'/'+event.data.total:String(event.data.phase||'Chargement des ressources 3D…');var progress=$('malAvatarBuilderProgress');if(progress)progress.textContent=malAvatarLoadingText;return}
  if(event.data.type==='ready'){malAvatarPreloadReady=true;var loading=$('malAvatarBuilderLoading');if(loading)loading.remove();return}
  if(event.data.type==='error'){malAvatarPreloadReady=false;var loadingError=$('malAvatarBuilderLoading');if(loadingError)loadingError.innerHTML='<div style="font-size:34px">⚠️</div><div>Le créateur 3D n’a pas pu charger.</div><div style="font-size:12px;font-weight:400;pointer-events:auto">'+esc(String(event.data.message||'Vérifie ta connexion puis réessaie.'))+'</div><button type="button" onclick="closeMalAvatarBuilder()" style="pointer-events:auto">Fermer</button>';return}
  if(event.data.type==='mounted'){if(malAvatarPreloadFrame&&malAvatarPreloadFrame.contentWindow)malAvatarPreloadFrame.contentWindow.postMessage({source:'malachite-avatar-parent',type:'set-gender',gender:malAvatarPreloadFrame.dataset.gender||'male'},location.origin);return}
