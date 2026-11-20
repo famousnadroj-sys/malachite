@@ -53,7 +53,7 @@
  async function rejectIncoming(){var row=incoming;if(row&&me)await sb.from('call_sessions').update({status:'rejected'}).eq('id',row.id).eq('callee_id',me.id).eq('status','pending');incoming=null;closeUI()}
  window.malAcceptCall=acceptIncoming;window.malRejectCall=rejectIncoming;
  async function hasPass(){
-  var since=new Date(Date.now()-30*86400000).toISOString();
+  var since=new Date(Date.now()-7*86400000).toISOString();
   var r=await sb.from('paiements').select('id').eq('user_id',me.id).eq('offre','Appels').eq('statut','valide').gte('created_at',since).limit(1);
   if(r.error)throw r.error;return !!(r.data&&r.data.length);
  }
@@ -114,7 +114,62 @@
  if(typeof oldSub==='function')window.sub=function(){oldSub();startInbox()};
  window.startCallInbox=startInbox;
 
- window.offres=function(){return '<h2>⭐ Nos offres</h2><div class="list"><div class="plan"><h3>Gratuit <span>0 $</span></h3><p>Profil, découverte, likes, conversations existantes et jusqu’à 15 nouvelles conversations initiées par jour.</p></div><div class="plan"><h3>Premium <span>3 $ / mois</span></h3><p>Nouvelles conversations sans quota et rendez-vous illimités.</p></div><div class="plan" style="border:2px solid var(--pink)"><h3>Pass Appels audio + vidéo <span>1 $ / 30 jours</span></h3><p>Appels audio et vidéo en direct avec tes matchs réciproques pendant 30 jours, après validation du paiement.</p></div><div class="plan"><h3>Boost 24 h <span>0,50 $</span></h3><p>Visibilité prioritaire pendant 24 heures.</p></div></div><h2>💳 Paiement Mobile Money</h2><div class="box list"><label>Offre<select id="of"><option value="Premium">Premium — 3 USD / mois</option><option value="Appels">Pass Appels audio + vidéo — 1 USD / 30 jours</option><option value="Boost">Boost 24 h — 0,50 USD</option></select></label><label>Opérateur<select id="malOperator"><option value="airtel">Airtel Money — +243 993 315 532</option><option value="orange">Orange Money — +243 848 775 992</option></select></label><label>Référence de transaction<input id="cd" maxlength="100" placeholder="Référence exacte du SMS"></label><p class="note">Envoie le montant exact, garde la référence et soumets-la. L’activation se fait uniquement après vérification manuelle. Ne partage jamais ton PIN ni ton OTP.</p><button class="b1" onclick="pay()">Soumettre le paiement</button><div class="note" id="pm"></div></div>'};
- window.pay=async function(){var code=document.getElementById('cd').value.trim(),op=document.getElementById('malOperator').value,of=document.getElementById('of').value,msgEl=document.getElementById('pm');if(code.length<4||code.length>100){msgEl.textContent='Référence invalide (4 à 100 caractères).';return}var r=await sb.from('paiements').insert({offre:of,code:code,operateur:op});msgEl.textContent=r.error?'Paiement non enregistré : '+r.error.message:'Demande reçue. Le pass Appels sera activé après vérification réelle du transfert.';if(!r.error)document.getElementById('cd').value=''};
+ window.offres=function(){return '<h2>⭐ Nos offres</h2><div class="list"><div class="plan"><h3>Gratuit <span>0 $</span></h3><p>Profil, découverte, likes et conversations.</p></div><div class="plan"><h3>Premium <span>3 $ / mois</span></h3><p>Accès Premium pendant 30 jours après validation. À l’échéance, le statut Premium expire automatiquement et peut être renouvelé.</p></div><div class="plan" style="border:2px solid var(--pink)"><h3>Pass Appels audio + vidéo <span>1 $ / semaine</span></h3><p>Appels audio et vidéo avec tes matchs pendant 7 jours après validation du paiement.</p></div><div class="plan"><h3>Boost 24 h <span>0,50 $</span></h3><p>Visibilité prioritaire pendant 24 heures après validation.</p></div></div><h2>💳 Soumettre un paiement</h2><div class="box list"><label>Offre<select id="of"><option value="Premium">Premium — 3 USD / 30 jours</option><option value="Appels">Pass Appels audio + vidéo — 1 USD / 7 jours</option><option value="Boost">Boost — 0,50 USD / 24 heures</option></select></label><label>Moyen de paiement<select id="malOperator"><option value="airtel">Airtel Money</option><option value="orange">Orange Money</option></select></label><label>Code de transaction<input id="cd" maxlength="100" autocomplete="off" placeholder="Saisis le code de transaction reçu"></label><p class="note">Après soumission, ta demande passe en cours de vérification. Notre équipe répond au plus tard sous 2 heures. N’envoie jamais ton PIN ni ton code OTP.</p><button class="b1" id="malSubmitPayment" onclick="pay()">Soumettre le code de transaction</button><div class="note" id="pm" aria-live="polite"></div></div><section id="malPaymentHistory"><h3>Suivi de mes demandes</h3><p class="note">Chargement…</p></section>'};
+ async function loadMyPayments(){
+  var node=document.getElementById('malPaymentHistory');if(!node||!me)return;
+  var r=await sb.from('paiements').select('id,offre,statut,created_at,reviewed_at,admin_reason').eq('user_id',me.id).order('created_at',{ascending:false}).limit(10);
+  if(r.error){node.innerHTML='<p class="note">Impossible de charger le suivi : '+esc(r.error.message)+'</p>';return}
+  node.innerHTML='<h3>Suivi de mes demandes</h3>'+(r.data&&r.data.length?'<div class="list">'+r.data.map(function(x){var label=x.statut==='valide'?'Demande vérifiée — accès activé':x.statut==='rejete'?'Demande refusée':'En cours de vérification';var detail=x.statut==='rejete'?'Motif : '+esc(x.admin_reason||'Aucun motif communiqué.'):x.statut==='attente'?'Notre équipe te répond au plus tard sous 2 heures.':'Ton avantage est maintenant actif.';return '<div class="card"><b>Demande #'+x.id+' · '+esc(x.offre)+'</b><div>'+label+'</div><div class="note">'+detail+'</div><small>'+new Date(x.created_at).toLocaleString('fr-FR')+'</small></div>'}).join('')+'</div>':'<p class="note">Aucune demande de paiement pour le moment.</p>');
+ }
+ window.loadMyPayments=loadMyPayments;
+ window.pay=async function(){
+  var input=document.getElementById('cd'),offer=document.getElementById('of'),operator=document.getElementById('malOperator'),msgEl=document.getElementById('pm'),button=document.getElementById('malSubmitPayment');
+  if(!me){if(msgEl)msgEl.textContent='Connecte-toi avant de soumettre un paiement.';return}
+  var code=input?input.value.trim():'';if(code.length<4||code.length>100){if(msgEl)msgEl.textContent='Code invalide : saisis entre 4 et 100 caractères.';return}
+  if(!offer||!['Premium','Appels','Boost'].includes(offer.value)){if(msgEl)msgEl.textContent='Choisis une offre valide.';return}
+  if(button){button.disabled=true;button.textContent='Envoi en cours…'}
+  if(msgEl)msgEl.textContent='Transmission sécurisée de ta demande…';
+  try{
+   var payload={user_id:me.id,offre:offer.value,code:code,operateur:operator?operator.value:'airtel',statut:'attente'};
+   var r=await sb.from('paiements').insert(payload).select('id,offre,statut,created_at').single();
+   if(r.error)throw r.error;
+   if(msgEl)msgEl.textContent='Demande #'+r.data.id+' soumise avec succès. Statut : en cours de vérification. Réponse au plus tard sous 2 heures.';
+   if(input)input.value='';
+   await loadMyPayments();
+  }catch(e){console.error('Soumission paiement Malachite',e);if(msgEl)msgEl.textContent='Échec de la soumission : '+(e&&e.message?e.message:'erreur réseau')+'. Réessaie ; aucun paiement n’a été enregistré.'}
+  finally{if(button){button.disabled=false;button.textContent='Soumettre le code de transaction'}}
+ };
+ var oldTrt=window.trt;
+ window.trt=async function(id,ok){
+  var reason=null;if(!ok){reason=prompt('Indique la raison précise du refus (obligatoire, 500 caractères maximum) :');if(reason===null)return;reason=reason.trim();if(!reason||reason.length>500){alert('La raison du refus est obligatoire.');return}}
+  var r=await sb.rpc('traiter_paiement',{pid:id,accepter:ok,raison:reason});
+  if(r.error){alert('Traitement impossible : '+r.error.message);return}
+  alert(ok?'Paiement validé. L’avantage correspondant est activé.':'Paiement refusé. Le membre recevra le motif.');
+  if(typeof loadAdm==='function')await loadAdm();
+ };
+ var adminPaymentChannel=null,userPaymentChannel=null;
+ function startPaymentRealtime(){
+  if(!me)return;
+  if(me.email==='nadroj.famous@gmail.com'&&!adminPaymentChannel){
+   adminPaymentChannel=sb.channel('mal-admin-payment-inbox').on('postgres_changes',{event:'INSERT',schema:'public',table:'paiements'},function(ev){
+    var row=ev&&ev.new;if(!row)return;
+    notify('💳 Nouvelle demande de paiement',row.offre+' · Code : '+row.code,'adm');
+    if(tab==='adm'&&typeof loadAdm==='function')loadAdm();
+   }).subscribe(function(status){if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED')adminPaymentChannel=null});
+  }
+  if(!userPaymentChannel){
+   userPaymentChannel=sb.channel('mal-user-payment-status-'+me.id).on('postgres_changes',{event:'UPDATE',schema:'public',table:'paiements',filter:'user_id=eq.'+me.id},function(ev){
+    var row=ev&&ev.new;if(!row)return;
+    var message=row.statut==='valide'?'Paiement vérifié : '+row.offre+' est activé.':row.statut==='rejete'?'Paiement refusé : '+(row.admin_reason||'Consulte le suivi de tes demandes.'):'Paiement en cours de vérification.';
+    notify('Mise à jour de paiement',message,'offres');
+    if(tab==='offres')loadMyPayments();
+   }).subscribe(function(status){if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED')userPaymentChannel=null});
+  }
+ }
+ var originalSub=window.sub;
+ if(typeof originalSub==='function')window.sub=function(){originalSub();startInbox();startPaymentRealtime()};
+ var originalGo=window.go;
+ if(typeof originalGo==='function')window.go=function(t){originalGo(t);if(t==='offres')setTimeout(loadMyPayments,0);if(t==='adm'&&me&&me.email==='nadroj.famous@gmail.com'&&typeof loadAdm==='function')loadAdm()};
+
  var style=document.createElement('style');style.textContent='.mal-call-head{border:0!important;border-radius:50%!important;width:38px;height:38px;padding:0!important;background:#fce9f0!important;color:#9b315e!important;font-size:18px!important;flex:none}.mal-call-overlay{position:fixed;inset:0;z-index:100000;background:#0c1218e8;display:flex;align-items:center;justify-content:center;padding:12px}.mal-call-card{width:min(100%,620px);background:#fff;border-radius:20px;overflow:hidden;color:#25313a}.mal-call-card header{display:flex;justify-content:space-between;padding:14px 16px;background:#075e54;color:#fff}.mal-call-body{text-align:center;padding:18px}.mal-call-actions{display:flex;justify-content:center;gap:10px;padding:14px}.mal-call-actions button{border:0;border-radius:12px;padding:12px 18px;font-weight:700}.mal-call-actions .accept{background:#087e55;color:white}.mal-call-actions .reject,.mal-call-actions .hangup{background:#c62828;color:white}#malJitsiMount{width:100%;height:min(76vh,650px);min-height:360px}@media(max-width:520px){.mal-call-overlay{padding:0}.mal-call-card{width:100%;height:100%;border-radius:0}#malJitsiMount{height:calc(100dvh - 60px);min-height:300px}}';document.head.appendChild(style);
 })();
