@@ -4,7 +4,6 @@ const MODEL = Deno.env.get("MALACHITE_AI_MODEL") || "gemini-2.5-flash";
 const AI_KEY = Deno.env.get("GEMINI_API_KEY") || "";
 const WORKER_SECRET = Deno.env.get("MALACHITE_WORKER_SECRET") || "";
 const AI_AUTONOMY_ENABLED = Deno.env.get("MALACHITE_AI_AUTONOMY_ENABLED") === "true";
-const MAX_RUN_MS = 25_000;
 
 function json(status: number, body: Record<string, unknown>) {
   return new Response(JSON.stringify(body), {
