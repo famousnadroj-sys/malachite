@@ -1,7 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
 const ALLOWED_ORIGIN = "https://famousnadroj-sys.github.io";
-const MODEL = Deno.env.get("MALACHITE_AI_MODEL") || "gemini-3.5-flash-lite";
+const CONFIGURED_MODEL = Deno.env.get("MALACHITE_AI_MODEL") || "";\nconst MODEL = CONFIGURED_MODEL.startsWith("gemini-2.5-") ? "gemini-3.5-flash-lite" : (CONFIGURED_MODEL || "gemini-3.5-flash-lite");
 const API_KEY = Deno.env.get("GEMINI_API_KEY") || "";
 
 function json(status: number, body: Record<string, unknown>, origin?: string | null) {
