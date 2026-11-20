@@ -3,7 +3,7 @@
 (function(){
  'use strict';
  var photoCache=Object.create(null),callInbox=null,sessionChannel=null,callState=null,incoming=null,jitsiApi=null,callBusy=false;
- if(typeof PRIX==='object')PRIX.Appels='1 $ / 30 jours';
+ if(typeof PRIX==='object')PRIX.Appels='1 $ / semaine';
 
  async function resolveProfilePhotosFast(p){
   if(!p)return p;
@@ -65,7 +65,7 @@
   if(callBusy||callState){alert('Un appel est déjà en cours.');return}
   callBusy=true;
   try{
-   if(!(await hasPass())){alert('Le Pass Appels coûte 1 USD pour 30 jours. Soumets la référence dans Offres ; activation après vérification du paiement.');go('offres');return}
+   if(!(await hasPass())){alert('Le Pass Appels coûte 1 USD pour 7 jours. Soumets la référence dans Offres ; activation après vérification du paiement.');go('offres');return}
    var target=open,id=crypto.randomUUID(),room='Malachite-'+id.replace(/-/g,'');
    var ch=sb.channel('malachite-call-session-'+id).on('postgres_changes',{event:'UPDATE',schema:'public',table:'call_sessions',filter:'id=eq.'+id},function(ev){
     var row=ev&&ev.new;if(!row||!callState||callState.id!==id)return;callState.status=row.status;
