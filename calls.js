@@ -150,10 +150,13 @@
     configOverwrite:{prejoinPageEnabled:false,enableWelcomePage:false,startWithAudioMuted:false,startWithVideoMuted:state.mode==='audio',disableDeepLinking:true,p2p:{enabled:true}},
     interfaceConfigOverwrite:{TOOLBAR_BUTTONS:['microphone','camera','hangup','chat','tileview','fullscreen','settings','participants-pane','desktop']}
    });
-   callStartedAt=Date.now();
-   clearInterval(callClockTimer);
-   callClockTimer=setInterval(function(){var node=document.getElementById('malCallStatus');if(node&&callStartedAt){var n=Math.floor((Date.now()-callStartedAt)/1000);node.textContent='Connecté · '+String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0')}},1000);
-   jitsiApi.addListener('videoConferenceJoined',function(){var node=document.getElementById('malCallStatus');if(node)node.textContent='Connecté · 00:00';loadAudioOutputDevices()});
+   callStartedAt=0;
+   clearInterval(callClockTimer);callClockTimer=null;
+   jitsiApi.addListener('videoConferenceJoined',function(){
+    callStartedAt=Date.now();clearInterval(callClockTimer);
+    callClockTimer=setInterval(function(){var node=document.getElementById('malCallStatus');if(node&&callStartedAt){var n=Math.floor((Date.now()-callStartedAt)/1000);node.textContent='Connecté · '+String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0')}},1000);
+    var node=document.getElementById('malCallStatus');if(node)node.textContent='Connecté · 00:00';loadAudioOutputDevices()
+   });
    jitsiApi.addListener('deviceListChanged',loadAudioOutputDevices);
    jitsiApi.addListener('connectionQualityChanged',function(event){var node=document.getElementById('malCallStatus');if(node&&event&&event.connectionQuality==='poor')node.textContent='Connexion faible · vérifie ton réseau'});
    jitsiApi.addListener('audioMuteStatusChanged',function(event){var b=document.getElementById('malMicBtn');if(b)b.textContent=event.muted?'🔇 Micro coupé':'🎙️ Micro activé'});
@@ -306,4 +309,6 @@
   if(!next&&callState)finishCall(true);
   if(next&&callInboxUserId!==next.id)startInbox();
  });
+ window.addEventListener('online',function(){if(me)startInbox()});
+ document.addEventListener('visibilitychange',function(){if(!document.hidden&&me)startInbox()});
 })();
