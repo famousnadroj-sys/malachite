@@ -84,24 +84,7 @@ function receive(e){if(e.origin!==location.origin||!e.data||e.data.source!=='mal
   if(ctl.display==='swatch')return h('div',{className:'block',key:ctl.id},h('span',{className:'block-title'},ctl.label),h('div',{className:'swatches'},ctl.options.map(o=>h('button',{key:o.id??'none',type:'button',className:'swatch'+(o.id===value?' active':''),style:{background:o.preview?'center/cover url("'+o.preview+'")':(o.swatch||'#eee')},title:o.label,'aria-label':o.label,onClick:()=>update(ctl.apply(config,o.id))}))));
   return h('div',{className:'block',key:ctl.id},h('span',{className:'block-title'},ctl.label),h('div',{className:'tiles'},ctl.options.map(o=>h('button',{key:o.id??'none',type:'button',className:'tile'+(o.id===value?' active':''),title:o.label,'aria-label':o.label,onClick:()=>update(ctl.apply(config,o.id))},o.id===null?h('span',null,'Aucun'):o.preview?h('img',{src:o.preview,alt:'',loading:'lazy'}):h('span',null,o.label)))));
  }
- if(error)return h('div',{className:'error'},'Impossible de charger les modèles 3D : '+error.message);
- if(!pkg||!editor||!config||!assetsReady)return h('div',{className:'loading'},h('div',null,error?'Impossible de charger les modèles 3D : '+error.message:'Préparation du modèle humain 3D…'),h('div',{style:{height:'8px',background:'#eee',borderRadius:'99px',overflow:'hidden',margin:'14px auto',maxWidth:'280px'}},h('div',{style:{height:'100%',width:progress.total?Math.round(progress.done/progress.total*100)+'%':'8%',background:'#b72e63',transition:'width .2s'}})),h('div',{style:{fontSize:'12px'}},progress.total?progress.done+' / '+progress.total+' éléments chargés':'Connexion aux ressources 3D…'));
- const section=editor.sections[Math.min(sectionIndex,editor.sections.length-1)];
- const catalogControl=(key)=>catalog.find(item=>item.key===key);
- const catalogBlock=(key,title,mode)=>{const attr=catalogControl(key);if(!attr)return h('div',{className:'block',key},h('span',{className:'block-title'},title),h('div',{className:'hint'},'Options indisponibles dans le catalogue 3D actuel'));const value=attr.value(config);const choices=key==='hair.style'?[...attr.options].sort((x,y)=>{const rank=id=>({'afro01':0,'braid01':1,'short01':2,'short02':3,'short03':4,'short04':5,'culturalibre_hair_01':6,'culturalibre_hair_02':7}[id]??20);return rank(x.id)-rank(y.id)}):attr.options;return h('div',{className:'block',key},h('span',{className:'block-title'},title),h('div',{className:mode==='colors'?'swatches':'tiles'},choices.map(opt=>h('button',{key:opt.id??'none',type:'button',className:(mode==='colors'?'swatch':'tile')+((opt.id===value)?' active':''),title:opt.label,'aria-label':opt.label,style:mode==='colors'?{background:opt.swatch||'#ddd'}:undefined,onClick:()=>update(attr.apply(config,opt.id),['hair.style','outfit.style','headwear.style','shoes.style','skin.tone'].includes(key))},mode==='colors'?null:opt.preview?h('img',{src:opt.preview,alt:'',loading:'lazy'}):h('span',null,opt.label)))))};
  const slotForClothing=(id)=>id.startsWith('shoes')?'shoes':/hijab|amira|shayla|scarf|turban/.test(id)?'headwear':/hat|fedora|cap|helmet/.test(id)?'hat':'outfit';
- const garmentColorBlock=(slot,title)=>{
-  const palette=options.colors.garments;
-  const value=config.garmentColors?.[slot]||'#ffffff';
-  return h('div',{className:'block',key:'color-'+slot},
-   h('span',{className:'block-title'},title),
-   h('div',{className:'swatches'},palette.map(color=>h('button',{
-    key:color,type:'button',className:'swatch'+(value.toLowerCase()===color.toLowerCase()?' active':''),
-    style:{background:color},title:color,'aria-label':title+' '+color,
-    onClick:()=>setConfig(editor.normalize({...config,garmentColors:{...config.garmentColors,[slot]:color}}))
-   })))
-  );
- };
  useEffect(()=>{
   if(!avatarReady||!config||!canvas.current?.avatar)return;
   let cancelled=false,attempt=0,timer=0;
@@ -125,6 +108,23 @@ function receive(e){if(e.origin!==location.origin||!e.data||e.data.source!=='mal
   timer=setTimeout(apply,0);
   return()=>{cancelled=true;clearTimeout(timer)};
  },[config,avatarReady]);
+ if(error)return h('div',{className:'error'},'Impossible de charger les modèles 3D : '+error.message);
+ if(!pkg||!editor||!config||!assetsReady)return h('div',{className:'loading'},h('div',null,error?'Impossible de charger les modèles 3D : '+error.message:'Préparation du modèle humain 3D…'),h('div',{style:{height:'8px',background:'#eee',borderRadius:'99px',overflow:'hidden',margin:'14px auto',maxWidth:'280px'}},h('div',{style:{height:'100%',width:progress.total?Math.round(progress.done/progress.total*100)+'%':'8%',background:'#b72e63',transition:'width .2s'}})),h('div',{style:{fontSize:'12px'}},progress.total?progress.done+' / '+progress.total+' éléments chargés':'Connexion aux ressources 3D…'));
+ const section=editor.sections[Math.min(sectionIndex,editor.sections.length-1)];
+ const catalogControl=(key)=>catalog.find(item=>item.key===key);
+ const catalogBlock=(key,title,mode)=>{const attr=catalogControl(key);if(!attr)return h('div',{className:'block',key},h('span',{className:'block-title'},title),h('div',{className:'hint'},'Options indisponibles dans le catalogue 3D actuel'));const value=attr.value(config);const choices=key==='hair.style'?[...attr.options].sort((x,y)=>{const rank=id=>({'afro01':0,'braid01':1,'short01':2,'short02':3,'short03':4,'short04':5,'culturalibre_hair_01':6,'culturalibre_hair_02':7}[id]??20);return rank(x.id)-rank(y.id)}):attr.options;return h('div',{className:'block',key},h('span',{className:'block-title'},title),h('div',{className:mode==='colors'?'swatches':'tiles'},choices.map(opt=>h('button',{key:opt.id??'none',type:'button',className:(mode==='colors'?'swatch':'tile')+((opt.id===value)?' active':''),title:opt.label,'aria-label':opt.label,style:mode==='colors'?{background:opt.swatch||'#ddd'}:undefined,onClick:()=>update(attr.apply(config,opt.id),['hair.style','outfit.style','headwear.style','shoes.style','skin.tone'].includes(key))},mode==='colors'?null:opt.preview?h('img',{src:opt.preview,alt:'',loading:'lazy'}):h('span',null,opt.label)))))};
+ const garmentColorBlock=(slot,title)=>{
+  const palette=options.colors.garments;
+  const value=config.garmentColors?.[slot]||'#ffffff';
+  return h('div',{className:'block',key:'color-'+slot},
+   h('span',{className:'block-title'},title),
+   h('div',{className:'swatches'},palette.map(color=>h('button',{
+    key:color,type:'button',className:'swatch'+(value.toLowerCase()===color.toLowerCase()?' active':''),
+    style:{background:color},title:color,'aria-label':title+' '+color,
+    onClick:()=>setConfig(editor.normalize({...config,garmentColors:{...config.garmentColors,[slot]:color}}))
+   })))
+  );
+ };
  const customContent=customTab==='tenues'?[catalogBlock('outfit.style','Choisir un vêtement','items'),garmentColorBlock('outfit','Couleur du vêtement'),catalogBlock('headwear.style','Accessoires de tête','items'),garmentColorBlock('headwear','Couleur de l’accessoire'),catalogBlock('hat.style','Chapeaux','items'),garmentColorBlock('hat','Couleur du chapeau'),catalogBlock('shoes.style','Chaussures','items'),garmentColorBlock('shoes','Couleur des chaussures')]:customTab==='peau'?[catalogBlock('skin.tone','Choisir une couleur de peau','colors')]:customTab==='cheveux'?[catalogBlock('hair.style','Choisir une coupe','items'),catalogBlock('hair.color','Couleur des cheveux','colors')]:null;
  const expressions={naturel:{},sourire:{mouthSmile:.8},clinOeil:{eyeBlinkLeft:1},surpris:{jawOpen:.65,browInnerUp:.7},triste:{mouthFrown:.65,browInnerUp:.45},grimace:{noseSneerLeft:.8,noseSneerRight:.8,mouthPress:.55,eyeSquintLeft:.25,eyeSquintRight:.25}};
  function pose(next){
