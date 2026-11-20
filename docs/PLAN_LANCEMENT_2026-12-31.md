@@ -111,7 +111,7 @@ La publication est bloquée si l'un des points suivants est vrai :
 
 ## Journal de décision
 
-- 20 nov. 2026 : objectif de lancement fixé au 31 déc. 2026.
+- 20 nov. 2026 : priorité modifiée en préparation immédiate, avec objectif opérationnel dès demain et décision GO/NO-GO fondée sur les tests.
 - 20 nov. 2026 : préparation isolée autorisée ; publication non immédiate.
 - 20 nov. 2026 : aucun paiement automatisé déclaré opérationnel tant que les webhooks officiels ne sont pas intégrés et testés.
 
