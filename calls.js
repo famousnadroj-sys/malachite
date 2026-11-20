@@ -2,7 +2,7 @@
 /* Malachite: paid real-time audio/video calls and faster private profile photo loading. */
 (function(){
  'use strict';
- var photoCache=Object.create(null),callInbox=null,sessionChannel=null,callState=null,incoming=null,jitsiApi=null,callBusy=false;
+ var photoCache=Object.create(null),callInbox=null,sessionChannel=null,callState=null,incoming=null,jitsiApi=null,callBusy=false,offerStatusFor=null,offerStatusPending=false;
  if(typeof PRIX==='object')PRIX.Appels='1 $ / semaine';
 
  function readPhotoCache(key,now){
@@ -123,7 +123,18 @@
  if(typeof oldSub==='function')window.sub=function(){oldSub();startInbox()};
  window.startCallInbox=startInbox;
 
+ function refreshOfferPremiumStatus(){
+  if(!me||offerStatusFor===me.id||offerStatusPending)return;
+  offerStatusPending=true;var uid=me.id;
+  sb.from('statuts').select('premium_until').eq('user_id',uid).maybeSingle().then(function(r){
+   if(r.error)throw r.error;
+   if(!me||me.id!==uid)return;
+   st[uid]=r.data||{};offerStatusFor=uid;
+   if(tab==='offres'&&typeof draw==='function')draw(true);
+  }).catch(function(e){console.warn('Vérification Premium pour les offres',e)}).finally(function(){offerStatusPending=false});
+ }
  window.offres=function(){
+  refreshOfferPremiumStatus();
   var premiumActive=!!(me&&st[me.id]&&st[me.id].premium_until&&new Date(st[me.id].premium_until).getTime()>Date.now());
   var callsCard=premiumActive?'<div class="plan" style="border:2px solid var(--pink)"><h3>📞 Appels audio + vidéo</h3><p>Inclus dans ton Premium actif : aucun paiement supplémentaire pour les appels.</p></div>':'<div class="plan"><h3>📞 Pass Appels audio + vidéo <span>1 $ / 7 jours</span></h3><p>Appels audio et vidéo avec tes matchs pendant 7 jours après validation. Si tu passes à Premium, ce pass n’est plus nécessaire : les appels sont inclus.</p></div>';
   var callOption=premiumActive?'':'<option value="Appels">Pass Appels audio + vidéo — 1 USD / 7 jours</option>';
@@ -145,6 +156,11 @@
   if(button){button.disabled=true;button.textContent='Envoi en cours…'}
   if(msgEl)msgEl.textContent='Transmission sécurisée de ta demande…';
   try{
+   if(offer.value==='Appels'){
+    var premiumCheck=await sb.from('statuts').select('premium_until').eq('user_id',me.id).maybeSingle();
+    if(premiumCheck.error)throw premiumCheck.error;
+    if(premiumCheck.data&&premiumCheck.data.premium_until&&new Date(premiumCheck.data.premium_until).getTime()>Date.now())throw new Error('Les appels audio et vidéo sont déjà inclus dans ton abonnement Premium actif. Tu ne dois pas payer le pass à 1 $.');
+   }
    var payload={user_id:me.id,offre:offer.value,code:code,operateur:operator?operator.value:'airtel',statut:'attente'};
    var r=await sb.from('paiements').insert(payload).select('id,offre,statut,created_at').single();
    if(r.error)throw r.error;
