@@ -24,6 +24,11 @@ const requiredFrontend = [
   "createSignedUrl",
   "functions.invoke('admin-user-moderation'",
   'function mascotHint()',
+  "persistSession:true",
+  "function malStartupView()",
+  "malAvatarPanel()+blockedPanel()+",
+  "avatar:avatarForSave",
+  "mal-discover-avatar",
   'manifest.webmanifest',
   '@media(min-width:760px)',
 ];
@@ -154,6 +159,8 @@ if (!html.includes("table:'message_receipts'") || !html.includes('function handl
 if (!html.includes("markIncomingReceipts(incoming,document.visibilityState==='visible')")) throw new Error('Opening a conversation must record delivery and read state.');
 if (!html.includes("msg-status read") || !html.includes("aria-label=\"Lu\"")) throw new Error('Read receipts must be visibly distinct from delivered receipts.');
 if (!migrations.includes('message_receipts') || !migrations.includes('recipient marks read') || !migrations.includes('revoke all on public.message_receipts')) throw new Error('Secure message receipt migrations are missing.');
+if (!migrations.includes('avatar=case when p_profile ?') || !migrations.includes('profile_private,avatar')) throw new Error('Profile avatar persistence migration is missing.');
+if (html.includes('Ajoute une photo de profil avant d’enregistrer.')) throw new Error('Profile creation must allow a saved avatar instead of requiring a photo.');
 if (!html.includes('cache.expiresAt=now+3500000')) throw new Error('Signed media URL cache must refresh its expiry after renewal.');
 if (!html.includes("Signature des médias de la conversation ('+bucket+')")) throw new Error('Media URL resolution must isolate failures by storage bucket.');
 if (!sw.match(/malachite-static-v[0-9]+/) || !sw.includes('./calls.js')) throw new Error('Service worker must cache a versioned app shell including the call client.');
