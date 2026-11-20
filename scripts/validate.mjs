@@ -325,3 +325,8 @@ if (aiFunction.includes('from("messages")') || aiFunction.includes('from("prives
   throw new Error('AI Manager must never query private conversations or private contact records.');
 }
 if (!sw.includes('malachite-static-v62')) throw new Error('AI Manager operations release must bump the static cache version.');
+
+const aiWorker = fs.readFileSync('supabase/functions/malachite-ai-worker/index.ts', 'utf8');
+if (!aiWorker.includes('CONFIGURED_MODEL.startsWith("gemini-2.5-") ? "gemini-3.5-flash-lite"') || !aiWorker.includes('(CONFIGURED_MODEL || "gemini-3.5-flash-lite")')) {
+  throw new Error('AI worker must use the verified Gemini model fallback.');
+}
