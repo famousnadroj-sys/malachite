@@ -96,6 +96,28 @@ async function synchronizeAlerts(admin: any, metrics: Record<string, unknown>) {
   }
 }
 
+
+async function synchronizeReviewQueue(admin: any) {
+  const specs = [
+    { table: "paiements", filter: (q: any) => q.eq("statut", "attente"), type: "payment_review", title: "Vérifier un paiement en attente", risk: "high" },
+    { table: "signalements", filter: (q: any) => q.eq("statut", "nouveau"), type: "report_review", title: "Examiner un nouveau signalement", risk: "high" },
+    { table: "demandes_support", filter: (q: any) => q.in("statut", ["nouveau", "en_cours"]), type: "support_review", title: "Examiner une demande de support", risk: "medium" },
+  ];
+  for (const spec of specs) {
+    const { data, error } = await spec.filter(admin.from(spec.table).select("id").limit(100));
+    if (error) throw new Error("review_queue_source_failed:" + spec.table);
+    for (const row of data || []) {
+      const { error: upsertError } = await admin.from("malachite_ai_review_queue").upsert({
+        task_key: spec.type + ":" + String(row.id), task_type: spec.type,
+        record_id: String(row.id), title: spec.title, risk_level: spec.risk,
+        status: "awaiting_human", updated_at: new Date().toISOString(),
+        details: { source: spec.table },
+      }, { onConflict: "task_key", ignoreDuplicates: true });
+      if (upsertError) throw new Error("review_queue_write_failed:" + spec.table);
+    }
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
 
@@ -139,6 +161,7 @@ Deno.serve(async (req: Request) => {
     const briefingEnabled = autonomySetting?.ai_briefings_enabled === true;
     const metrics = await collectMetrics(admin);
     await synchronizeAlerts(admin, metrics);
+    await synchronizeReviewQueue(admin);
     let summary: string | null = null;
     let model: string | null = null;
     let status: "success" | "partial" = "success";
