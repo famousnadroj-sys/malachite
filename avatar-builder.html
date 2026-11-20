@@ -13,6 +13,16 @@
 </script>
 </head>
 <body><div id="root"><div class="loading">Chargement du créateur 3D…</div></div>
+<script>
+(function(){
+ function report(message){try{parent.postMessage({source:'malachite-avatar-builder',type:'error',message:String(message||'Impossible de charger le module du créateur 3D.')},location.origin)}catch(_){}}
+ window.addEventListener('error',function(e){
+  if(e&&e.target&&e.target!==window){report('Une ressource JavaScript ou 3D n’a pas pu être chargée : '+(e.target.src||e.target.href||'fichier externe'));return}
+  if(e&&e.message)report(e.message);
+ },true);
+ window.addEventListener('unhandledrejection',function(e){report(e.reason&&e.reason.message||e.reason||'Erreur de chargement des ressources 3D')});
+})();
+</script>
 <script type="module">
 import React,{useState,useEffect,useMemo,useRef} from 'react';
 import{Quaternion,Vector3}from'three';
