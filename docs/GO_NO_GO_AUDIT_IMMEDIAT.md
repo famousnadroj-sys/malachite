@@ -10,11 +10,12 @@ Le dépôt a une validation CI verte, mais plusieurs dépendances de production 
 
 ## Vérifications positives
 
-- GitHub Actions : validation du commit `d9f633c905c710c74e8749c4ea69a1cbd95eabd9` terminée avec succès ([run 44803155526](https://github.com/famousnadroj-sys/malachite/actions/runs/44802439637)).
+- GitHub Actions : validation du commit `78842ce1b9de7cb698fd1232499d8d34baf32da4` terminée avec succès ([run 44803436109](https://github.com/famousnadroj-sys/malachite/actions/runs/44802439637)).
 - Les migrations RPC, stockage privé, optimisation support et politique stricte de reçus, suivies du script `payment_receipts_security_checks.sql`, ont passé un essai transactionnel combiné dans l'ordre prévu, ensuite annulé ; aucune modification n'a persisté dans la base active.
 - Le déploiement des reçus est scindé en deux étapes pour ne pas casser l'ancien formulaire : migration additive `20261120140000` d'abord, puis déploiement du nouveau frontend, puis politique stricte `20261120170000`.
 - Le projet conserve son application existante ; les changements sont isolés dans une branche et une pull request.
 - Le contrôle statique a détecté puis permis de corriger un ancien bouton d'appel encore désactivé après un match.
+- Le PWA avertit maintenant les sessions déjà ouvertes lorsqu'une nouvelle version prend le contrôle, avec une action explicite d'actualisation.
 - Le formulaire de paiement secondaire dans `calls.js` affichait encore 3 USD et contournait le justificatif ; il utilise maintenant le tarif de 2 USD, le téléversement privé commun et l'affichage correct de l'opérateur.
 - Les migrations de justificatifs privés et de restriction RPC sont présentes dans GitHub.
 - La migration de reçus exige désormais que le chemin corresponde à un objet réellement présent dans le bucket privé, dans le dossier de l'utilisateur connecté. Le contrôle reste à tester avec deux comptes authentifiés réels.
