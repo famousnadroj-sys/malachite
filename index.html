@@ -1769,7 +1769,7 @@ function openMalAvatarBuilder(forSignup){
  var overlay=document.createElement('div');overlay.id='malAvatarBuilderOverlay';overlay.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(16,17,22,.72);display:flex;align-items:center;justify-content:center;padding:0';
  var frame=malAvatarPreloadFrame;
  if(!frame){frame=document.createElement('iframe');frame.src='avatar-builder.html?gender='+gender;frame.setAttribute('allow','fullscreen');malAvatarPreloadFrame=frame}
- frame.title='Créateur d’avatar 3D Malachite';frame.style.cssText='width:min(100%,900px);height:100%;max-height:100dvh;border:0;border-radius:0;background:#fff;opacity:1;pointer-events:auto;position:relative;left:auto;top:auto;z-index:auto';
+ frame.title='Créateur d’avatar 3D Malachite';frame.dataset.gender=gender;frame.style.cssText='width:min(100%,900px);height:100%;max-height:100dvh;border:0;border-radius:0;background:#fff;opacity:1;pointer-events:auto;position:relative;left:auto;top:auto;z-index:auto';
  overlay.appendChild(frame);
  if(frame.dataset.loaded==='1')frame.contentWindow.postMessage({source:'malachite-avatar-parent',type:'set-gender',gender},location.origin);else frame.addEventListener('load',function(){frame.dataset.loaded='1';frame.contentWindow.postMessage({source:'malachite-avatar-parent',type:'set-gender',gender},location.origin)},{once:true});
  overlay.addEventListener('click',function(e){if(e.target===overlay)closeMalAvatarBuilder()});document.body.appendChild(overlay);
@@ -1820,6 +1820,7 @@ async function malAttachPendingSignupAvatar(){
 window.addEventListener('message',async function(event){
  if(event.origin!==location.origin||!event.data||event.data.source!=='malachite-avatar-builder')return;
  if(event.data.type==='ready'){malAvatarPreloadReady=true;return}
+ if(event.data.type==='mounted'){var activeFrame=document.querySelector('#malAvatarBuilderOverlay iframe');if(activeFrame&&activeFrame.contentWindow)activeFrame.contentWindow.postMessage({source:'malachite-avatar-parent',type:'set-gender',gender:activeFrame.dataset.gender||'male'},location.origin);return}
  if(event.data.type==='cancel'){closeMalAvatarBuilder();return}
  if(event.data.type==='save'){
   var frame=document.querySelector('#malAvatarBuilderOverlay iframe');if(frame)frame.contentWindow.postMessage({source:'malachite-avatar-parent',type:'saving'},location.origin);
