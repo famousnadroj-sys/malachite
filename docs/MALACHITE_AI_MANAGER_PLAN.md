@@ -1,10 +1,10 @@
-# Malachite AI Manager — plan de lancement — 31 décembre 2026
+# Malachite AI Manager — plan d'intégration et d'exploitation
 
 ## Statut et garde-fous
 - Cette branche est une préparation isolée. Elle n'est ni fusionnée dans `main`, ni publiée, ni déployée.
 - Aucun changement n'a été appliqué au projet Supabase de production.
 - Aucune clé API, aucun compte marchand et aucun service payant n'ont été activés.
-- Le panneau « Malachite AI Manager » ajouté à l'interface est un prototype visuel clairement marqué comme non activé.
+- Le panneau « Malachite AI Manager » ajouté à l'interface est un prototype visuel clairement marqué comme non activé. Aucune Edge Function AI Manager, clé fournisseur IA, file de tâches ou automatisation autonome n'est déployée.
 
 ## Parcours de paiement simplifié (maquette)
 1. Le membre choisit Premium (2 USD / 30 jours) ou Boost (0,50 USD / 24 h).
@@ -15,7 +15,7 @@
 4. Il effectue le transfert puis soumet la référence reçue.
 5. La demande reste en attente jusqu'à une vérification indépendante et fiable.
 
-Le code actuel accepte une référence dans `paiements.code`. La table ne contient pas de champ de preuve image et aucun stockage privé dédié aux reçus n'a été vérifié. L'envoi d'une capture d'écran n'est donc pas encore activé dans cette maquette. Une capture pourra aider l'OCR à lire le montant, la date et la référence, mais elle ne prouvera jamais à elle seule que l'argent est arrivé.
+État actuel vérifié le 20 novembre 2026 : la production accepte encore une référence dans `paiements.code`, mais ne possède pas `receipt_path` ni le bucket privé `payment-receipts`. La branche de préparation ajoute un parcours de reçu privé ; il reste inactif en production jusqu'à l'application ordonnée des migrations et aux tests multi-comptes. Une capture peut aider à lire montant, date et référence, mais ne prouve jamais à elle seule que l'argent est arrivé.
 
 ## Paiements automatiques — architecture requise
 - Intégration officielle opérateur/agrégateur (API ou webhook authentifié) capable de confirmer la transaction, le montant, la devise, le numéro destinataire et l'identifiant unique.
@@ -67,4 +67,4 @@ Le code actuel accepte une référence dans `paiements.code`. La table ne contie
 7. Audit de sécurité et accord explicite du propriétaire avant toute fusion, migration de production, activation de service ou publication.
 
 ## Décision de lancement
-La date cible publique est le 31 décembre 2026. Cette date est un objectif conditionnel : aucune publication ne doit avoir lieu si un contrôle critique échoue. Jusqu'à nouvel accord explicite, aucune fusion vers `main`, migration Supabase, activation d'API payante, publication ou déploiement n'est autorisé.
+La mise en ligne n'est pas attachée à une date fixe. Le lancement sera autorisé uniquement lorsque tous les contrôles critiques auront été réussis et que le propriétaire aura explicitement approuvé la fusion, les migrations de production, les services externes et la publication.
