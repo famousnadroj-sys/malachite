@@ -161,6 +161,7 @@
         group("Avis et commentaires",o.reviews||[],function(x){return item((x.note||"—")+"/5 · "+(x.categorie||"Avis"),x.message+" · "+new Date(x.created_at).toLocaleDateString("fr-FR"),"Avis membre")})+
         group("Demandes de support",o.support||[],function(x){return item(x.sujet,x.message+" · "+new Date(x.created_at).toLocaleDateString("fr-FR"),x.statut+" · "+x.categorie)});
         group("Alertes automatiques Malachite AI",o.alerts||[],function(x){return item(x.title, "Détectée : "+new Date(x.first_seen_at).toLocaleString("fr-FR")+" · dernière détection : "+new Date(x.last_seen_at).toLocaleString("fr-FR")+" · éléments : "+((x.details&&x.details.count)||0),x.status==="open"?"Ouverte · "+x.severity:"Résolue")});
+        group("File de tâches IA — validation humaine",o.review_queue||[],function(x){return item(x.title,"Dossier #"+x.record_id+" · créé le "+new Date(x.created_at).toLocaleString("fr-FR"),x.status==="awaiting_human"?"À valider · risque "+x.risk_level:x.status+" · "+x.task_type)});
       var stamp=document.getElementById("malAiUpdated");
       if(stamp)stamp.textContent="Dossiers actualisés à "+new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
     }catch(e){root.innerHTML='<p class="mal-ai-error">'+esc(e.message||"Erreur de chargement des dossiers.")+'</p>';}
