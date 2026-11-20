@@ -195,13 +195,7 @@ nav button.on{background:var(--soft);color:var(--pink)}
 .qa{display:grid;gap:6px}.qa select{font-size:13px}
 .qa2{border-left:2px solid #F4B6CB;padding-left:10px;margin:8px 0}.qa2 small{display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}.qa2 div{font:italic 500 17px/1.3 Fraunces,Georgia,serif}
 .vipc{border:1px solid #E9C46A!important;box-shadow:0 0 0 1px rgba(233,196,106,.35),0 14px 40px rgba(233,196,106,.35)!important}
-#splash{position:fixed;inset:0;z-index:200;background:#fff;display:grid;place-items:center;text-align:center;animation:spOut .5s ease 2s forwards}
-#splash svg{overflow:visible}
-#splash .ln{stroke-dasharray:160;stroke-dashoffset:160;animation:dr 1.3s ease forwards}
-#splash .fl{opacity:0;animation:fi .8s ease 1s forwards}
-#splash b{display:block;font:italic 600 32px Fraunces,Georgia,serif;color:#D81B60;opacity:0;animation:fi .8s ease 1s forwards;margin-top:10px;letter-spacing:.05em}
-#splash small{display:block;color:#7C6A73;letter-spacing:.2em;text-transform:uppercase;font-size:10px;margin-top:6px;opacity:0;animation:fi .8s ease 1.3s forwards}
-@keyframes dr{to{stroke-dashoffset:0}}@keyframes fi{to{opacity:1}}@keyframes spOut{to{opacity:0;visibility:hidden}}
+/* Startup splash styles removed: keep the entry screen immediately accessible. */
 .hero .logo{margin-top:14px}
 
 .mascot-hint{display:flex;align-items:center;gap:14px;margin:12px 0 18px;padding:14px 16px;border:1px solid #F4C8D8;border-radius:20px;background:linear-gradient(110deg,#FFF2F7,#fff 72%);box-shadow:0 8px 24px rgba(216,27,96,.07)}
@@ -1602,7 +1596,7 @@ async function viewProf(id,startIndex){
 function closeMalProfile(){var el=$('malProfileOverlay');if(el)el.remove();document.body.classList.remove('mal-profile-open');document.body.style.overflow='';}
 var HP='M20 35C8 26 4 19 4 13.5 4 9 7.5 6 11.5 6c3.5 0 6.5 2 8.5 5 2-3 5-5 8.5-5C32.5 6 36 9 36 13.5 36 19 32 26 20 35z',FC='M11.5 6 20 11 28.5 6M4 13.5h32M4 13.5 20 35 36 13.5M13 13.5 20 11 27 13.5 20 35z';
 function logo(z){return '<svg class="logo" viewBox="0 0 40 40" width="'+z+'" height="'+z+'" aria-hidden="true"><path d="'+HP+'" fill="url(#lg)"/><path d="'+FC+'" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width=".9" stroke-linejoin="round"/><path d="M33 1v6M30 4h6" stroke="#C9A227" stroke-width="1.1" stroke-linecap="round"/></svg>'}
-(function(){try{if(sessionStorage.getItem('sp'))return;sessionStorage.setItem('sp',1)}catch(e){}var d=document.createElement('div');d.id='splash';d.innerHTML='<div><svg viewBox="0 0 40 40" width="108" height="108"><path class="ln" d="'+HP+'" fill="none" stroke="#D81B60" stroke-width="1.2"/><path class="ln" d="'+FC+'" fill="none" stroke="#D81B60" stroke-width=".8"/><path class="fl" d="'+HP+'" fill="url(#lg)"/></svg><b>Malachite</b><small>Rencontres à Lubumbashi</small></div>';document.body.appendChild(d);setTimeout(function(){d.remove()},2500)})();
+/* Startup splash removed: it could cover the entry screen on slow or stalled devices. */
 function aff(p){if(!mine)return '';var r=fit(mine.prefs,p);if(r!==null&&r<0)return '';var s=r===null?affs(p):r;return '<div class="aff"><span class="ring" style="--p:'+s+'"><b>'+s+'%</b></span><span>'+(r===null?'Affinités (intérêts, commune)':'Selon tes préférences')+(recip(p)?'<span class="tag">Réciproque</span>':'')+'</span></div>'}
 var PQ=['Mon coin préféré à Lubumbashi…','Le plat que je cuisine (ou mange) le mieux…','Rumba, Ndombolo ou Amapiano ? Ma réponse…','Un week-end parfait, c’est…','Ce que je recherche vraiment…','Mon rêve le plus fou…','Je ne peux pas vivre sans…'];
 function pq(){var cur=(mine&&mine.prompts)||[];return '<h3 style="margin:6px 0 0">Mes questions-réponses</h3><p class="note" style="margin:0">Montre ta personnalité : choisis une question et réponds en une phrase.</p>'+[0,1,2].map(function(i){var c=cur[i]||{};return '<div class="qa"><select class="pqs">'+PQ.map(function(q,k){return '<option'+((c.q==q||(!c.q&&k==i))?' selected':'')+'>'+esc(q)+'</option>'}).join('')+'</select><input class="pqa" maxlength="120" placeholder="Ta réponse" value="'+esc(c.a)+'"></div>'}).join('')}
