@@ -115,3 +115,11 @@ La publication est bloquée si l'un des points suivants est vrai :
 - 20 nov. 2026 : objectif de lancement fixé au 31 déc. 2026.
 - 20 nov. 2026 : préparation isolée autorisée ; publication non immédiate.
 - 20 nov. 2026 : aucun paiement automatisé déclaré opérationnel tant que les webhooks officiels ne sont pas intégrés et testés.
+
+
+## Dernière vérification technique — 20 novembre 2026
+
+- Les six blocs JavaScript du frontend ont été analysés avec le parseur Node.js : aucune erreur de syntaxe détectée.
+- Le formulaire de paiement transmet l'offre, l'opérateur, la référence et le chemin du justificatif privé ; la preuve est téléversée avant l'insertion de la demande.
+- Le contrôle GitHub Actions précédent a échoué sur un contrôle statique devenu obsolète (`operateur:operator`) ; le validateur a été mis à jour pour vérifier le contrat réel (`operateur:data.operator`). Le nouveau run doit confirmer cette correction.
+- Les migrations de stockage privé et de restriction RPC restent à tester sur une base de staging avant application à la base active.
