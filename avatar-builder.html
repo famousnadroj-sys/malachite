@@ -49,12 +49,12 @@ function App(){
  useEffect(()=>{if(error)parent.postMessage({source:'malachite-avatar-builder',type:'error',message:error.message||'Les fichiers 3D ne sont pas accessibles'},location.origin)},[error]);
  function cancel(){parent.postMessage({source:'malachite-avatar-builder',type:'cancel'},location.origin)}
  function save(){if(!config||!canvas.current||!avatarReady||saving)return;const image=canvas.current.snapshot();if(!image){alert('La capture 3D n’a pas pu être créée. Réessaie.');return}setSaving(true);parent.postMessage({source:'malachite-avatar-builder',type:'save',config,image},location.origin)}
- function update(next){
+ function update(next,warmAsset=false){
   const normalized=editor.normalize(next);
-  // Le changement de sélection reste immédiat. Le même look est préparé en parallèle
-  // pour que HumanCanvas réutilise les ressources déjà mises en cache.
+  // Le changement de sélection reste immédiat ; seuls les changements de modèle
+  // (cheveux, tenue, chaussures, accessoire, peau) déclenchent un préchargement.
   setConfig(normalized);
-  if(gender==='female'&&pkg){
+  if(warmAsset&&gender==='female'&&pkg){
    warmHumanPackage(pkg,{config:normalized,textureSize:'512',normalMaps:false})
     .catch(err=>console.warn('Chargement de la variante féminine à la demande :',err));
   }
@@ -70,7 +70,7 @@ function App(){
  if(!pkg||!editor||!config||!assetsReady)return h('div',{className:'loading'},h('div',null,error?'Impossible de charger les modèles 3D : '+error.message:'Préparation du modèle humain 3D…'),h('div',{style:{height:'8px',background:'#eee',borderRadius:'99px',overflow:'hidden',margin:'14px auto',maxWidth:'280px'}},h('div',{style:{height:'100%',width:progress.total?Math.round(progress.done/progress.total*100)+'%':'8%',background:'#b72e63',transition:'width .2s'}})),h('div',{style:{fontSize:'12px'}},progress.total?progress.done+' / '+progress.total+' éléments chargés':'Connexion aux ressources 3D…'));
  const section=editor.sections[Math.min(sectionIndex,editor.sections.length-1)];
  const catalogControl=(key)=>catalog.find(item=>item.key===key);
- const catalogBlock=(key,title,mode)=>{const attr=catalogControl(key);if(!attr)return h('div',{className:'block',key},h('span',{className:'block-title'},title),h('div',{className:'hint'},'Options indisponibles dans le catalogue 3D actuel'));const value=attr.value(config);const choices=key==='hair.style'?[...attr.options].sort((x,y)=>{const rank=id=>({'afro01':0,'braid01':1,'short01':2,'short02':3,'short03':4,'short04':5,'culturalibre_hair_01':6,'culturalibre_hair_02':7}[id]??20);return rank(x.id)-rank(y.id)}):attr.options;return h('div',{className:'block',key},h('span',{className:'block-title'},title),h('div',{className:mode==='colors'?'swatches':'tiles'},choices.map(opt=>h('button',{key:opt.id??'none',type:'button',className:(mode==='colors'?'swatch':'tile')+((opt.id===value)?' active':''),title:opt.label,'aria-label':opt.label,style:mode==='colors'?{background:opt.swatch||'#ddd'}:undefined,onClick:()=>update(attr.apply(config,opt.id))},mode==='colors'?null:opt.preview?h('img',{src:opt.preview,alt:'',loading:'lazy'}):h('span',null,opt.label)))))};
+ const catalogBlock=(key,title,mode)=>{const attr=catalogControl(key);if(!attr)return h('div',{className:'block',key},h('span',{className:'block-title'},title),h('div',{className:'hint'},'Options indisponibles dans le catalogue 3D actuel'));const value=attr.value(config);const choices=key==='hair.style'?[...attr.options].sort((x,y)=>{const rank=id=>({'afro01':0,'braid01':1,'short01':2,'short02':3,'short03':4,'short04':5,'culturalibre_hair_01':6,'culturalibre_hair_02':7}[id]??20);return rank(x.id)-rank(y.id)}):attr.options;return h('div',{className:'block',key},h('span',{className:'block-title'},title),h('div',{className:mode==='colors'?'swatches':'tiles'},choices.map(opt=>h('button',{key:opt.id??'none',type:'button',className:(mode==='colors'?'swatch':'tile')+((opt.id===value)?' active':''),title:opt.label,'aria-label':opt.label,style:mode==='colors'?{background:opt.swatch||'#ddd'}:undefined,onClick:()=>update(attr.apply(config,opt.id),['hair.style','outfit.style','headwear.style','shoes.style','skin.tone'].includes(key))},mode==='colors'?null:opt.preview?h('img',{src:opt.preview,alt:'',loading:'lazy'}):h('span',null,opt.label)))))};
  const customContent=customTab==='tenues'?[catalogBlock('outfit.style','Choisir un vêtement','items'),catalogBlock('outfit.color','Couleur du vêtement','colors'),catalogBlock('headwear.style','Accessoires de tête','items'),catalogBlock('headwear.color','Couleur de l’accessoire','colors'),catalogBlock('shoes.style','Chaussures','items')]:customTab==='peau'?[catalogBlock('skin.tone','Choisir une couleur de peau','colors')]:customTab==='cheveux'?[catalogBlock('hair.style','Choisir une coupe','items'),catalogBlock('hair.color','Couleur des cheveux','colors')]:null;
  const expressions={naturel:{},sourire:{mouthSmile:.8},clinOeil:{eyeBlinkLeft:1},surpris:{jawOpen:.65,browInnerUp:.7},triste:{mouthFrown:.65,browInnerUp:.45},grimace:{noseSneerLeft:.8,noseSneerRight:.8,mouthPress:.55,eyeSquintLeft:.25,eyeSquintRight:.25}};
  function pose(next){
