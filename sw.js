@@ -1,5 +1,5 @@
-const CACHE = "malachite-static-v20";
-const APP_SHELL = ["./", "./manifest.webmanifest", "./icons/malachite.svg"];
+const CACHE = "malachite-static-v21";
+const APP_SHELL = ["./", "./manifest.webmanifest", "./icons/malachite.svg", "./calls.js"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(APP_SHELL)));
