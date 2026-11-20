@@ -26,7 +26,7 @@ function App(){
  const options=useMemo(()=>({gender,sections:['face','skin','eyes','brows','nose','mouth','hair','body','outfit','shoes'],detailRange:.65}),[gender]);
  const editor=useMemo(()=>pkg?createHumanEditor(pkg,options):null,[pkg,options]);
  useEffect(()=>{if(editor){setAvatarReady(false);setConfig(editor.normalize(null));setSectionIndex(0)}},[editor]);
- useEffect(()=>{function receive(e){if(e.origin!==location.origin||!e.data||e.data.source!=='malachite-avatar-parent'||e.data.type!=='set-gender')return;setGender(e.data.gender==='female'?'female':'male')}window.addEventListener('message',receive);return()=>window.removeEventListener('message',receive)},[]);
+ useEffect(()=>{function receive(e){if(e.origin!==location.origin||!e.data||e.data.source!=='malachite-avatar-parent'||e.data.type!=='set-gender')return;setGender(e.data.gender==='female'?'female':'male')}window.addEventListener('message',receive);parent.postMessage({source:'malachite-avatar-builder',type:'mounted'},location.origin);return()=>window.removeEventListener('message',receive)},[]);
  function cancel(){parent.postMessage({source:'malachite-avatar-builder',type:'cancel'},location.origin)}
  function save(){if(!config||!canvas.current||!avatarReady)return;const image=canvas.current.snapshot();if(!image){alert('La capture 3D n’a pas pu être créée. Réessaie.');return}parent.postMessage({source:'malachite-avatar-builder',type:'save',config,image},location.origin)}
  function update(next){setConfig(editor.normalize(next))}
