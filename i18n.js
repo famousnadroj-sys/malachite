@@ -104,20 +104,20 @@ var originalSetLang=window.malSetLang;
 if(typeof originalSetLang==='function'){
  window.malSetLang=function(l){originalSetLang(l);apply();};
 }
-window.malAvatarState={skin:'medium',hair:'short',shirt:'rose',style:'classic'};
+window.malAvatarState=Object.assign({skin:'deep',hair:'curly',hairColor:'black',shirt:'blue',gender:'man',beard:'none',glasses:'none',background:'sage',useAsProfilePhoto:true},window.malAvatarState||{});
 var appAvatarSvg=window.malAvatarSvg,appAvatarSet=window.malAvatarSet,appAvatarPreview=window.malAvatarPreview,appSaveAvatar=window.malSaveAvatar;
 window.malAvatarSvg=function(a){return appAvatarSvg?appAvatarSvg(a&&a.config?a.config:a):''};
 window.malAvatarSet=function(k,v){if(appAvatarSet)appAvatarSet(k,v)};
 window.malAvatarPreview=function(){if(appAvatarPreview)appAvatarPreview()};
 window.malSaveAvatar=async function(){if(appSaveAvatar)return appSaveAvatar()};
 var oldCentre=window.centre;
-window.centre=function(){if(window.mine&&window.mine.avatar&&window.mine.avatar.type==='pro-vector')window.malAvatarState=Object.assign({},window.malAvatarState,window.mine.avatar.config||{});return oldCentre?oldCentre():''};
+window.centre=function(){if(window.mine&&window.mine.avatar&&(window.mine.avatar.type==='pro-vector'||window.mine.avatar.type==='pro-photo'))window.malAvatarState=Object.assign({},window.malAvatarState,window.mine.avatar.config||{});return oldCentre?oldCentre():''};
 var originalAv=window.av;
 window.av=function(p){
- var photo=p&&p.photoUrls&&p.photoUrls[0];
+ var photo=p&&p.photoUrls&&p.photoUrls[0],a=p&&p.avatar,c=a&&a.config||{};
+ if(a&&(a.type==='pro-vector'||a.type==='pro-photo')&&c.useAsProfilePhoto!==false)return '<div class="av mal-vector-avatar">'+window.malAvatarSvg(c)+'</div>';
  if(photo)return '<div class="av" style="background-image:url('+String(photo).replace(/["<>]/g,'')+');background-size:cover;background-position:center"></div>';
- var a=p&&p.avatar;
- if(a&&a.type==='pro-vector')return '<div class="av mal-vector-avatar">'+window.malAvatarSvg(a.config)+'</div>';
+ if(a&&(a.type==='pro-vector'||a.type==='pro-photo'))return '<div class="av mal-vector-avatar">'+window.malAvatarSvg(c)+'</div>';
  if(a&&a.type==='vector')return '<div class="av mal-vector-avatar">'+window.malAvatarSvg(a)+'</div>';
  if(a&&a.emoji)return '<div class="av" style="background:'+((/^#[0-9a-f]{6}$/i.test(a.color||''))?a.color:'#F7B7D0')+';display:grid;place-items:center;font-size:30px">'+String(a.emoji).replace(/[&<>"]/g,'')+'</div>';
  return originalAv?originalAv(p):'<div class="av">?</div>';
