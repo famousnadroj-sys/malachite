@@ -155,8 +155,22 @@ Deno.serve(async (req: Request) => {
     });
   } catch (error) {
     const timedOut = error instanceof DOMException && error.name === "TimeoutError";
-    console.error("Gemini transport failure:", timedOut ? "timeout" : "network_error");
-    return json(502, { error: timedOut ? "ai_provider_timeout" : "ai_provider_unreachable" }, origin);
+    const errorName = error instanceof Error ? error.name : "UnknownError";
+    const rawMessage = error instanceof Error ? error.message : String(error);
+    // Keep diagnostics useful while ensuring credentials and query strings are never logged.
+    const safeMessage = rawMessage
+      .replace(/https?:\/\/[^\s]+/gi, "[redacted-url]")
+      .replace(/(key|token|authorization)=?[^\s&]*/gi, "$1=[redacted]")
+      .slice(0, 240);
+    console.error("Gemini transport failure:", JSON.stringify({
+      kind: timedOut ? "timeout" : "network_error",
+      error_name: errorName,
+      message: safeMessage,
+    }));
+    return json(502, {
+      error: timedOut ? "ai_provider_timeout" : "ai_provider_unreachable",
+      diagnostic: { kind: timedOut ? "timeout" : "network_error", error_name: errorName },
+    }, origin);
   }
 
   let result: any;
