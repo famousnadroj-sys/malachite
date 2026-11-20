@@ -65,9 +65,19 @@ if (i18nCheck.status !== 0) {
   process.stderr.write(i18nCheck.stderr || i18nCheck.stdout);
   process.exit(i18nCheck.status || 1);
 }
-for (const item of ['<script src="i18n.js"></script>', 'option value="en"', 'malAvatarSvg(malAvatarState)', "avatar.type==='vector'"]) {
-  if (!html.includes(item)) throw new Error('Personalization requirement missing: ' + item);
+for (const item of ['<script src="i18n.js"></script>', 'option value="en"', 'avatar-builder.html', 'function openMalAvatarBuilder()', "a.type==='humanforge-3d'"]) {
+  if (!html.includes(item)) throw new Error('Personalization/avatar requirement missing: ' + item);
 }
+const avatarBuilder = fs.readFileSync('avatar-builder.html', 'utf8');
+if (!avatarBuilder.includes('HumanEditor') || !avatarBuilder.includes('HumanForge') && !avatarBuilder.includes('humanforge@0.8.1') || !avatarBuilder.includes('malachite-avatar-builder')) {
+  throw new Error('Realistic 3D avatar builder integration is incomplete.');
+}
+const avatarModule = [...avatarBuilder.matchAll(/<script type="module">([\\s\\S]*?)<\\/script>/g)].map((m) => m[1]);
+if (avatarModule.length !== 1) throw new Error('3D avatar builder module is missing.');
+const avatarTemp = path.join(os.tmpdir(), 'malachite-avatar-builder.mjs');
+fs.writeFileSync(avatarTemp, avatarModule[0]);
+const avatarCheck = spawnSync(process.execPath, ['--check', avatarTemp], { encoding: 'utf8' });
+if (avatarCheck.status !== 0) { process.stderr.write(avatarCheck.stderr || avatarCheck.stdout); process.exit(avatarCheck.status || 1); }
 for (const item of ['LANGS', "'Découvrir':'Discover'", 'window.malAvatarSvg', 'window.malSaveAvatar', 'MutationObserver']) {
   if (!i18n.includes(item)) throw new Error('Localization/avatar requirement missing: ' + item);
 }
