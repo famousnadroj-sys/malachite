@@ -199,8 +199,9 @@ for (const item of [
 ]) {
   if (!html.includes(item)) throw new Error('Launch payment requirement missing: ' + item);
 }
-if (!/async function pay\(\)[\s\S]{0,900}from\('paiements'\)\.insert\(\{offre:offer,code:c,operateur:operator\}\)/.test(html)) {
-  throw new Error('Payment submission must preserve offer, reference and selected operator.');
+if (!html.includes("payload={offre:data.offer,code:data.code,operateur:data.operator,receipt_path:receipt.path}") ||
+    !html.includes("sb.from('paiements').insert(payload)")) {
+  throw new Error('Payment submission must preserve offer, reference, operator and private receipt path.');
 }
 if (!html.includes("function aiManagerPreview()") || !html.includes("prototype non activé") || !html.includes("Aucune décision automatique")) {
   throw new Error('AI Manager must remain explicitly marked as inactive until server-side integration is tested.');
