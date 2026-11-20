@@ -88,7 +88,7 @@
    callState={id:id,caller:true,caller_id:me.id,callee_id:target,mode:mode,room:room,status:'pending'};
    overlay(mode==='video'?'Appel vidéo en cours':'Appel audio en cours','<p>Appel envoyé à '+esc((prof(target)||{}).prenom||'ton match')+'. En attente de réponse…</p>','<button class="hangup" onclick="malHangup()">Annuler l’appel</button>',false);
    callState.timeout=setTimeout(async function(){if(callState&&callState.id===id&&callState.status==='pending'){await sb.from('call_sessions').update({status:'expired'}).eq('id',id);finishCall(false);alert('Aucune réponse. Réessaie plus tard.')}},90000);
-  }catch(e){console.error('Appel Malachite',e);alert('Appel impossible : '+(e.message||'erreur inconnue'));if(sessionChannel){sb.removeChannel(sessionChannel);sessionChannel=null}callState=null}
+  }catch(e){console.error('Appel Malachite',e);var em=e&&e.message?e.message:'erreur inconnue';if(em.indexOf('row-level security')>=0||em.indexOf('42501')>=0)em='La base refuse cet appel : vérifie que Premium ou ton Pass Appels est actif et que vous avez un match réciproque avec cette personne.';alert('Appel impossible : '+em);if(sessionChannel){sb.removeChannel(sessionChannel);sessionChannel=null}callState=null}
   finally{callBusy=false}
  }
  async function loadJitsi(){
@@ -162,9 +162,9 @@
     if(premiumCheck.data&&premiumCheck.data.premium_until&&new Date(premiumCheck.data.premium_until).getTime()>Date.now())throw new Error('Les appels audio et vidéo sont déjà inclus dans ton abonnement Premium actif. Tu ne dois pas payer le pass à 1 $.');
    }
    var network=operator?operator.value:'airtel';
-   var duplicate=await sb.from('paiements').select('id,offre,statut').eq('code',code).eq('operateur',network).maybeSingle();
+   var duplicate=await sb.from('paiements').select('id,offre,statut,user_id,operateur').eq('code',code).maybeSingle();
    if(duplicate.error)throw duplicate.error;
-   if(duplicate.data){if(duplicate.data.user_id&&duplicate.data.user_id!==me.id)throw new Error('Cette référence de transaction a déjà été utilisée. Vérifie le code reçu de ton opérateur.');throw new Error('Cette référence a déjà été soumise (demande #'+duplicate.data.id+', statut : '+duplicate.data.statut+'). Consulte le suivi de tes demandes ; ne la soumets pas une deuxième fois.');}
+   if(duplicate.data){if(duplicate.data.user_id!==me.id)throw new Error('Cette référence de transaction a déjà été utilisée. Vérifie le nouveau code reçu de ton opérateur.');throw new Error('Cette référence a déjà été soumise (demande #'+duplicate.data.id+', statut : '+duplicate.data.statut+'). Consulte le suivi de tes demandes ; ne la soumets pas une deuxième fois.');}
    var payload={user_id:me.id,offre:offer.value,code:code,operateur:network,statut:'attente'};
    var r=await sb.from('paiements').insert(payload).select('id,offre,statut,created_at').single();
    if(r.error){if(r.error.code==='23505')throw new Error('Cette référence de transaction a déjà été utilisée. Vérifie que tu as saisi le nouveau code SMS du transfert.');throw r.error;}
