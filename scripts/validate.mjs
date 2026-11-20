@@ -185,3 +185,27 @@ if (!html.includes('oninput="setTyping()"') || !html.includes('class="chat-typin
 if (!html.includes('class="conv-avatar" onclick="event.stopPropagation();viewProf')) throw new Error('Conversation avatar must open the immersive member profile.');
 if (!html.includes('async function viewProf(id,startIndex)') || !html.includes("window.malOpenProfile=async function(id,startIndex)") || !html.includes("layer.className='mal-profile-viewer'")) throw new Error('Immersive profile viewer must remain available.');
 console.log('Malachite frontend, PWA, private media, SQL policy and Admin security checks passed.');
+
+
+// Malachite launch/payment guardrails (static checks; not a live payment test).
+const paymentSection = html.slice(html.indexOf("function offres()"), html.indexOf("function blockedPanel()"));
+for (const item of [
+  "Premium — 2 USD / mois",
+  "Boost — 0,50 USD / 24 h",
+  "+243 993 315 532",
+  "+243 848 775 992",
+  "operateur:operator",
+  "Une capture d’écran seule ne déclenche jamais Premium.",
+  "Ne communique jamais ton code PIN ni ton OTP.",
+]) {
+  if (!html.includes(item)) throw new Error('Launch payment requirement missing: ' + item);
+}
+if (!/async function pay\(\)[\s\S]{0,900}from\('paiements'\)\.insert\(\{offre:offer,code:c,operateur:operator\}\)/.test(html)) {
+  throw new Error('Payment submission must preserve offer, reference and selected operator.');
+}
+if (!html.includes("function aiManagerPreview()") || !html.includes("prototype non activé") || !html.includes("Aucune décision automatique")) {
+  throw new Error('AI Manager must remain explicitly marked as inactive until server-side integration is tested.');
+}
+if (paymentSection && paymentSection.includes("Premium — 3 $")) {
+  throw new Error('Legacy Premium price of 3 USD remains in the offers section.');
+}
