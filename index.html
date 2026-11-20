@@ -1279,7 +1279,7 @@ function sub(){
  if(msgChannel){sb.removeChannel(msgChannel);msgChannel=null}
  subOn=true;subUserId=me.id;msgRealtimeReady=false;
  if(!backgroundTimersStarted){
-  backgroundTimersStarted=true;setInterval(poll,30000);poll();if(tab!=='chat')matchPoll();setInterval(function(){if(tab!=='chat')matchPoll()},60000);initSW();setInterval(beat,60000);beat();setInterval(cupidPass,25000);document.addEventListener('visibilitychange',function(){if(document.hidden){beat(true);if(presenceChannel)presenceChannel.untrack().catch(function(e){console.warn('Arrêt de présence',e)})}else{trackPresence();beat();syncIncomingDeliveries().catch(function(e){console.warn('Synchronisation après retour',e)});if(tab==='chat'&&open)markIncomingReceipts(msgs,true).catch(function(e){console.warn('Lecture après retour au premier plan',e)})}});window.addEventListener('pagehide',function(){beat(true)});window.addEventListener('online',function(){trackPresence();syncIncomingDeliveries().catch(function(e){console.warn('Synchronisation après reconnexion',e)});if(tab==='chat'&&open)markIncomingReceipts(msgs,true).catch(function(e){console.warn('Lecture après reconnexion',e)});});
+  backgroundTimersStarted=true;setInterval(poll,30000);poll();if(tab!=='chat')matchPoll();setInterval(function(){if(tab!=='chat')matchPoll()},60000);initSW();setInterval(beat,60000);beat();setInterval(cupidPass,25000);document.addEventListener('visibilitychange',function(){if(document.hidden){beat(true);if(presenceChannel)presenceChannel.untrack().catch(function(e){console.warn('Arrêt de présence',e)})}else{trackPresence();beat();poll();matchPoll();syncIncomingDeliveries().catch(function(e){console.warn('Synchronisation après retour',e)});if(tab==='chat'&&open)markIncomingReceipts(msgs,true).catch(function(e){console.warn('Lecture après retour au premier plan',e)})}});window.addEventListener('pagehide',function(){beat(true)});window.addEventListener('online',function(){trackPresence();syncIncomingDeliveries().catch(function(e){console.warn('Synchronisation après reconnexion',e)});if(tab==='chat'&&open)markIncomingReceipts(msgs,true).catch(function(e){console.warn('Lecture après reconnexion',e)});});
  }
  startPresence();
  msgChannel=sb.channel('msgs-'+me.id)
@@ -1329,28 +1329,57 @@ function notify(t,b,dest,id){toast(t,b,dest,id);try{if(navigator.vibrate)navigat
 function initSW(){if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').then(function(r){swr=r}).catch(function(){})}
 function askNotif(){if(!('Notification' in window)){alert('Ton navigateur ne gère pas les notifications.');return}Notification.requestPermission().then(function(){draw(true)})}
 function rdvEvents(){var cur={},now=Date.now();rdvs.forEach(function(x){cur[x.id]=x.statut});if(rseen)rdvs.forEach(function(x){if(rseen[x.id]===undefined&&x.a==me.id)notify('📅 Invitation à un rendez-vous',((prof(x.de)||{}).prenom||'Quelqu’un')+' · '+x.lieu,'rdv');else if(rseen[x.id]==='attente'&&x.statut=='confirme'&&x.de==me.id)notify('✅ Rendez-vous confirmé',((prof(x.a)||{}).prenom||'Ton match')+' a confirmé','rdv')});rseen=cur;rdvs.forEach(function(x){var t=new Date(x.quand)-now;if(x.statut=='confirme'&&t>0&&t<3*36e5&&!notified['r'+x.id]){notified['r'+x.id]=1;notify('🔔 Rappel : rendez-vous bientôt','Dans '+Math.round(t/6e4)+' min · '+x.lieu,'rdv')}})}
+var pollBusy=false,rdvPolledAt=0;
 async function poll(){
- if(!me)return;
- if(tab!=='chat'){
-  var query=sb.from('messages').select('id,de,a,texte,created_at,media_type');
-  query=pollInit?query.gt('id',lastMsgId).order('id',{ascending:true}).limit(100):query.order('id',{ascending:false}).limit(200);
-  var r=await query;
-  if(!r.error){
+ if(!me||document.hidden||pollBusy)return;
+ pollBusy=true;
+ try{
+  var messageTask=null;
+  if(tab!=='chat'){
+   var query=sb.from('messages').select('id,de,a,texte,created_at,media_type');
+   query=pollInit?query.gt('id',lastMsgId).order('id',{ascending:true}).limit(100):query.order('id',{ascending:false}).limit(200);
+   messageTask=query;
+  }
+  var shouldRefreshRdv=tab==='rdv'||Date.now()-rdvPolledAt>120000;
+  var tasks=await Promise.all([messageTask||Promise.resolve(null),shouldRefreshRdv?loadRdv():Promise.resolve(null)]);
+  if(!me||document.hidden)return;
+  var r=tasks[0];
+  if(r&&!r.error){
    var batch=r.data||[];
    if(pollInit)batch.filter(function(m){return m.a===me.id&&m.de!==me.id}).forEach(function(m){notify('💬 '+((prof(m.de)||{}).prenom||'Nouveau message'),m.media_type==='video'?'🎬 Vidéo':m.media_type==='audio'?'🎤 Message vocal':String(m.texte||'Nouveau message').slice(0,80),'chat',m.de)});
-   allMsgs=batch.concat(allMsgs||[]).filter(function(m,i,arr){return arr.findIndex(function(x){return String(x.id)===String(m.id)})===i}).slice(0,200);
-   var mx=batch.reduce(function(a,m){return Math.max(a,Number(m.id)||0)},lastMsgId);lastMsgId=Math.max(lastMsgId,mx);pollInit=true;
+   var known=Object.create(null),merged=[];
+   (batch.concat(allMsgs||[])).forEach(function(m){var key=String(m.id);if(!known[key]){known[key]=1;merged.push(m)}});
+   allMsgs=merged.slice(0,200);
+   var mx=batch.reduce(function(a,m){return Math.max(a,Number(m.id)||0)},lastMsgId);
+   lastMsgId=Math.max(lastMsgId,mx);pollInit=true;
   }
- }
- await loadRdv();rdvEvents();
- var ids=tab==='chat'?(open?[open]:convs.map(function(x){return x.o}).filter(Boolean)):profs.map(function(x){return x.id}).filter(Boolean);
- if(ids.length){
-  var q=await sb.from('profiles').select('id,derniere_vue').in('id',Array.from(new Set(ids)).slice(0,100));
-  (q.data||[]).forEach(function(x){var pp=prof(x.id);if(pp)pp.derniere_vue=x.derniere_vue});
- }
- var e=$('pst');if(e&&open)e.innerHTML=presence(prof(open));updNav();
+  if(shouldRefreshRdv)rdvPolledAt=Date.now();
+  rdvEvents();
+  var ids=tab==='chat'?(open?[open]:convs.map(function(x){return x.o}).filter(Boolean)):profs.map(function(x){return x.id}).filter(Boolean);
+  if(ids.length&&!presenceReady){
+   var q=await sb.from('profiles').select('id,derniere_vue').in('id',Array.from(new Set(ids)).slice(0,100));
+   (q.data||[]).forEach(function(x){var pp=prof(x.id);if(pp)pp.derniere_vue=x.derniere_vue});
+  }
+  var e=$('pst');if(e&&open)e.innerHTML=presence(prof(open));updNav();
+ }catch(error){console.warn('Synchronisation périodique Malachite',error)}
+ finally{pollBusy=false}
 }
-async function matchPoll(){var ids=Object.keys(ans).filter(function(k){return ans[k]===true}).slice(0,12),cur={};for(var i=0;i<ids.length;i++){var m=await sb.rpc('est_match',{p_autre:ids[i]});if(m.data){cur[ids[i]]=1;if(mset&&!mset[ids[i]])notify('💘 C’est un match !',((prof(ids[i])||{}).prenom||'Quelqu’un')+' t’aime aussi','chat',ids[i])}}mset=cur}
+var matchPollBusy=false;
+async function matchPoll(){
+ if(!me||document.hidden||matchPollBusy)return;
+ matchPollBusy=true;
+ try{
+  var ids=Object.keys(ans).filter(function(k){return ans[k]===true}).slice(0,12);
+  var results=await Promise.all(ids.map(function(id){return sb.rpc('est_match',{p_autre:id})}));
+  if(!me||document.hidden)return;
+  var cur={};
+  results.forEach(function(result,index){
+   if(result&&!result.error&&result.data){var id=ids[index];cur[id]=1;if(mset&&!mset[id])notify('💘 C’est un match !',((prof(id)||{}).prenom||'Quelqu’un')+' t’aime aussi','chat',id)}
+  });
+  mset=cur;
+ }catch(error){console.warn('Vérification des matchs Malachite',error)}
+ finally{matchPollBusy=false}
+}
 function ago(t){var d=new Date(t);return d.toDateString()==new Date().toDateString()?d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})}
 function chat(){if(open)return thread();return '<h2>Messages</h2><div class="list">'+(convs.length?convs.map(function(c){var p=prof(c.o)||{},u=unr(c.o);return '<button class="conv'+(u?' un':'')+'" onclick="openConv(\''+c.o+'\')"><span class="conv-avatar" onclick="event.stopPropagation();viewProf(\''+c.o+'\')" role="button" aria-label="Voir le profil de '+esc(p.prenom||'ce membre')+'">'+av(p)+'</span><div class="cb2"><div class="cn"><b>'+esc(p.prenom||'Membre')+(online(p)?'<i class="dot"></i>':'')+'</b><span class="ct">'+ago(c.at)+'</span></div><div class="cm">'+(c.me?'Toi : ':'')+esc(c.t).slice(0,60)+(u?'<em class="bd2">'+u+'</em>':'')+'</div></div></button>'}).join(''):'<div class="box" style="text-align:center">Aucune conversation pour l’instant 💬<div class="note">Aime un profil dans Découvrir, puis écris-lui !</div></div>')+'</div>'}
 async function call(){alert('Les appels vidéo sont temporairement désactivés pour protéger la confidentialité.');}
@@ -1372,7 +1401,15 @@ function presence(p){
  else label='le '+t.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' à '+t.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
  return '<span class="off">Hors ligne · '+label+'</span>';
 }
-function refreshPresenceUI(){var state=presenceChannel&&presenceChannel.presenceState?presenceChannel.presenceState():{};onlineIds=Object.create(null);Object.keys(state||{}).forEach(function(key){(state[key]||[]).forEach(function(meta){var id=meta&&meta.user_id||key;if(id)onlineIds[id]=true})});presenceReady=true;var profileNode=document.querySelector('.mal-profile-presence');if(profileNode)profileNode.innerHTML=presence(malProfileViewerUser||prof(open)||{});if(tab==='chat'&&open){var node=$('pst');if(node)node.innerHTML=presence(prof(open)||{})}else if(tab==='chat'||tab==='home'||tab==='search')draw(true)}
+function refreshPresenceUI(){
+ var state=presenceChannel&&presenceChannel.presenceState?presenceChannel.presenceState():{};
+ onlineIds=Object.create(null);
+ Object.keys(state||{}).forEach(function(key){(state[key]||[]).forEach(function(meta){var id=meta&&meta.user_id||key;if(id)onlineIds[id]=true})});
+ presenceReady=true;
+ var profileNode=document.querySelector('.mal-profile-presence');
+ if(profileNode)profileNode.innerHTML=presence(malProfileViewerUser||prof(open)||{});
+ if(tab==='chat'&&open){var node=$('pst');if(node)node.innerHTML=presence(prof(open)||{})}
+}
 function trackPresence(){if(!presenceChannel||!me||document.hidden)return;presenceChannel.track({user_id:me.id,online:true}).catch(function(error){console.warn('Présence Malachite non publiée',error)})}
 function startPresence(){if(!me)return;if(presenceChannel&&presenceUserId===me.id)return;if(presenceChannel){sb.removeChannel(presenceChannel);presenceChannel=null}presenceUserId=me.id;presenceReady=false;onlineIds=Object.create(null);presenceChannel=sb.channel('malachite-online-v1').on('presence',{event:'sync'},refreshPresenceUI).on('presence',{event:'join'},refreshPresenceUI).on('presence',{event:'leave'},refreshPresenceUI).subscribe(function(status,error){if(status==='SUBSCRIBED'){refreshPresenceUI();trackPresence()}else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED')console.warn('Canal de présence indisponible : '+status,error||'')})}
 function stopPresence(){if(presenceChannel){sb.removeChannel(presenceChannel);presenceChannel=null}presenceUserId=null;presenceReady=false;onlineIds=Object.create(null)}
