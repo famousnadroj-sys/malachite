@@ -115,7 +115,7 @@ if (!html.includes("filter:'a=eq.'+me.id") || !html.includes("filter:'de=eq.'+me
 if (!html.includes("preload=\"none\"")) throw new Error('Chat videos must not preload all media data.');
 if (!html.includes('async function loadOlderMessages()')) throw new Error('Chat history must load older messages incrementally.');
 if (!html.includes("setInterval(poll,30000)")) throw new Error('Background message polling must not overload the chat view.');
-if (!html.includes("if(tab!=='chat'){var r=await sb.from('messages')")) throw new Error('Realtime chat must avoid duplicate full message polling.');
+if (!html.includes("if(tab!=='chat'){\n   var query=sb.from('messages')") || !html.includes('messageTask=query')) throw new Error('Realtime chat must avoid duplicate full message polling.');
 if (!html.includes("chatLoadBusyKeys[key]")) throw new Error('Opening another chat must not wait for a different conversation request.');
 if (!html.includes("appendChatRows([temp])") || !html.includes("pendingNode.replaceWith(holder.firstElementChild)")) throw new Error('Sending text must not redraw and interrupt media playback.');
 if (!html.includes("String(m.display_url).indexOf('blob:')===0")) throw new Error('Uploaded local media previews must still be replaced with private signed URLs.');
