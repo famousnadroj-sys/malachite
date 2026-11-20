@@ -45,7 +45,7 @@ function App(){
  if(!pkg||!editor||!config||!assetsReady)return h('div',{className:'loading'},h('div',null,error?'Impossible de charger les modèles 3D : '+error.message:'Préparation du modèle humain 3D…'),h('div',{style:{height:'8px',background:'#eee',borderRadius:'99px',overflow:'hidden',margin:'14px auto',maxWidth:'280px'}},h('div',{style:{height:'100%',width:progress.total?Math.round(progress.done/progress.total*100)+'%':'8%',background:'#b72e63',transition:'width .2s'}})),h('div',{style:{fontSize:'12px'}},progress.total?progress.done+' / '+progress.total+' éléments chargés':'Connexion aux ressources 3D…'));
  const section=editor.sections[Math.min(sectionIndex,editor.sections.length-1)];
  const catalogControl=(key)=>catalog.find(item=>item.key===key);
- const catalogBlock=(key,title,mode)=>{const attr=catalogControl(key);if(!attr)return h('div',{className:'block',key},h('span',{className:'block-title'},title),h('div',{className:'hint'},'Options indisponibles dans le catalogue 3D actuel'));const value=attr.value(config);return h('div',{className:'block',key},h('span',{className:'block-title'},title),h('div',{className:mode==='colors'?'swatches':'tiles'},attr.options.map(opt=>h('button',{key:opt.id??'none',type:'button',className:(mode==='colors'?'swatch':'tile')+((opt.id===value)?' active':''),title:opt.label,'aria-label':opt.label,style:mode==='colors'?{background:opt.swatch||'#ddd'}:undefined,onClick:()=>update(attr.apply(config,opt.id))},mode==='colors'?null:opt.preview?h('img',{src:opt.preview,alt:'',loading:'lazy'}):h('span',null,opt.label)))))};
+ const catalogBlock=(key,title,mode)=>{const attr=catalogControl(key);if(!attr)return h('div',{className:'block',key},h('span',{className:'block-title'},title),h('div',{className:'hint'},'Options indisponibles dans le catalogue 3D actuel'));const value=attr.value(config);const choices=key==='hair.style'?[...attr.options].sort((x,y)=>{const rank=id=>({'afro01':0,'braid01':1,'short01':2,'short02':3,'short03':4,'short04':5,'culturalibre_hair_01':6,'culturalibre_hair_02':7}[id]??20);return rank(x.id)-rank(y.id)}):attr.options;return h('div',{className:'block',key},h('span',{className:'block-title'},title),h('div',{className:mode==='colors'?'swatches':'tiles'},choices.map(opt=>h('button',{key:opt.id??'none',type:'button',className:(mode==='colors'?'swatch':'tile')+((opt.id===value)?' active':''),title:opt.label,'aria-label':opt.label,style:mode==='colors'?{background:opt.swatch||'#ddd'}:undefined,onClick:()=>update(attr.apply(config,opt.id))},mode==='colors'?null:opt.preview?h('img',{src:opt.preview,alt:'',loading:'lazy'}):h('span',null,opt.label)))))};
  const customContent=customTab==='tenues'?[catalogBlock('outfit.style','Choisir un vêtement','items'),catalogBlock('outfit.color','Couleur du vêtement','colors'),catalogBlock('headwear.style','Accessoires de tête','items'),catalogBlock('headwear.color','Couleur de l’accessoire','colors'),catalogBlock('shoes.style','Chaussures','items')]:customTab==='peau'?[catalogBlock('skin.tone','Choisir une couleur de peau','colors')]:customTab==='cheveux'?[catalogBlock('hair.style','Choisir une coupe','items'),catalogBlock('hair.color','Couleur des cheveux','colors')]:null;
  const expressions={naturel:{},sourire:{mouthSmile:.8},clinOeil:{eyeBlinkLeft:1},surpris:{jawOpen:.65,browInnerUp:.7},triste:{mouthFrown:.65,browInnerUp:.45},grimace:{noseSneerLeft:.8,noseSneerRight:.8,mouthPress:.55,eyeSquintLeft:.25,eyeSquintRight:.25}};
  function pose(next){
@@ -61,35 +61,30 @@ function App(){
   const rotate=(name,axis,angle)=>{
     const b=byName.get('mixamorig:'+name),q=base.get('mixamorig:'+name);
     if(!b||!q)return;
-    const delta=new Quaternion().setFromAxisAngle(axis,angle);
-    b.quaternion.copy(q).multiply(delta);
+    b.quaternion.copy(q).multiply(new Quaternion().setFromAxisAngle(axis,angle));
   };
-  const arm=(side,raise,bend,wave=0)=>{
-    rotate(side+'Arm',new Vector3(0,0,1),raise);
-    rotate(side+'ForeArm',new Vector3(0,0,1),bend);
-    rotate(side+'Hand',new Vector3(1,0,0),wave);
-  };
-  const handPose=(side,kind)=>{
+  const arm=(side,raise,bend)=>{rotate(side+'Arm',new Vector3(0,0,1),raise);rotate(side+'ForeArm',new Vector3(0,0,1),bend)};
+  const fingers=(side,kind)=>{
     const sign=side==='Left'?1:-1;
-    const fingers=['Index','Middle','Ring','Pinky'];
-    for(const finger of fingers){
-      const curl=kind==='victory'?(finger==='Ring'||finger==='Pinky'?sign*.82:0):kind==='thumbs'?(finger==='Index'||finger==='Middle'||finger==='Ring'||finger==='Pinky'?sign*.95:0):0;
+    for(const finger of ['Index','Middle','Ring','Pinky']){
+      const curl=kind==='victory'?(finger==='Ring'||finger==='Pinky'?sign*.72:0):kind==='thumbs'?(finger==='Index'||finger==='Middle'||finger==='Ring'||finger==='Pinky'?sign*.9:0):0;
       for(let n=1;n<=3;n++)rotate(side+'Hand'+finger+n,new Vector3(0,0,1),curl);
     }
     if(kind==='thumbs')for(let n=1;n<=3;n++)rotate(side+'HandThumb'+n,new Vector3(0,0,1),-sign*.55);
   };
   reset();
   if(next==='salut'){
-    arm('Left',1.35,-1.45);
-    handPose('Left','open');
-    const wave=()=>{const t=performance.now()/260;rotate('LeftHand',new Vector3(1,0,0),Math.sin(t)*.38);avatar.group.updateMatrixWorld(true);canvas.current?.render();gestureFrame.current=requestAnimationFrame(wave)};
+    // Un seul bras, coude plié : la main reste près de la tempe et le visage dégagé.
+    arm('Left',.48,-1.05);
+    const wave=()=>{const t=performance.now()/360;rotate('LeftHand',new Vector3(1,0,0),Math.sin(t)*.2);avatar.group.updateMatrixWorld(true);canvas.current?.render();gestureFrame.current=requestAnimationFrame(wave)};
     wave();
   }else if(next==='victory'){
-    arm('Left',1.35,-1.35);arm('Right',-1.35,1.35);
-    handPose('Left','victory');handPose('Right','victory');
+    // Deux coudes pliés, mains proches des joues au lieu d'écarter les bras.
+    arm('Left',.42,-1.05);arm('Right',-.42,1.05);
+    fingers('Left','victory');fingers('Right','victory');
   }else if(next==='super'){
-    arm('Left',1.05,-1.55);arm('Right',-1.05,1.55);
-    handPose('Left','thumbs');handPose('Right','thumbs');
+    arm('Left',.38,-1.0);arm('Right',-.38,1.0);
+    fingers('Left','thumbs');fingers('Right','thumbs');
   }
   avatar.group.updateMatrixWorld(true);
   canvas.current?.render();
@@ -99,7 +94,7 @@ function App(){
   h('div',{className:'gender'},h('button',{className:gender==='male'?'active':'',onClick:()=>{setAvatarReady(false);setGender('male')}},'Homme'),h('button',{className:gender==='female'?'active':'',onClick:()=>{setAvatarReady(false);setGender('female')}},'Femme')),
   h('div',{className:'editor'},
    h('div',{className:'stage'},h(HumanCanvas,{ref:canvas,pkg,config,framing,expressions:expressions[expression]||{},background:'#eee9e7',textureSize:'512',rotatable:true,style:{position:'absolute',inset:0,width:'100%',height:'100%'},onReady:()=>{setAvatarReady(true);const avatar=canvas.current?.avatar;if(avatar&&!performanceConfigured.current){performanceConfigured.current=true;avatar.normalMaps=false;avatar.anisotropy=1;avatar.reloadTextures().catch(()=>{});}poseBase.current=null;if(gesture!=='aucun')requestAnimationFrame(()=>pose(gesture));parent.postMessage({source:'malachite-avatar-builder',type:'ready'},location.origin)}}),h('div',{className:'toolbar'},h('button',{className:framing==='face'?'active':'',onClick:()=>setFraming('face')},'Visage'),h('button',{className:framing==='body'?'active':'',onClick:()=>setFraming('body')},'Corps'))),
-   h('div',{className:'panel'},h('div',{className:'tabs'},[['tenues','Vêtements'],['peau','Couleur de peau'],['cheveux','Coiffure']].map(([id,label])=>h('button',{key:id,className:customTab===id?'active':'',onClick:()=>setCustomTab(id)},label)),h('button',{onClick:()=>setCustomTab('autres'),className:customTab==='autres'?'active':''},'Visage & corps')),h('div',{className:'controls'},customTab==='autres'?h(React.Fragment,null,h('div',{className:'tabs'},editor.sections.map((item,i)=>h('button',{key:item.id,className:i===sectionIndex?'active':'',onClick:()=>setSectionIndex(i)},item.label))),editor.sections[Math.min(sectionIndex,editor.sections.length-1)].controls.map(control)):customContent),h('div',{className:'exprbar'},[['naturel','Naturel'],['sourire','Sourire'],['clinOeil','Clin d’œil'],['surpris','Surpris'],['triste','Triste'],['grimace','Grimace']].map(([id,label])=>h('button',{key:id,className:expression===id?'active':'',onClick:()=>setExpression(id)},label))),h('div',{className:'gesturebar'},[['aucun','Repos'],['salut','Salut 👋'],['victory','Victoire ✌️'],['super','Super 👍']].map(([id,label])=>h('button',{key:id,className:gesture===id?'active':'',onClick:()=>pose(id)},label))),h('button',{className:'save',onClick:save,disabled:!avatarReady,style:{opacity:avatarReady?1:.55}},avatarReady?'Appliquer sur mon profil':'Préparation du modèle 3D…'))
+   h('div',{className:'panel'},h('div',{className:'tabs'},[['tenues','Vêtements'],['peau','Couleur de peau'],['cheveux','Coiffure']].map(([id,label])=>h('button',{key:id,className:customTab===id?'active':'',onClick:()=>setCustomTab(id)},label)),h('button',{onClick:()=>setCustomTab('autres'),className:customTab==='autres'?'active':''},'Visage & corps')),h('div',{className:'controls'},customTab==='autres'?h(React.Fragment,null,h('div',{className:'tabs'},editor.sections.map((item,i)=>h('button',{key:item.id,className:i===sectionIndex?'active':'',onClick:()=>setSectionIndex(i)},item.label))),editor.sections[Math.min(sectionIndex,editor.sections.length-1)].controls.map(control)):customContent),h('div',{className:'exprbar'},[['naturel','Naturel'],['sourire','Sourire'],['clinOeil','Clin d’œil'],['surpris','Surpris'],['triste','Triste'],['grimace','Grimace']].map(([id,label])=>h('button',{key:id,className:expression===id?'active':'',onClick:()=>setExpression(id)},label))),h('div',{className:'gesturebar'},[['aucun','Repos'],['salut','Salut près du visage 👋'],['victory','V près du visage ✌️'],['super','Pouces levés 👍']].map(([id,label])=>h('button',{key:id,className:gesture===id?'active':'',onClick:()=>pose(id)},label))),h('button',{className:'save',onClick:save,disabled:!avatarReady,style:{opacity:avatarReady?1:.55}},avatarReady?'Appliquer sur mon profil':'Préparation du modèle 3D…'))
   )
  );
 }
