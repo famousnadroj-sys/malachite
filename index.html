@@ -631,7 +631,27 @@ async function rep(id){var motif=prompt('Pourquoi souhaites-tu signaler ce profi
 function others(){return profs.filter(function(p){return p.id!=me.id&&blocked.indexOf(p.id)<0}).sort(function(a,b){return (on((st[b.id]||{}).boost_until)?1:0)-(on((st[a.id]||{}).boost_until)?1:0)})}
 function storagePath(bucket,value){if(!value)return '';var marker='/storage/v1/object/public/'+bucket+'/';var i=String(value).indexOf(marker);if(i>=0)return decodeURIComponent(String(value).slice(i+marker.length).split('?')[0]);return String(value)}
 async function signedUrl(bucket,path,download){if(!path)return '';var r=download?await sb.storage.from(bucket).createSignedUrl(path,3600,{download:true}):await sb.storage.from(bucket).createSignedUrl(path,3600);return r.error?'':r.data.signedUrl}
-async function resolveProfilePhotos(p){p.photoUrls=[];for(var i=0;i<(p.photos||[]).length;i++){var raw=p.photos[i],str=String(raw),bucket=str.indexOf('/storage/v1/object/public/photos/')>=0?'photos':'profile-photos';if(str.indexOf('/storage/v1/object/public/profile-photos/')>=0)bucket='profile-photos';var path=storagePath(bucket,raw),u=await signedUrl(bucket,path);if(u)p.photoUrls.push(u)}}
+var profilePhotoUrlCache=Object.create(null);
+async function resolveProfilePhotos(p){return resolveAllProfilePhotos([p])}
+async function resolveAllProfilePhotos(list){
+ var groups=Object.create(null),now=Date.now();
+ (list||[]).forEach(function(p){p.photoUrls=[];(p.photos||[]).forEach(function(raw,index){
+  if(!raw)return;var str=String(raw),bucket=str.indexOf('/storage/v1/object/public/photos/')>=0?'photos':'profile-photos';
+  if(str.indexOf('/storage/v1/object/public/profile-photos/')>=0)bucket='profile-photos';
+  var path=storagePath(bucket,raw),key=bucket+'|'+path,cached=profilePhotoUrlCache[key];
+  if(cached&&cached.expiresAt>now+30000){p.photoUrls[index]=cached.url;return}
+  if(!groups[bucket])groups[bucket]={};if(!groups[bucket][path])groups[bucket][path]=[];groups[bucket][path].push({p:p,index:index,key:key});
+ })});
+ await Promise.all(Object.keys(groups).map(async function(bucket){
+  var paths=Object.keys(groups[bucket]);if(!paths.length)return;
+  try{var r=await sb.storage.from(bucket).createSignedUrls(paths,3600);if(r.error)throw r.error;
+   (r.data||[]).forEach(function(item,i){var path=item.path||paths[i],url=item.signedUrl||'';(groups[bucket][path]||[]).forEach(function(ref){if(url){ref.p.photoUrls[ref.index]=url;profilePhotoUrlCache[ref.key]={url:url,expiresAt:now+3500000}}})});
+  }catch(e){console.warn('Chargement groupé des photos Malachite ('+bucket+')',e)}
+ }));
+ (list||[]).forEach(function(p){p.photoUrls=(p.photoUrls||[]).filter(Boolean)});
+ (list||[]).slice(0,8).forEach(function(p){if(p.photoUrls&&p.photoUrls[0]){var img=new Image();img.decoding='async';img.src=p.photoUrls[0]}});
+ return list;
+}
 function messageMediaLocation(m){
  var raw=String(m.media_url||''),bucket='chat-media',path=raw;
  if(raw.indexOf('/storage/v1/object/public/photos/')>=0){bucket='photos';path=storagePath(bucket,raw)}
@@ -792,7 +812,7 @@ async function load(){
  loadedUid=uid;
  // Do not hold the profile screen while discovery, messages and secondary data load.
  var background=(async function(){
-  var othersPhotos=profs.filter(function(p){return p.id!==uid}).map(resolveProfilePhotos);
+  var othersPhotos=resolveAllProfilePhotos(profs);
   var tasks=await Promise.all([
    sb.rpc('blocked_user_ids'),
    sb.rpc('my_blocked_profiles'),
