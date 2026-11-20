@@ -12,25 +12,40 @@
   return null;
  }
  function writePhotoCache(key,value){photoCache[key]=value;try{localStorage.setItem('mal_photo_cache:'+key,JSON.stringify(value))}catch(e){}}
- async function resolveProfilePhotosFast(p){
-  if(!p)return p;
-  var photos=(p.photos||[]).filter(Boolean),items=photos.map(function(raw){
-   var s=String(raw),bucket=s.indexOf('/storage/v1/object/public/photos/')>=0?'photos':'profile-photos';
-   var path=storagePath(bucket,raw),key=bucket+'|'+path;return {bucket:bucket,path:path,key:key};
+ async function resolveProfilesPhotosFast(list){
+  list=list||[];
+  var groups=Object.create(null),resolved=Object.create(null),refs=[],now=Date.now();
+  list.forEach(function(p){
+   if(!p)return;p.photoUrls=[];
+   (p.photos||[]).filter(Boolean).forEach(function(raw,index){
+    var s=String(raw),bucket=s.indexOf('/storage/v1/object/public/photos/')>=0?'photos':'profile-photos';
+    var path=storagePath(bucket,raw),key=bucket+'|'+path,item={p:p,index:index,key:key,bucket:bucket,path:path};
+    refs.push(item);
+    var cached=readPhotoCache(key,now);
+    if(cached)resolved[key]=cached.url;
+    else{if(!groups[bucket])groups[bucket]=Object.create(null);if(!groups[bucket][path])groups[bucket][path]=[];groups[bucket][path].push(item)}
+   });
   });
-  var byBucket=Object.create(null);items.forEach(function(x){if(!byBucket[x.bucket])byBucket[x.bucket]=[];byBucket[x.bucket].push(x)});
-  var resolved=Object.create(null),now=Date.now();
-  await Promise.all(Object.keys(byBucket).map(async function(bucket){
-   var missing=byBucket[bucket].filter(function(x){var v=readPhotoCache(x.key,now);if(v){resolved[x.key]=v.url;return false}return true});
-   if(!missing.length)return;
-   var paths=Array.from(new Set(missing.map(function(x){return x.path})));
-   try{var r=await sb.storage.from(bucket).createSignedUrls(paths,3600);if(r.error)throw r.error;
-    (r.data||[]).forEach(function(v,i){var path=v.path||paths[i],url=v.signedUrl||'';if(url){var key=bucket+'|'+path;resolved[key]=url;writePhotoCache(key,{url:url,exp:now+3500000})}});
-   }catch(e){console.warn('Photos profil: signature groupée impossible',e)}
+  await Promise.all(Object.keys(groups).map(async function(bucket){
+   var paths=Object.keys(groups[bucket]);
+   for(var offset=0;offset<paths.length;offset+=100){
+    var batch=paths.slice(offset,offset+100);
+    try{
+     var result=await sb.storage.from(bucket).createSignedUrls(batch,3600);
+     if(result.error)throw result.error;
+     (result.data||[]).forEach(function(value,index){
+      var path=value.path||batch[index],url=value.signedUrl||'';
+      if(!url)return;
+      var key=bucket+'|'+path;resolved[key]=url;writePhotoCache(key,{url:url,exp:now+3500000});
+     });
+    }catch(error){console.warn('Photos profil: signature groupée impossible',error)}
+   }
   }));
-  p.photoUrls=items.map(function(x){return resolved[x.key]||''}).filter(Boolean);
-  return p;
+  refs.forEach(function(item){var url=resolved[item.key];if(url)item.p.photoUrls.push(url)});
+  return list;
  }
+ async function resolveProfilePhotosFast(p){if(!p)return p;await resolveProfilesPhotosFast([p]);return p;}
+ window.resolveProfilePhotosBatch=resolveProfilesPhotosFast;
  window.resolveProfilePhotos=resolveProfilePhotosFast;
  if(typeof resolveProfilePhotos==='function')resolveProfilePhotos=resolveProfilePhotosFast;
 
