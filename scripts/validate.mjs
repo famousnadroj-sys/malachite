@@ -188,7 +188,6 @@ console.log('Malachite frontend, PWA, private media, SQL policy and Admin securi
 
 
 // Malachite launch/payment guardrails (static checks; not a live payment test).
-const paymentSection = html.slice(html.indexOf("function offres()"), html.indexOf("function blockedPanel()"));
 for (const item of [
   "Premium — 2 USD / mois",
   "Boost — 0,50 USD / 24 h",
@@ -206,6 +205,9 @@ if (!/async function pay\(\)[\s\S]{0,900}from\('paiements'\)\.insert\(\{offre:of
 if (!html.includes("function aiManagerPreview()") || !html.includes("prototype non activé") || !html.includes("Aucune décision automatique")) {
   throw new Error('AI Manager must remain explicitly marked as inactive until server-side integration is tested.');
 }
-if (paymentSection && paymentSection.includes("Premium — 3 $")) {
-  throw new Error('Legacy Premium price of 3 USD remains in the offers section.');
+if (html.includes("Premium — 3 $")) {
+  throw new Error('Legacy Premium price of 3 USD remains anywhere in the frontend.');
+}
+if (!html.includes("Premium — 2 USD / mois")) {
+  throw new Error('The active Premium price must be 2 USD per month.');
 }
