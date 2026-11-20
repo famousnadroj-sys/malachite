@@ -50,3 +50,47 @@ where (n.nspname = 'public' and p.proname in (
     'my_blocked_profiles','traiter_paiement','is_blocked_with'
   ))
 order by n.nspname, p.proname;
+
+
+-- 6) Fail closed if any public application table loses RLS or anon gains table grants.
+do $$
+begin
+  if exists (
+    select 1 from pg_class c join pg_namespace n on n.oid=c.relnamespace
+    where n.nspname='public' and c.relkind='r' and not c.relrowsecurity
+  ) then
+    raise exception 'public_table_without_rls';
+  end if;
+
+  if exists (
+    select 1 from information_schema.role_table_grants
+    where table_schema='public' and grantee='anon'
+  ) then
+    raise exception 'anon_has_public_table_privileges';
+  end if;
+
+  if has_function_privilege('anon','private.traiter_paiement(bigint,boolean)','EXECUTE')
+     or has_function_privilege('anon','private.traiter_paiement(bigint,boolean,text)','EXECUTE') then
+    raise exception 'anon_can_execute_private_payment_review_rpc';
+  end if;
+
+  if not has_function_privilege('authenticated','private.traiter_paiement(bigint,boolean)','EXECUTE')
+     or not has_function_privilege('authenticated','private.traiter_paiement(bigint,boolean,text)','EXECUTE') then
+    raise exception 'authenticated_private_payment_review_rpc_grant_missing';
+  end if;
+
+  if has_function_privilege('anon','public.start_call_session(uuid,uuid,text,text,timestamp with time zone)','EXECUTE')
+     or not has_function_privilege('authenticated','public.start_call_session(uuid,uuid,text,text,timestamp with time zone)','EXECUTE') then
+    raise exception 'call_session_rpc_privileges_invalid';
+  end if;
+
+  if not exists (
+    select 1 from pg_proc p
+    where p.oid='public.start_call_session(uuid,uuid,text,text,timestamp with time zone)'::regprocedure
+      and p.prosecdef
+      and coalesce(p.proconfig, array[]::text[]) @> array['search_path=""']
+  ) then
+    raise exception 'call_session_rpc_security_definer_hardening_missing';
+  end if;
+end
+$$;
