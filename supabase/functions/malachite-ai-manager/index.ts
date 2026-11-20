@@ -24,15 +24,15 @@ async function countRows(client: any, table: string, column: string, filter?: (q
 
 async function getOperations(adminClient: any) {
   const specs = [
-    ["payments", "paiements", "id,offre,statut,created_at,operateur,admin_reason"],
-    ["reports", "signalements", "id,motif,created_at,statut"],
-    ["suspensions", "suspensions", "user_id,depuis,motif"],
-    ["blocks", "blocages", "user_id,cible,created_at"],
-    ["reviews", "avis_site", "id,note,categorie,message,created_at"],
-    ["support", "demandes_support", "id,categorie,sujet,message,statut,created_at"],
+    ["payments", "paiements", "id,offre,statut,created_at,operateur,admin_reason", "created_at"],
+    ["reports", "signalements", "id,motif,created_at,statut", "created_at"],
+    ["suspensions", "suspensions", "user_id,depuis,motif", "depuis"],
+    ["blocks", "blocages", "user_id,cible,created_at", "created_at"],
+    ["reviews", "avis_site", "id,note,categorie,message,created_at", "created_at"],
+    ["support", "demandes_support", "id,categorie,sujet,message,statut,created_at", "created_at"],
   ] as const;
-  const entries = await Promise.all(specs.map(async ([key, table, columns]) => {
-    const { data, error } = await adminClient.from(table).select(columns).order("created_at", { ascending: false }).limit(25);
+  const entries = await Promise.all(specs.map(async ([key, table, columns, orderColumn]) => {
+    const { data, error } = await adminClient.from(table).select(columns).order(orderColumn, { ascending: false }).limit(25);
     if (error) throw new Error("operations_query_failed:" + table);
     return [key, data || []] as const;
   }));
