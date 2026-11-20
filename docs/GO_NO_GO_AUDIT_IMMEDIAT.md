@@ -10,7 +10,7 @@ Le dépôt a une validation CI verte, mais plusieurs dépendances de production 
 
 ## Vérifications positives
 
-- GitHub Actions : validation du commit `78842ce1b9de7cb698fd1232499d8d34baf32da4` terminée avec succès ([run 44803436109](https://github.com/famousnadroj-sys/malachite/actions/runs/44802439637)).
+- GitHub Actions : validation du commit `ed64983248738ba13c701f4fd8e82c3a3f876559` terminée avec succès ([run 44803583653](https://github.com/famousnadroj-sys/malachite/actions/runs/44803583653)).
 - Les migrations RPC, stockage privé, optimisation support et politique stricte de reçus, suivies du script `payment_receipts_security_checks.sql`, ont passé un essai transactionnel combiné dans l'ordre prévu, ensuite annulé ; aucune modification n'a persisté dans la base active.
 - Le déploiement des reçus est scindé en deux étapes pour ne pas casser l'ancien formulaire : migration additive `20261120140000` d'abord, puis déploiement du nouveau frontend, puis politique stricte `20261120170000`.
 - Le projet conserve son application existante ; les changements sont isolés dans une branche et une pull request.
@@ -23,16 +23,18 @@ Le dépôt a une validation CI verte, mais plusieurs dépendances de production 
 
 ## Bloqueurs confirmés dans Supabase actif
 
-1. **Schéma de paiement non aligné avec la branche** : la table `public.paiements` ne contient pas `receipt_path`. Les deux formulaires de paiement de la branche utilisent maintenant le même parcours de justificatif privé, mais le schéma doit être migré et testé avant production.
+1. **Schéma de paiement non aligné avec la branche** : vérification SQL directe le 20 novembre : `public.paiements.receipt_path` absent, bucket privé `payment-receipts` absent, index anti-doublon absent. La politique INSERT active n'exige pas de reçu et n'effectue pas de contrôle sur `storage.objects`. Le nouveau parcours de paiement de la branche ne peut donc pas être publié avant la migration additive et un test réel.
 2. **AI Manager non opérationnel** : seules les fonctions Edge `admin-user-moderation` et `username-login` sont déployées. Aucune fonction AI Manager n'est présente. Le panneau visible est une maquette, pas un agent permanent.
 3. **Paiements opérateurs non automatisés** : aucun webhook Airtel Money ou Orange Money n'est configuré dans le périmètre vérifié. Une capture ou une référence saisie ne prouve pas le paiement.
 4. **Alerte SECURITY DEFINER à examiner, non supprimée artificiellement** : `public.start_call_session` doit vérifier des droits sur plusieurs utilisateurs (correspondance mutuelle, droits d'appel et appels déjà actifs). En `SECURITY INVOKER`, les politiques RLS et les privilèges actuels empêchent certaines lectures nécessaires (notamment `profiles` et les correspondances de l'autre utilisateur). La fonction existante est limitée à `authenticated`, vérifie `auth.uid()`, utilise `search_path` vide et des noms de tables qualifiés. L'alerte Supabase reste visible et exige une revue ciblée ; ne pas basculer en invoker sans refonte des contrôles.
-5. **Protection des mots de passe compromis désactivée** dans Supabase Auth.
-6. **Optimisations de performance restantes** : Supabase signale deux clés étrangères de `demandes_support` non indexées et deux politiques réévaluant les fonctions Auth par ligne. Une migration corrective est prête dans la branche, mais n'a pas été appliquée.
-7. **Table d'administration privée** : `private.admins` a RLS activé sans politique. Cela ferme l'accès direct par défaut ; la fonction `private.is_admin()` doit rester le seul chemin contrôlé utilisé par les vérifications.
+5. **Privilège RPC à corriger en priorité** : la lecture SQL directe confirme que `anon` peut encore exécuter `public.traiter_paiement(bigint, boolean, text)`. La surcharge à deux paramètres est refusée à `anon`, mais la surcharge à trois paramètres reste accessible. La migration `20261120130000_restrict_payment_review_rpc.sql` est préparée dans GitHub mais absente de l'historique de production. Ne pas supposer que le contrôle interne suffit : révoquer explicitement le droit `anon`, puis vérifier les deux surcharges après accord de déploiement.
+6. **Protection des mots de passe compromis désactivée** dans Supabase Auth.
+7. **Optimisations de performance restantes** : Supabase signale deux clés étrangères de `demandes_support` non indexées et deux politiques réévaluant les fonctions Auth par ligne. Une migration corrective est prête dans la branche, mais n'a pas été appliquée ; la vérification SQL confirme que les deux index préparés sont absents.
+8. **Table d'administration privée** : `private.admins` a RLS activé sans politique. Cela ferme l'accès direct par défaut ; la fonction `private.is_admin()` doit rester le seul chemin contrôlé utilisé par les vérifications.
 
 ## Actions à terminer avant publication
 
+- [ ] Révoquer d'abord le droit `EXECUTE` de `anon` sur les deux surcharges `public.traiter_paiement`, appliquer la migration RPC et vérifier les droits effectifs.
 - [ ] Déployer les reçus en deux temps : migration additive `20261120140000` (colonne nullable, bucket et règles de stockage), publier le frontend qui envoie les reçus, puis appliquer `20261120170000` (politique d'insertion stricte). Tester chaque étape et la compatibilité des clients PWA déjà ouverts.
 - [ ] Tester avec deux comptes distincts les politiques RLS, l'upload privé, la lecture par propriétaire/admin, la suppression, l'existence obligatoire du reçu, la non-réutilisation d'une référence et l'expiration des URL signées.
 - [ ] Revoir `start_call_session` avec tests de deux comptes et conserver le contrôle `SECURITY DEFINER` actuel tant qu'une alternative sûre ne permet pas les vérifications inter-utilisateurs.
