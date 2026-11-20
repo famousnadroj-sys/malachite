@@ -3,7 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 const CONFIGURED_MODEL = Deno.env.get("MALACHITE_AI_MODEL") || "";
 const MODEL = CONFIGURED_MODEL.startsWith("gemini-2.5-") ? "gemini-3.5-flash-lite" : (CONFIGURED_MODEL || "gemini-3.5-flash-lite");
 const AI_KEY = Deno.env.get("GEMINI_API_KEY") || "";
-const AI_AUTONOMY_ENABLED = Deno.env.get("MALACHITE_AI_AUTONOMY_ENABLED") === "true";
+const AI_AUTONOMY_ENABLED = true; // AI briefings are enabled by the database setting below.
 
 function json(status: number, body: Record<string, unknown>) {
   return new Response(JSON.stringify(body), {
@@ -110,6 +110,10 @@ Deno.serve(async (req: Request) => {
   if (runError || !run) return json(503, { error: "run_record_unavailable" });
 
   try {
+    const { data: autonomySetting, error: settingError } = await admin.from("malachite_ai_settings")
+      .select("ai_briefings_enabled").eq("id", 1).maybeSingle();
+    if (settingError) throw new Error("autonomy_settings_unavailable");
+    const briefingEnabled = autonomySetting?.ai_briefings_enabled === true;
     const metrics = await collectMetrics(admin);
     let summary: string | null = null;
     let model: string | null = null;
@@ -117,7 +121,7 @@ Deno.serve(async (req: Request) => {
     let errorCode: string | null = null;
 
     // Polling is inexpensive; generation is capped at one briefing per six hours.
-    if (AI_AUTONOMY_ENABLED && AI_KEY) {
+    if (briefingEnabled && AI_KEY) {
       const { data: previousSummary, error: previousError } = await admin.from("ai_ops_runs")
         .select("started_at,metrics")
         .not("summary", "is", null)
@@ -135,7 +139,7 @@ Deno.serve(async (req: Request) => {
           errorCode = error instanceof Error ? error.message.slice(0, 120) : "ai_generation_failed";
         }
       }
-    } else if (AI_AUTONOMY_ENABLED && !AI_KEY) {
+    } else if (briefingEnabled && !AI_KEY) {
       status = "partial";
       errorCode = "gemini_key_not_configured";
     }
@@ -156,7 +160,7 @@ Deno.serve(async (req: Request) => {
       status,
       metrics,
       summary,
-      ai_generation_enabled: AI_AUTONOMY_ENABLED && Boolean(AI_KEY),
+      ai_generation_enabled: briefingEnabled && Boolean(AI_KEY),
       ai_key_configured: Boolean(AI_KEY),
       next_ai_briefing_window_hours: 6,
       duration_ms: Date.now() - started,
