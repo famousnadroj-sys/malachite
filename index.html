@@ -1747,15 +1747,31 @@ function malAvatarSet(k,v){
  var p=$('malAvatarPreview');if(p)p.innerHTML=malAvatarSvg(malAvatarState);
 }
 function malAvatarSelect(label,key,opts){return '<label>'+label+'<select aria-label="'+label+'" onchange="malAvatarSet(\''+key+'\',this.value)">'+opts.map(function(o){return '<option value="'+o[0]+'"'+(malAvatarState[key]===o[0]?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select></label>'}
-function closeMalAvatarBuilder(){var e=$('malAvatarBuilderOverlay');if(e)e.remove()}
+var malAvatarPreloadFrame=null,malAvatarPreloadReady=false;
+function malWarmAvatarBuilder(){
+ if(malAvatarPreloadFrame||!document.body)return;
+ var f=document.createElement('iframe');f.title='Préchargement du créateur 3D';f.src='avatar-builder.html?gender=male&warm=1';
+ f.setAttribute('aria-hidden','true');f.tabIndex=-1;
+ f.style.cssText='position:fixed;left:-1200px;top:0;width:900px;height:900px;border:0;opacity:.01;pointer-events:none;z-index:-1;background:#fff';
+ f.addEventListener('load',function(){malAvatarPreloadReady=true});
+ document.body.appendChild(f);malAvatarPreloadFrame=f;
+}
+function closeMalAvatarBuilder(){
+ var e=$('malAvatarBuilderOverlay');if(e){var f=e.querySelector('iframe');if(f&&f===malAvatarPreloadFrame){f.style.cssText='position:fixed;left:-1200px;top:0;width:900px;height:900px;border:0;opacity:.01;pointer-events:none;z-index:-1;background:#fff';document.body.appendChild(f)}e.remove()}
+}
 function openMalAvatarBuilder(){
  if(!me||!me.id){alert('Connecte-toi pour créer ton avatar.');return}
  closeMalAvatarBuilder();
  var gender=(mine&&mine.genre==='F')?'female':'male';
  var overlay=document.createElement('div');overlay.id='malAvatarBuilderOverlay';overlay.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(16,17,22,.72);display:flex;align-items:center;justify-content:center;padding:0';
- var frame=document.createElement('iframe');frame.title='Créateur d’avatar 3D Malachite';frame.src='avatar-builder.html?gender='+gender;frame.style.cssText='width:min(100%,900px);height:100%;max-height:100dvh;border:0;border-radius:0;background:#fff';frame.setAttribute('allow','fullscreen');
+ var frame=malAvatarPreloadFrame;
+ if(frame){frame.src='avatar-builder.html?gender='+gender+'&warm=1';frame.style.cssText='width:min(100%,900px);height:100%;max-height:100dvh;border:0;border-radius:0;background:#fff;opacity:1;pointer-events:auto;position:relative;left:auto;top:auto;z-index:auto';}
+ else{frame=document.createElement('iframe');frame.title='Créateur d’avatar 3D Malachite';frame.src='avatar-builder.html?gender='+gender;frame.style.cssText='width:min(100%,900px);height:100%;max-height:100dvh;border:0;border-radius:0;background:#fff';frame.setAttribute('allow','fullscreen');}
+ frame.title='Créateur d’avatar 3D Malachite';
  overlay.appendChild(frame);overlay.addEventListener('click',function(e){if(e.target===overlay)closeMalAvatarBuilder()});document.body.appendChild(overlay);
 }
+// Commence le téléchargement du moteur 3D pendant que l'utilisateur navigue, avant le clic.
+(function(){var start=function(){var run=function(){malWarmAvatarBuilder()};if('requestIdleCallback'in window)requestIdleCallback(run,{timeout:1800});else setTimeout(run,900)};if(document.readyState==='complete')start();else window.addEventListener('load',start,{once:true})})();
 async function malPersistAvatar3d(config,image){
  if(!me||!me.id)throw new Error('Session expirée. Reconnecte-toi.');
  if(!config||typeof config!=='object'||typeof image!=='string'||image.indexOf('data:image/png;base64,')!==0)throw new Error('Export 3D invalide.');
