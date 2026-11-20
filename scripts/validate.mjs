@@ -230,3 +230,27 @@ if (!html.includes('maxlength="100" placeholder="Référence exacte du SMS"') ||
 if (html.includes('maxlength="120" placeholder="Référence de transaction"')) {
   throw new Error('Payment reference input exceeds the database limit.');
 }
+
+const receiptMigration = fs.readFileSync('supabase/migrations/20261120140000_private_payment_receipts.sql', 'utf8');
+for (const item of [
+  "values ('payment-receipts', 'payment-receipts', false, 5242880",
+  "receipt_path is not null",
+  "operateur in ('airtel','orange')",
+  "private.is_admin()",
+  "paiements_operator_reference_uidx",
+  "mutual match",
+]) {
+  if (!receiptMigration.toLowerCase().includes(item.toLowerCase())) {
+    throw new Error('Private payment receipt control missing: ' + item);
+  }
+}
+for (const item of [
+  "async function malUploadPaymentReceipt(file)",
+  "sb.storage.from('payment-receipts').upload",
+  "createSignedUrl(x.receipt_path,300)",
+  "id=\"malReceipt\"",
+  "id=\"ucProof\"",
+  "receipt_path:receipt.path",
+]) {
+  if (!html.includes(item)) throw new Error('Payment receipt workflow missing: ' + item);
+}
