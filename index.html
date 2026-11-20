@@ -1768,7 +1768,7 @@ function openMalAvatarBuilder(forSignup){
  loading.style.cssText='position:absolute;inset:0;display:grid;place-content:center;gap:12px;text-align:center;color:#71334b;background:#fff;font:600 15px system-ui;z-index:3;pointer-events:none';
  loading.innerHTML='<div style="font-size:38px">✦</div><div>Préparation de ton avatar 3D…</div><div id="malAvatarBuilderProgress" style="font-size:12px;font-weight:400;opacity:.85">Connexion aux ressources 3D…</div>';
  var frame=document.createElement('iframe');frame.title='Créateur d’avatar 3D Malachite';frame.setAttribute('allow','fullscreen');frame.setAttribute('referrerpolicy','strict-origin-when-cross-origin');
- malPlaceAvatarFrame(frame);frame.dataset.gender=gender;frame.src='avatar-builder.html?gender='+gender+'&v=12';
+ malPlaceAvatarFrame(frame);frame.dataset.gender=gender;frame.src='avatar-builder.html?gender='+gender+'&v=13';
  frame.addEventListener('load',function(){var p=$('malAvatarBuilderProgress');if(p)p.textContent='Page chargée · préparation du modèle 3D…'});
  overlay.appendChild(frame);overlay.appendChild(loading);
  overlay.addEventListener('click',function(e){if(e.target===overlay)closeMalAvatarBuilder()});
