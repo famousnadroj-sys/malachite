@@ -2,7 +2,7 @@
 /* Malachite: paid real-time audio/video calls and faster private profile photo loading. */
 (function(){
  'use strict';
- var photoCache=Object.create(null),callInbox=null,callInboxUserId=null,sessionChannel=null,callState=null,incoming=null,jitsiApi=null,callBusy=false,joiningCallId=null,callClockTimer=null,callStartedAt=0,offerStatusFor=null,offerStatusPending=false;
+ var photoCache=Object.create(null),callInbox=null,callInboxUserId=null,sessionChannel=null,callState=null,incoming=null,jitsiApi=null,callBusy=false,joiningCallId=null,callClockTimer=null,callStartedAt=0,audioOutputDevices=[],offerStatusFor=null,offerStatusPending=false;
  if(typeof PRIX==='object')PRIX.Appels='1 $ / semaine';
 
  function readPhotoCache(key,now){
@@ -141,7 +141,7 @@
    if(!callState||callState.id!==state.id)return;
    var p=prof(state.caller?state.callee_id:state.caller_id)||{},name=(mine&&mine.prenom)||'Membre Malachite';
    overlay(state.mode==='video'?'Appel vidéo avec '+(p.prenom||'ton match'):'Appel audio avec '+(p.prenom||'ton match'),
-    '<div class="mal-call-live"><span id="malCallStatus">Connexion sécurisée en cours…</span><div class="mal-call-controls"><button type="button" onclick="malToggleMic()" id="malMicBtn">🎙️ Micro activé</button><button type="button" onclick="malToggleCamera()" id="malCameraBtn">📷 Caméra</button><small>Pour choisir le haut-parleur ou un casque, ouvre les réglages audio de l’appel.</small></div></div>',
+    '<div class="mal-call-live"><span id="malCallStatus">Connexion sécurisée en cours…</span><div class="mal-call-controls"><button type="button" onclick="malToggleMic()" id="malMicBtn">🎙️ Micro activé</button><button type="button" onclick="malToggleCamera()" id="malCameraBtn">📷 Caméra</button><label class="mal-audio-route">🔊 Sortie audio <select id="malAudioOutput" onchange="malSetAudioOutput(this.value)"><option value="">Haut-parleur par défaut</option></select></label></div></div>',
     '<button class="hangup" onclick="malHangup()">Raccrocher</button>',true);
    var mount=document.getElementById('malJitsiMount');
    if(!mount)throw new Error('Interface de l’appel introuvable.');
@@ -153,7 +153,8 @@
    callStartedAt=Date.now();
    clearInterval(callClockTimer);
    callClockTimer=setInterval(function(){var node=document.getElementById('malCallStatus');if(node&&callStartedAt){var n=Math.floor((Date.now()-callStartedAt)/1000);node.textContent='Connecté · '+String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0')}},1000);
-   jitsiApi.addListener('videoConferenceJoined',function(){var node=document.getElementById('malCallStatus');if(node)node.textContent='Connecté · 00:00'});
+   jitsiApi.addListener('videoConferenceJoined',function(){var node=document.getElementById('malCallStatus');if(node)node.textContent='Connecté · 00:00';loadAudioOutputDevices()});
+   jitsiApi.addListener('deviceListChanged',loadAudioOutputDevices);
    jitsiApi.addListener('connectionQualityChanged',function(event){var node=document.getElementById('malCallStatus');if(node&&event&&event.connectionQuality==='poor')node.textContent='Connexion faible · vérifie ton réseau'});
    jitsiApi.addListener('audioMuteStatusChanged',function(event){var b=document.getElementById('malMicBtn');if(b)b.textContent=event.muted?'🔇 Micro coupé':'🎙️ Micro activé'});
    jitsiApi.addListener('videoMuteStatusChanged',function(event){var b=document.getElementById('malCameraBtn');if(b)b.textContent=event.muted?'📷 Caméra coupée':'📷 Caméra activée'});
@@ -167,9 +168,29 @@
  }
  window.malToggleMic=function(){if(jitsiApi)jitsiApi.executeCommand('toggleAudio')};
  window.malToggleCamera=function(){if(jitsiApi)jitsiApi.executeCommand('toggleVideo')};
+ async function loadAudioOutputDevices(){
+  if(!jitsiApi||typeof jitsiApi.getAvailableDevices!=='function')return;
+  try{
+   var devices=await jitsiApi.getAvailableDevices();
+   audioOutputDevices=devices&&Array.isArray(devices.audioOutput)?devices.audioOutput:[];
+   var select=document.getElementById('malAudioOutput');if(!select)return;
+   var current=select.value;
+   select.innerHTML='<option value="">Haut-parleur par défaut</option>'+audioOutputDevices.map(function(d){return '<option value="'+esc(d.deviceId)+'">'+esc(d.label||'Sortie audio')+'</option>'}).join('');
+   if(current&&audioOutputDevices.some(function(d){return d.deviceId===current}))select.value=current;
+   else if(audioOutputDevices.length===1&&audioOutputDevices[0].deviceId!=='default')select.value=audioOutputDevices[0].deviceId;
+   select.disabled=audioOutputDevices.length===0;
+  }catch(e){console.warn('Liste des sorties audio indisponible',e)}
+ }
+ window.malSetAudioOutput=async function(deviceId){
+  if(!jitsiApi||!deviceId)return;
+  var device=audioOutputDevices.find(function(d){return d.deviceId===deviceId});
+  if(!device)return;
+  try{await jitsiApi.setAudioOutputDevice(device.label||'',device.deviceId)}
+  catch(e){alert('Ce navigateur ne permet pas de changer la sortie audio. Utilise le réglage haut-parleur de ton téléphone.')}
+ };
  async function finishCall(updateServer){
   var s=callState;if(s&&s.timeout)clearTimeout(s.timeout);
-  clearInterval(callClockTimer);callClockTimer=null;callStartedAt=0;joiningCallId=null;
+  clearInterval(callClockTimer);callClockTimer=null;callStartedAt=0;joiningCallId=null;audioOutputDevices=[];
   if(jitsiApi){var api=jitsiApi;jitsiApi=null;try{api.dispose()}catch(e){}}
   if(updateServer&&s&&me&&s.status!=='ended'&&s.status!=='rejected'&&s.status!=='expired')await sb.from('call_sessions').update({status:'ended'}).eq('id',s.id);
   closeUI();callState=null;callBusy=false;if(sessionChannel){sb.removeChannel(sessionChannel);sessionChannel=null}
@@ -278,7 +299,7 @@
  var originalGo=window.go;
  if(typeof originalGo==='function')window.go=function(t){originalGo(t);if(t==='offres')setTimeout(loadMyPayments,0)};
 
- var style=document.createElement('style');style.textContent='.mal-call-head{border:0!important;border-radius:50%!important;width:38px;height:38px;padding:0!important;background:#fce9f0!important;color:#9b315e!important;font-size:18px!important;flex:none}.mal-call-overlay{position:fixed;inset:0;z-index:100000;background:#0c1218e8;display:flex;align-items:center;justify-content:center;padding:12px}.mal-call-card{width:min(100%,720px);background:#fff;border-radius:20px;overflow:hidden;color:#25313a}.mal-call-card header{display:flex;justify-content:space-between;padding:14px 16px;background:#075e54;color:#fff}.mal-call-body{text-align:center;padding:12px}.mal-call-live{font-size:13px;font-weight:700}.mal-call-controls{display:flex;justify-content:center;align-items:center;gap:8px;flex-wrap:wrap;padding:8px}.mal-call-controls button{border:0;border-radius:999px;padding:10px 14px;background:#edf3f4;color:#203338;font-weight:700}.mal-call-controls small{display:block;width:100%;font-weight:400;color:#667}.mal-call-actions{display:flex;justify-content:center;gap:10px;padding:12px}.mal-call-actions button{border:0;border-radius:12px;padding:12px 18px;font-weight:700}.mal-call-actions .accept{background:#087e55;color:white}.mal-call-actions .reject,.mal-call-actions .hangup{background:#c62828;color:white}#malJitsiMount{width:100%;height:min(68vh,620px);min-height:340px;background:#101820}@media(max-width:520px){.mal-call-overlay{padding:0}.mal-call-card{width:100%;height:100%;border-radius:0;display:flex;flex-direction:column}.mal-call-body{padding:10px 8px}.mal-call-live{flex:none}#malJitsiMount{flex:1;height:auto;min-height:0}.mal-call-actions{flex:none}}';document.head.appendChild(style);
+ var style=document.createElement('style');style.textContent='.mal-call-head{border:0!important;border-radius:50%!important;width:38px;height:38px;padding:0!important;background:#fce9f0!important;color:#9b315e!important;font-size:18px!important;flex:none}.mal-call-overlay{position:fixed;inset:0;z-index:100000;background:#0c1218e8;display:flex;align-items:center;justify-content:center;padding:12px}.mal-call-card{width:min(100%,720px);background:#fff;border-radius:20px;overflow:hidden;color:#25313a}.mal-call-card header{display:flex;justify-content:space-between;padding:14px 16px;background:#075e54;color:#fff}.mal-call-body{text-align:center;padding:12px}.mal-call-live{font-size:13px;font-weight:700}.mal-call-controls{display:flex;justify-content:center;align-items:center;gap:8px;flex-wrap:wrap;padding:8px}.mal-call-controls button{border:0;border-radius:999px;padding:10px 14px;background:#edf3f4;color:#203338;font-weight:700}.mal-call-controls small{display:block;width:100%;font-weight:400;color:#667}.mal-audio-route{display:flex;align-items:center;gap:6px;font-size:12px;color:#344;max-width:100%}.mal-audio-route select{max-width:150px;border:1px solid #d4e0e2;border-radius:10px;padding:8px;background:#fff;color:#203338}.mal-call-actions{display:flex;justify-content:center;gap:10px;padding:12px}.mal-call-actions button{border:0;border-radius:12px;padding:12px 18px;font-weight:700}.mal-call-actions .accept{background:#087e55;color:white}.mal-call-actions .reject,.mal-call-actions .hangup{background:#c62828;color:white}#malJitsiMount{width:100%;height:min(68vh,620px);min-height:340px;background:#101820}@media(max-width:520px){.mal-call-overlay{padding:0}.mal-call-card{width:100%;height:100%;border-radius:0;display:flex;flex-direction:column}.mal-call-body{padding:10px 8px}.mal-call-live{flex:none}#malJitsiMount{flex:1;height:auto;min-height:0}.mal-call-actions{flex:none}}';document.head.appendChild(style);
  sb.auth.onAuthStateChange(function(event,session){
   var next=session&&session.user?session.user:null;
   if(callInboxUserId&&(!next||next.id!==callInboxUserId))stopCallInbox();
