@@ -141,7 +141,7 @@ if (swCheck.status !== 0) {
   process.stderr.write(swCheck.stderr || swCheck.stdout);
   process.exit(swCheck.status || 1);
 }
-if (!sw.includes('./malachite-ai.js') || !sw.includes('malachite-static-v61')) throw new Error('AI Manager module must be cached and static cache version bumped.');
+if (!sw.includes('./malachite-ai.js') || !sw.includes('malachite-static-v62')) throw new Error('AI Manager module must be cached and static cache version bumped.');
 if (!sw.includes('storage') || !sw.includes('Authorization')) throw new Error('Service worker must bypass Supabase private APIs.');
 if (!html.includes("navigator.serviceWorker.addEventListener('controllerchange'") ||
     !html.includes("id='malSwUpdateNotice'") ||
