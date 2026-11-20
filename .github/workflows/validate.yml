@@ -15,12 +15,16 @@ jobs:
         with:
           node-version: 22
       - name: Check application JavaScript
-        run: node scripts/validate.mjs
+        run: |
+          node scripts/validate.mjs
+          node --check malachite-ai.js
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      - name: Type-check Admin Edge Function
-        run: deno check supabase/functions/admin-user-moderation/index.ts
+      - name: Type-check Edge Functions
+        run: |
+          deno check supabase/functions/admin-user-moderation/index.ts
+          deno check supabase/functions/malachite-ai-manager/index.ts
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
