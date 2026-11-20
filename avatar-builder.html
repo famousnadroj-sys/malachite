@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Créer mon avatar 3D · Malachite</title>
+<link rel="preconnect" href="https://esm.sh" crossorigin><link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin><link rel="dns-prefetch" href="//esm.sh"><link rel="dns-prefetch" href="//cdn.jsdelivr.net">
 <style>
 *{box-sizing:border-box}html,body,#root{margin:0;width:100%;height:100%;min-height:100%;font:14px system-ui,-apple-system,sans-serif;color:#222;background:#fff}
 .app{height:100dvh;display:flex;flex-direction:column;padding:12px;gap:10px}.head{display:flex;align-items:center;justify-content:space-between;gap:8px}.title{font-weight:750;font-size:18px}.hint{font-size:12px;color:#777;margin-top:3px}.gender{display:flex;gap:8px}.gender button,.close{border:1px solid #ead6df;background:#fff;border-radius:999px;padding:9px 16px;font-weight:650;color:#67334a}.gender button.active{background:#b72e63;color:white;border-color:#b72e63}.close{padding:8px 13px}.editor{flex:1;min-height:0}.loading{padding:24px;text-align:center;color:#666}.error{padding:18px;color:#a00}.hf-root{height:100%!important;min-height:0!important}.hf-editor{height:100%!important;min-height:0!important;grid-template-columns:minmax(0,1fr)!important;grid-template-rows:minmax(220px,48%) minmax(0,1fr)!important;border-radius:14px!important}.hf-stage{min-height:220px!important}.hf-panel{border-left:0!important;border-top:1px solid #eceef1!important}.hf-save{background:#b72e63!important}
@@ -20,7 +21,7 @@ const h=React.createElement,ASSETS='https://cdn.jsdelivr.net/gh/abdulrehman043/h
 function App(){
  const [gender,setGender]=useState(new URLSearchParams(location.search).get('gender')==='female'?'female':'male');
  const [saved,setSaved]=useState(false);
- const {pkg,error}=useHumanPackage(ASSETS);
+ const {pkg,error}=useHumanPackage(ASSETS,{textureSize:'512'});
  useEffect(()=>{function receive(e){if(e.origin!==location.origin||!e.data||e.data.source!=='malachite-avatar-parent'||e.data.type!=='set-gender')return;setGender(e.data.gender==='female'?'female':'male');setSaved(false)}window.addEventListener('message',receive);return()=>window.removeEventListener('message',receive)},[]);
  function cancel(){parent.postMessage({source:'malachite-avatar-builder',type:'cancel'},location.origin)}
  function save(config,image){
