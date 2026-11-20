@@ -149,5 +149,5 @@ if (!html.includes('function refreshPresenceUI()') || !html.includes('function t
 if (!html.includes("on('broadcast',{event:'typing'}")) throw new Error('Realtime typing indicators are missing.');
 if (!html.includes('oninput="setTyping()"') || !html.includes('class="chat-typing"')) throw new Error('Typing indicator UI and composer hook are missing.');
 if (!html.includes('class="conv-avatar" onclick="event.stopPropagation();viewProf')) throw new Error('Conversation avatar must open the immersive member profile.');
-if (!html.includes('async function viewProf(id,startIndex)') || !html.includes("overlay.className='mal-profile-overlay'")) throw new Error('Immersive profile viewer must remain available.');
+if (!html.includes('async function viewProf(id,startIndex)') || !html.includes("window.malOpenProfile=async function(id,startIndex)") || !html.includes("layer.className='mal-profile-viewer'")) throw new Error('Immersive profile viewer must remain available.');
 console.log('Malachite frontend, PWA, private media, SQL policy and Admin security checks passed.');
