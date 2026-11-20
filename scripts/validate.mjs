@@ -141,7 +141,7 @@ if (swCheck.status !== 0) {
   process.stderr.write(swCheck.stderr || swCheck.stdout);
   process.exit(swCheck.status || 1);
 }
-if (!sw.includes('./malachite-ai.js') || !sw.includes('malachite-static-v61')) throw new Error('AI Manager module must be cached and static cache version bumped.');
+if (!sw.includes('./malachite-ai.js') || !sw.includes('malachite-static-v62')) throw new Error('AI Manager module must be cached and static cache version bumped.');
 if (!sw.includes('storage') || !sw.includes('Authorization')) throw new Error('Service worker must bypass Supabase private APIs.');
 if (!html.includes("navigator.serviceWorker.addEventListener('controllerchange'") ||
     !html.includes("id='malSwUpdateNotice'") ||
@@ -307,3 +307,21 @@ for (const item of [
 if (!html.includes("remove([receipt.path])")) {
   throw new Error('Failed payment inserts must clean up unlinked private receipt files.');
 }
+
+
+const aiManagerModule = fs.readFileSync('malachite-ai.js', 'utf8');
+const aiTemp = path.join(os.tmpdir(), 'malachite-ai-manager.js');
+fs.writeFileSync(aiTemp, aiManagerModule);
+const aiCheck = spawnSync(process.execPath, ['--check', aiTemp], { encoding: 'utf8' });
+if (aiCheck.status !== 0) { process.stderr.write(aiCheck.stderr || aiCheck.stdout); process.exit(aiCheck.status || 1); }
+for (const item of ['malAiLoadOperations', 'action:"operations"', 'Paiements à contrôler', 'Signalements', 'Comptes suspendus', 'Blocages entre membres', 'Avis et commentaires', 'Demandes de support']) {
+  if (!aiManagerModule.includes(item)) throw new Error('AI Manager operations center requirement missing: ' + item);
+}
+const aiFunction = fs.readFileSync('supabase/functions/malachite-ai-manager/index.ts', 'utf8');
+for (const item of ['getOperations', 'body.action === "operations"', '"avis_site"', '"blocages"', '"demandes_support"', 'malachite_ai_manager_is_admin']) {
+  if (!aiFunction.includes(item)) throw new Error('AI Manager secure operations endpoint missing: ' + item);
+}
+if (aiFunction.includes('from("messages")') || aiFunction.includes('from("prives")')) {
+  throw new Error('AI Manager must never query private conversations or private contact records.');
+}
+if (!sw.includes('malachite-static-v62')) throw new Error('AI Manager operations release must bump the static cache version.');

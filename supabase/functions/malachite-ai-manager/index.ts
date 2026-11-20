@@ -22,11 +22,28 @@ async function countRows(client: any, table: string, column: string, filter?: (q
   return count || 0;
 }
 
+async function getOperations(adminClient: any) {
+  const specs = [
+    ["payments", "paiements", "id,offre,statut,created_at,operateur,admin_reason", "created_at"],
+    ["reports", "signalements", "id,motif,created_at,statut", "created_at"],
+    ["suspensions", "suspensions", "user_id,depuis,motif", "depuis"],
+    ["blocks", "blocages", "user_id,cible,created_at", "created_at"],
+    ["reviews", "avis_site", "id,note,categorie,message,created_at", "created_at"],
+    ["support", "demandes_support", "id,categorie,sujet,message,statut,created_at", "created_at"],
+  ] as const;
+  const entries = await Promise.all(specs.map(async ([key, table, columns, orderColumn]) => {
+    const { data, error } = await adminClient.from(table).select(columns).order(orderColumn, { ascending: false }).limit(25);
+    if (error) throw new Error("operations_query_failed:" + table);
+    return [key, data || []] as const;
+  }));
+  return Object.fromEntries(entries);
+}
+
 async function getMetrics(adminClient: any) {
   const now = new Date();
   const since = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const isoNow = now.toISOString();
-  const [members, newMembers, premium, pendingPayments, newReports, openSupport, suspended] = await Promise.all([
+  const [members, newMembers, premium, pendingPayments, newReports, openSupport, suspended, reviews, blocks] = await Promise.all([
     countRows(adminClient, "profiles", "id"),
     countRows(adminClient, "profiles", "id", q => q.gte("created_at", since)),
     countRows(adminClient, "statuts", "user_id", q => q.gt("premium_until", isoNow)),
@@ -34,11 +51,14 @@ async function getMetrics(adminClient: any) {
     countRows(adminClient, "signalements", "id", q => q.eq("statut", "nouveau")),
     countRows(adminClient, "demandes_support", "id", q => q.in("statut", ["nouveau", "en_cours"])),
     countRows(adminClient, "suspensions", "user_id"),
+    countRows(adminClient, "avis_site", "id"),
+    countRows(adminClient, "blocages", "user_id"),
   ]);
   return {
     members, new_members_7d: newMembers, premium_active: premium,
     pending_payments: pendingPayments, new_reports: newReports,
     open_support: openSupport, suspended_members: suspended,
+    member_reviews: reviews, member_blocks: blocks,
     ai_ready: Boolean(API_KEY), generated_at: isoNow,
   };
 }
@@ -63,7 +83,7 @@ Deno.serve(async (req: Request) => {
 
   let body: { message?: unknown; action?: unknown; history?: unknown };
   try { body = await req.json(); } catch { return json(400, { error: "invalid_json" }, origin); }
-  const action = body.action === "dashboard" ? "dashboard" : "chat";
+  const action = body.action === "dashboard" ? "dashboard" : body.action === "operations" ? "operations" : "chat";
   const message = typeof body.message === "string" ? body.message.trim() : "";
   if (action === "chat" && (message.length < 2 || message.length > 2000)) {
     return json(400, { error: "invalid_message" }, origin);
@@ -89,6 +109,10 @@ Deno.serve(async (req: Request) => {
   catch { return json(503, { error: "metrics_unavailable" }, origin); }
 
   if (action === "dashboard") return json(200, { metrics }, origin);
+  if (action === "operations") {
+    try { return json(200, { operations: await getOperations(adminClient) }, origin); }
+    catch { return json(503, { error: "operations_unavailable" }, origin); }
+  }
   if (!API_KEY) return json(503, { error: "ai_provider_not_configured", metrics }, origin);
 
   const cutoff = new Date(Date.now() - 60_000).toISOString();
