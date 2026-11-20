@@ -10,16 +10,18 @@ Le dépôt a une validation CI verte, mais plusieurs dépendances de production 
 
 ## Vérifications positives
 
-- GitHub Actions : validation du commit `110beae84fef4729c34e34a50082a1e33421239f` terminée avec succès ([run 44801860173](https://github.com/famousnadroj-sys/malachite/actions/runs/44801860173)).
+- GitHub Actions : validation du commit `d6b7005b5bce7a703cbfac23718e824b7e9a95cc` terminée avec succès ([run 44802439637](https://github.com/famousnadroj-sys/malachite/actions/runs/44802439637)).
 - Les migrations RPC, reçus privés et optimisation support ont passé un essai transactionnel combiné, ensuite annulé ; aucune modification n'a persisté dans la base active.
 - Le projet conserve son application existante ; les changements sont isolés dans une branche et une pull request.
+- Le contrôle statique a détecté puis permis de corriger un ancien bouton d'appel encore désactivé après un match.
+- Le formulaire de paiement secondaire dans `calls.js` affichait encore 3 USD et contournait le justificatif ; il utilise maintenant le tarif de 2 USD, le téléversement privé commun et l'affichage correct de l'opérateur.
 - Les migrations de justificatifs privés et de restriction RPC sont présentes dans GitHub.
 - La migration de reçus exige désormais que le chemin corresponde à un objet réellement présent dans le bucket privé, dans le dossier de l'utilisateur connecté. Le contrôle reste à tester avec deux comptes authentifiés réels.
 - La fonction de modération administrateur est active dans Supabase et exige une session authentifiée.
 
 ## Bloqueurs confirmés dans Supabase actif
 
-1. **Schéma de paiement non aligné avec la branche** : la table `public.paiements` ne contient pas `receipt_path`. Le formulaire de la branche tente pourtant d'insérer cette colonne. Tant que la migration correspondante n'est pas appliquée et testée, le nouveau formulaire ne peut pas être considéré prêt en production.
+1. **Schéma de paiement non aligné avec la branche** : la table `public.paiements` ne contient pas `receipt_path`. Les deux formulaires de paiement de la branche utilisent maintenant le même parcours de justificatif privé, mais le schéma doit être migré et testé avant production.
 2. **AI Manager non opérationnel** : seules les fonctions Edge `admin-user-moderation` et `username-login` sont déployées. Aucune fonction AI Manager n'est présente. Le panneau visible est une maquette, pas un agent permanent.
 3. **Paiements opérateurs non automatisés** : aucun webhook Airtel Money ou Orange Money n'est configuré dans le périmètre vérifié. Une capture ou une référence saisie ne prouve pas le paiement.
 4. **Alerte SECURITY DEFINER à examiner, non supprimée artificiellement** : `public.start_call_session` doit vérifier des droits sur plusieurs utilisateurs (correspondance mutuelle, droits d'appel et appels déjà actifs). En `SECURITY INVOKER`, les politiques RLS et les privilèges actuels empêchent certaines lectures nécessaires (notamment `profiles` et les correspondances de l'autre utilisateur). La fonction existante est limitée à `authenticated`, vérifie `auth.uid()`, utilise `search_path` vide et des noms de tables qualifiés. L'alerte Supabase reste visible et exige une revue ciblée ; ne pas basculer en invoker sans refonte des contrôles.
@@ -30,7 +32,7 @@ Le dépôt a une validation CI verte, mais plusieurs dépendances de production 
 ## Actions à terminer avant publication
 
 - [ ] Aligner et tester le schéma de reçus sur un environnement non-production avant toute application en production ; la règle d'insertion vérifie aussi l'existence de l'objet privé.
-- [ ] Tester avec deux comptes distincts les politiques RLS, l'upload privé, la lecture par propriétaire/admin, la suppression et l'expiration des URL signées.
+- [ ] Tester avec deux comptes distincts les politiques RLS, l'upload privé, la lecture par propriétaire/admin, la suppression, l'existence obligatoire du reçu, la non-réutilisation d'une référence et l'expiration des URL signées.
 - [ ] Revoir `start_call_session` avec tests de deux comptes et conserver le contrôle `SECURITY DEFINER` actuel tant qu'une alternative sûre ne permet pas les vérifications inter-utilisateurs.
 - [ ] Activer la protection contre les mots de passe compromis dans la configuration Auth.
 - [x] Préparer les deux index FK et optimiser les deux politiques RLS de support ; application et relance des advisors en production restent à faire.
