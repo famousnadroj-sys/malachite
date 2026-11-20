@@ -1749,33 +1749,31 @@ function malAvatarSet(k,v){
 function malAvatarSelect(label,key,opts){return '<label>'+label+'<select aria-label="'+label+'" onchange="malAvatarSet(\''+key+'\',this.value)">'+opts.map(function(o){return '<option value="'+o[0]+'"'+(malAvatarState[key]===o[0]?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select></label>'}
 var malAvatarPreloadFrame=null,malAvatarPreloadReady=false,malAvatarPreloadGender='male',malAvatarLoadingText='Chargement des modèles en arrière-plan…';
 function malAvatarGender(forSignup){return forSignup?((signupDraft&&signupDraft.genre==='F')?'female':'male'):((mine&&mine.genre==='F')?'female':'male')}
-function malPlaceAvatarFrame(frame,visible){
- frame.style.cssText=visible?'position:relative;z-index:2;width:min(100%,1100px);height:100%;min-height:0;border:0;background:#fff;display:block;left:auto;top:auto;opacity:1;pointer-events:auto;':'position:fixed;left:-1200px;top:0;width:390px;height:720px;border:0;background:#fff;opacity:.01;pointer-events:none;z-index:-1;';
+function malPlaceAvatarFrame(frame){
+ frame.style.cssText='position:relative;z-index:2;display:block;flex:1 1 auto;width:100%;height:100%;min-height:0;min-width:0;border:0;background:#fff;opacity:1;pointer-events:auto;';
 }
-function malWarmAvatarBuilder(){
- if(malAvatarPreloadFrame){return}
- var gender=malAvatarGender(mode==='up');
- var frame=document.createElement('iframe');frame.title='Préchargement du créateur 3D Malachite';frame.setAttribute('aria-hidden','true');
- malPlaceAvatarFrame(frame,false);frame.dataset.gender=gender;frame.src='avatar-builder.html?gender='+gender+'&preload=1&v=10';
- document.body.appendChild(frame);malAvatarPreloadFrame=frame;malAvatarPreloadGender=gender;malAvatarPreloadReady=false;
-}
+function malWarmAvatarBuilder(){ /* Chargement à la demande : aucun iframe WebGL caché. */ }
 function closeMalAvatarBuilder(){
  var overlay=$('malAvatarBuilderOverlay');if(!overlay)return;
- var frame=overlay.querySelector('iframe');if(frame){malPlaceAvatarFrame(frame,false);frame.setAttribute('aria-hidden','true');document.body.appendChild(frame)}
- overlay.remove();
+ var frame=overlay.querySelector('iframe');if(frame){frame.src='about:blank';frame.remove()}
+ overlay.remove();malAvatarPreloadFrame=null;malAvatarPreloadReady=false;
 }
 function openMalAvatarBuilder(forSignup){
  if(!forSignup&&(!me||!me.id)){alert('Connecte-toi pour créer ton avatar.');return}
- var gender=malAvatarGender(!!forSignup);
- var overlay=$('malAvatarBuilderOverlay');
- if(!overlay){overlay=document.createElement('div');overlay.id='malAvatarBuilderOverlay';overlay.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(16,17,22,.82);display:flex;align-items:stretch;justify-content:center;padding:0';
-  var loading=document.createElement('div');loading.id='malAvatarBuilderLoading';loading.style.cssText='position:absolute;inset:0;display:grid;place-content:center;gap:12px;text-align:center;color:#fff;font:600 15px system-ui;z-index:1;pointer-events:none';loading.innerHTML='<div style="font-size:38px">✦</div><div>Préparation de ton avatar 3D…</div><div id="malAvatarBuilderProgress" style="font-size:12px;font-weight:400;opacity:.85">'+esc(malAvatarLoadingText)+'</div>';
-  overlay.appendChild(loading);overlay.addEventListener('click',function(e){if(e.target===overlay)closeMalAvatarBuilder()});document.body.appendChild(overlay);
- }
- if(!malAvatarPreloadFrame){malWarmAvatarBuilder()}
- var frame=malAvatarPreloadFrame;malPlaceAvatarFrame(frame,true);frame.removeAttribute('aria-hidden');frame.dataset.gender=gender;overlay.appendChild(frame);
- if(malAvatarPreloadReady){var load=$('malAvatarBuilderLoading');if(load)load.remove()}
- if(malAvatarPreloadGender!==gender&&frame.contentWindow){malAvatarPreloadReady=false;malAvatarPreloadGender=gender;frame.contentWindow.postMessage({source:'malachite-avatar-parent',type:'set-gender',gender},location.origin)}
+ var gender=malAvatarGender(!!forSignup),old=$('malAvatarBuilderOverlay');
+ if(old)closeMalAvatarBuilder();
+ var overlay=document.createElement('div');overlay.id='malAvatarBuilderOverlay';
+ overlay.style.cssText='position:fixed;inset:0;z-index:99999;background:#fff;display:flex;flex-direction:column;align-items:stretch;justify-content:stretch;padding:0;overflow:hidden;min-height:0';
+ var loading=document.createElement('div');loading.id='malAvatarBuilderLoading';
+ loading.style.cssText='position:absolute;inset:0;display:grid;place-content:center;gap:12px;text-align:center;color:#71334b;background:#fff;font:600 15px system-ui;z-index:3;pointer-events:none';
+ loading.innerHTML='<div style="font-size:38px">✦</div><div>Préparation de ton avatar 3D…</div><div id="malAvatarBuilderProgress" style="font-size:12px;font-weight:400;opacity:.85">Connexion aux ressources 3D…</div>';
+ var frame=document.createElement('iframe');frame.title='Créateur d’avatar 3D Malachite';frame.setAttribute('allow','fullscreen');frame.setAttribute('referrerpolicy','strict-origin-when-cross-origin');
+ malPlaceAvatarFrame(frame);frame.dataset.gender=gender;frame.src='avatar-builder.html?gender='+gender+'&v=11';
+ frame.addEventListener('load',function(){var p=$('malAvatarBuilderProgress');if(p)p.textContent='Page chargée · préparation du modèle 3D…'});
+ overlay.appendChild(frame);overlay.appendChild(loading);
+ overlay.addEventListener('click',function(e){if(e.target===overlay)closeMalAvatarBuilder()});
+ document.body.appendChild(overlay);
+ malAvatarPreloadFrame=frame;malAvatarPreloadGender=gender;malAvatarPreloadReady=false;
 }
 async function malPersistAvatar3d(config,image){
  if(!me||!me.id)throw new Error('Session expirée. Reconnecte-toi.');
@@ -1849,7 +1847,7 @@ window.addEventListener('message',async function(event){
   });
  }
 });
-function malAvatarPanel(){malWarmAvatarBuilder();var a=malAvatar3dDraft||mine&&mine.avatar||{},preview=a.imageUrl?'<div class="mal-avatar-preview"><img src="'+esc(a.imageUrl)+'" alt="Mon avatar 3D" style="width:100%;max-width:190px;border-radius:16px;display:block;margin:8px auto"></div>':'';return '<div class="mal-panel mal-avatar-builder"><h3>Créer mon avatar 3D réaliste</h3><p class="note">Choisis Homme ou Femme, puis personnalise le visage, la peau, les cheveux et les vêtements sur un véritable personnage 3D.</p>'+preview+'<button class="b1" type="button" onclick="openMalAvatarBuilder()">'+(a.imageUrl?'Modifier mon avatar 3D':'Ouvrir le créateur d’avatars 3D')+'</button><div class="note">Ton avatar sera enregistré et affiché sur ton profil.</div></div>'}
+function malAvatarPanel(){var a=malAvatar3dDraft||mine&&mine.avatar||{},preview=a.imageUrl?'<div class="mal-avatar-preview"><img src="'+esc(a.imageUrl)+'" alt="Mon avatar 3D" style="width:100%;max-width:190px;border-radius:16px;display:block;margin:8px auto"></div>':'';return '<div class="mal-panel mal-avatar-builder"><h3>Créer mon avatar 3D réaliste</h3><p class="note">Choisis Homme ou Femme, puis personnalise le visage, la peau, les cheveux et les vêtements sur un véritable personnage 3D.</p>'+preview+'<button class="b1" type="button" onclick="openMalAvatarBuilder()">'+(a.imageUrl?'Modifier mon avatar 3D':'Ouvrir le créateur d’avatars 3D')+'</button><div class="note">Ton avatar sera enregistré et affiché sur ton profil.</div></div>'}
 
 
 var MAL_TEXT={
