@@ -1899,12 +1899,13 @@ IC.centre='<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>';
     if(fresh&&fresh.data){
      p=Object.assign({},p||{},fresh.data);
      if(Array.isArray(profs)){var cachedIndex=profs.findIndex(function(x){return x.id===id});if(cachedIndex>=0)profs[cachedIndex]=p;else profs.push(p)}
-    }else if(!p){
-     console.warn('Profil de conversation indisponible',fresh&&fresh.error||'aucune ligne');
-     alert('Ce profil ne peut pas être chargé pour le moment. Réessaie dans quelques instants.');
-     return;
     }else if(fresh&&fresh.error){
-     console.warn('Lecture du profil impossible, affichage des données déjà chargées',fresh.error);
+     console.warn('Lecture du profil impossible',fresh.error);
+     if(!p){alert('Impossible de lire ce profil : '+(fresh.error.message||'erreur de permission ou de connexion')+'.');return;}
+    }else if(!p){
+     console.warn('Aucune fiche publique trouvée pour ce compte de conversation');
+     p={id:id,prenom:'Profil à compléter',age:null,genre:null,commune:null,quartier:null,profession:null,bio:'Ce compte existe dans les conversations, mais aucune fiche de profil n’a été créée. Son propriétaire doit compléter son profil.',interets:[],photos:[],prompts:[],avatar:{},profile_private:false,_profileMissing:true};
+     if(Array.isArray(profs))profs.push(p);
     }
    }
    if(p&&typeof resolveProfilePhotos==='function')await resolveProfilePhotos(p);
