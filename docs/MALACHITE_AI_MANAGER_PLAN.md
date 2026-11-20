@@ -1,70 +1,68 @@
 # Malachite AI Manager — plan d'intégration et d'exploitation
 
 ## Statut et garde-fous
-- Cette branche est une préparation isolée. Elle n'est ni fusionnée dans `main`, ni publiée, ni déployée.
-- Aucun changement n'a été appliqué au projet Supabase de production.
-- Aucune clé API, aucun compte marchand et aucun service payant n'ont été activés.
-- Le panneau « Malachite AI Manager » ajouté à l'interface est un prototype visuel clairement marqué comme non activé. Aucune Edge Function AI Manager, clé fournisseur IA, file de tâches ou automatisation autonome n'est déployée.
+- La branche de préparation n'est ni fusionnée dans `main`, ni publiée, ni déployée.
+- Aucun changement de schéma n'a été appliqué à la base Supabase de production pendant cet audit.
+- Aucune clé API IA, aucun compte marchand ni service payant n'a été activé.
+- Le panneau « Malachite AI Manager » est un prototype visuel marqué comme non activé. Aucune Edge Function AI Manager, clé fournisseur IA, file de tâches ou automatisation autonome n'est déployée.
 
-## Parcours de paiement simplifié (maquette)
-1. Le membre choisit Premium (2 USD / 30 jours) ou Boost (0,50 USD / 24 h).
-2. Il choisit Airtel Money ou Orange Money.
-3. L'interface affiche uniquement le numéro correspondant :
-   - Airtel Money : +243 993 315 532
-   - Orange Money : +243 848 775 992
-4. Il effectue le transfert puis soumet la référence reçue.
-5. La demande reste en attente jusqu'à une vérification indépendante et fiable.
-
-État actuel vérifié le 20 novembre 2026 : la production accepte encore une référence dans `paiements.code`, mais ne possède pas `receipt_path` ni le bucket privé `payment-receipts`. La branche de préparation ajoute un parcours de reçu privé ; il reste inactif en production jusqu'à l'application ordonnée des migrations et aux tests multi-comptes. Une capture peut aider à lire montant, date et référence, mais ne prouve jamais à elle seule que l'argent est arrivé.
+## Parcours de paiement — état réel
+- Premium : 2 USD / 30 jours dans le parcours d'offres de cette branche.
+- Moyens affichés : Airtel Money et Orange Money.
+- Le formulaire de cette branche demande une référence et un justificatif image, téléversé dans un bucket privé avant l'insertion de la demande.
+- Le code d'administration permet une vérification humaine ; il ne s'agit pas d'une confirmation automatique de l'opérateur.
+- Vérification SQL de production du 20 novembre 2026 : la colonne `public.paiements.receipt_path` et le bucket privé `payment-receipts` sont absents. Le nouveau parcours ne doit donc pas être publié avant migration additive, déploiement frontend, puis politique stricte et tests multi-comptes.
+- Une capture d'écran ou une référence saisie ne prouve jamais à elle seule que l'argent est arrivé.
 
 ## Paiements automatiques — architecture requise
-- Intégration officielle opérateur/agrégateur (API ou webhook authentifié) capable de confirmer la transaction, le montant, la devise, le numéro destinataire et l'identifiant unique.
-- Vérification serveur uniquement ; aucune validation depuis le navigateur.
-- Contrainte d'unicité/idempotence sur l'identifiant de transaction, journal d'événements et protection contre la réutilisation d'un reçu.
-- Activation Premium atomique côté serveur après confirmation opérateur ; 30 jours ajoutés à l'expiration existante.
-- Si l'opérateur ne fournit pas de confirmation exploitable, statut « à vérifier » et aucune activation automatique.
-- Les comptes personnels seuls ne garantissent pas l'accès aux API marchandes ni aux webhooks. Orange documente une offre Web Payment réservée aux marchands officiellement enregistrés et indique la RDC parmi les pays disponibles : https://developer.orange.com/apis/om-webpay/. Airtel Africa présente son portail API pour les commerçants : https://developers.airtel.africa/developer. Les conditions d'éligibilité et documents KYC en RDC doivent être confirmés directement avant de choisir l'intégration.
+- API ou webhook officiel opérateur/agrégateur, authentifié et capable de confirmer transaction, montant, devise, destinataire et identifiant unique.
+- Vérification exclusivement côté serveur ; aucune validation depuis le navigateur.
+- Idempotence et unicité sur l'identifiant opérateur, journal d'événements et protection contre la réutilisation d'une référence.
+- Activation Premium atomique après confirmation indépendante ; durée de 30 jours ajoutée à l'expiration existante.
+- Sans confirmation officielle exploitable : statut « à vérifier », aucune activation automatique.
+- Les comptes personnels ne garantissent pas l'accès aux API marchandes. Orange documente une offre Web Payment pour les marchands enregistrés : https://developer.orange.com/apis/om-webpay/. Airtel Africa présente son portail API marchand : https://developers.airtel.africa/developer. Éligibilité et KYC en RDC à confirmer directement auprès des opérateurs.
 
-## Malachite AI Manager — périmètre
-### Automatisations possibles après intégration
-- Paiements : lire les confirmations, détecter doublons/anomalies, activer automatiquement les abonnements confirmés.
-- Comptes : détecter spam, fraude et comportements anormaux ; appliquer des restrictions temporaires proportionnées selon des règles strictes.
+## Périmètre fonctionnel envisagé
+- Paiements : lire les confirmations, détecter doublons/anomalies, activer uniquement les abonnements confirmés.
+- Comptes : détecter spam et comportements anormaux, proposer des mesures proportionnées.
 - Signalements : classer par urgence, regrouper les doublons et préparer des décisions.
-- Avis/support : répondre aux questions fréquentes avec une base de connaissances validée, classer les retours et remonter les bugs.
+- Support : répondre aux questions fréquentes depuis une base approuvée, classer les retours et remonter les bugs.
 - Technique : surveiller erreurs, disponibilité et volumes, puis alerter l'administrateur.
 
-### Limites obligatoires
-- Une simple capture, une référence saisie ou une accusation ne suffit jamais pour confirmer un paiement ou sanctionner un membre.
-- Suspension automatique temporaire uniquement sur signaux objectifs multiples et seuils définis ; journalisation, durée limitée, notification et procédure de contestation.
-- Bannissement définitif, remboursement, transfert d'argent, changement de numéros de paiement, suppression de données, et cas ambigus : validation du propriétaire requise.
-- Accès minimal aux données ; pas d'accès général aux conversations privées. Les éléments ne sont consultés que lorsqu'ils sont nécessaires à un signalement précis et autorisé.
-- Chaque action de l'agent doit avoir un motif, une source, un niveau de confiance, un horodatage et un identifiant de corrélation.
+## Limites obligatoires
+- Une capture, une référence saisie ou une accusation ne suffit jamais pour confirmer un paiement ou sanctionner un membre.
+- Suspension temporaire automatisée uniquement après signaux objectifs multiples, seuils documentés, durée limitée, journalisation, notification et recours.
+- Bannissement définitif, remboursement, transfert d'argent, modification des numéros de réception, suppression de données et cas ambigus : approbation humaine obligatoire.
+- Pas d'accès général aux conversations privées. Accès minimal et limité aux éléments nécessaires à un signalement précis et autorisé.
+- Chaque action doit conserver motif, source, niveau de confiance, horodatage, décision humaine éventuelle et identifiant de corrélation.
 
 ## Architecture cible
-- Interface admin : commandes et rapports.
-- Agent IA OpenAI côté serveur : analyse et appels d'outils autorisés uniquement.
-- Supabase Edge Functions : authentification, orchestration, webhooks, tâches asynchrones.
-- PostgreSQL : règles métier, statuts, idempotence et journal d'audit.
-- Stockage privé : reçus de paiement avec accès temporaire limité et politiques RLS.
-- File/planificateur : traitement 24/7 sans dépendre d'une session navigateur ou de ChatGPT ouvert.
+- Interface admin pour commandes, rapports et approbations.
+- Fournisseur IA côté serveur uniquement ; aucune clé dans `index.html` ou le dépôt.
+- Supabase Edge Functions pour authentification, orchestration et webhooks.
+- PostgreSQL pour règles métier, statuts, idempotence et journal d'audit.
+- Stockage privé pour reçus, avec accès temporaire et politiques RLS.
+- File et planificateur serveur pour le traitement continu ; une page ouverte sur le téléphone ou ChatGPT ne constitue pas un agent 24/7.
 
-## État observé pendant l'audit (20 novembre 2026)
-- Le frontend principal est un fichier monolithique `index.html`.
-- Le formulaire de paiement existant envoie l'offre, la référence et l'opérateur vers `public.paiements`.
-- Le panneau admin affiche les demandes en attente et appelle `traiter_paiement`.
-- La base contient déjà les tables `paiements`, `signalements`, `suspensions`, `avis_site` et `admin_actions`.
-- La fonction privée `private.traiter_paiement` vérifie `private.is_admin()`, verrouille la demande et active les droits après validation administrative. Ce n'est pas encore une validation opérateur automatisée.
-- Les Edge Functions observées sont `admin-user-moderation` et `username-login`. Aucune fonction webhook de paiement ni agent IA permanent n'a été trouvée dans la liste consultée.
-- Les advisors signalent `start_call_session` SECURITY DEFINER exécutable par authenticated. Vérification complémentaire : `anon` n'a pas EXECUTE ; le corps vérifie `auth.uid()`, l'abonnement, le match mutuel et l'expiration courte. L'accès authenticated est donc intentionnel mais doit rester couvert par les tests négatifs. `private.admins` a RLS sans politique directe ; le schéma `private` n'est pas exposé et l'accès passe par les fonctions d'autorisation. La protection contre les mots de passe compromis reste désactivée et doit être activée/vérifiée dans la configuration Auth avant lancement.
+## État observé dans Supabase actif — 20 novembre 2026
+- Edge Functions actives observées : `admin-user-moderation` et `username-login`. Aucune fonction webhook de paiement ou AI Manager n'a été trouvée.
+- La fonction privée `private.traiter_paiement` contrôle l'autorisation administrateur et traite les demandes après vérification humaine.
+- **Alerte RPC à corriger avant publication :** la vérification SQL indique que le rôle `anon` peut encore exécuter la surcharge `public.traiter_paiement(bigint, boolean, text)`. La surcharge à deux paramètres est refusée. La migration `20261120130000_restrict_payment_review_rpc.sql` est présente dans la branche, mais n'est pas appliquée en production.
+- L'advisor signale `public.start_call_session` en `SECURITY DEFINER`, exécutable par `authenticated`. La fonction contrôle `auth.uid()`, les conditions d'appel et le match réciproque ; ne pas la convertir aveuglément en `SECURITY INVOKER`, car les droits/RLS actuels empêchent certaines lectures nécessaires. Revue dédiée et tests négatifs requis.
+- `private.admins` a RLS sans politique directe ; l'accès direct reste fermé et les contrôles doivent passer par `private.is_admin()`.
+- La protection contre les mots de passe compromis est désactivée dans Supabase Auth.
+- Deux clés étrangères de `demandes_support` ne sont pas indexées et deux politiques réévaluent les fonctions Auth par ligne. La migration corrective est préparée, non appliquée.
+- La production ne contient pas encore `paiements.receipt_path`, le bucket privé de reçus ni l'index anti-doublon préparé.
 
-## Étapes avant activation
-1. Revoir les règles commerciales et les tarifs finaux (Premium 2 USD/mois confirmé par le propriétaire).
-2. Vérifier l'éligibilité Airtel Money et Orange Money pour encaissement marchand/API en RDC.
-3. Concevoir et tester le schéma de reçus privés et les politiques RLS sur une branche/environnement de test.
-4. Implémenter les webhooks authentifiés et les tests d'idempotence/fraude.
-5. Ajouter l'agent IA avec permissions minimales, limites de dépenses, journal d'audit et mode simulation.
-6. Tester les parcours de paiement, expiration, renouvellement, doublons, faux reçus, panne opérateur, contestation et suspension abusive.
-7. Audit de sécurité et accord explicite du propriétaire avant toute fusion, migration de production, activation de service ou publication.
+## Ordre de travail avant activation
+1. Corriger les privilèges RPC exposés et vérifier les droits effectifs des deux surcharges.
+2. Appliquer la migration additive de reçus, puis déployer le frontend compatible, puis seulement appliquer la politique stricte.
+3. Tester avec deux comptes distincts l'upload, les lectures propriétaire/admin, les suppressions, les doublons, les URL signées et les refus d'accès.
+4. Revoir `start_call_session` avec tests de deux comptes et conserver les protections inter-utilisateurs.
+5. Activer la protection contre les mots de passe compromis dans Auth.
+6. Vérifier l'éligibilité marchande Airtel/Orange et obtenir les accès officiels avant toute intégration.
+7. Construire l'agent IA en mode simulation, avec outils autorisés, quotas, journal d'audit, limites de coût et approbation humaine.
+8. Effectuer les tests Android et les tests de reprise/restauration avant tout lancement.
 
 ## Décision de lancement
-La mise en ligne n'est pas attachée à une date fixe. Le lancement sera autorisé uniquement lorsque tous les contrôles critiques auront été réussis et que le propriétaire aura explicitement approuvé la fusion, les migrations de production, les services externes et la publication.
+Aucune date fixe ne remplace les critères GO. Pas de fusion, migration de production, activation de fournisseur, dépense ou publication sans tests réussis et approbation explicite du propriétaire.
