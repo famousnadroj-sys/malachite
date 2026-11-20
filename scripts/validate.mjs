@@ -193,7 +193,7 @@ for (const item of [
   "Boost — 0,50 USD / 24 h",
   "+243 993 315 532",
   "+243 848 775 992",
-  "operateur:operator",
+  "operateur:data.operator",
   "Une capture d’écran seule ne déclenche jamais Premium.",
   "Ne communique jamais ton code PIN ni ton OTP.",
 ]) {
