@@ -2,7 +2,7 @@ name: Malachite public test deployment
 on:
   push:
     branches:
-      - work/ai-manager-payment-ux-2026-11-20
+      - main
   workflow_dispatch:
 permissions:
   contents: read
@@ -14,14 +14,14 @@ concurrency:
 jobs:
   deploy:
     environment:
-      name: malachite-preview
+      name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout complete test branch
         uses: actions/checkout@v4
         with:
-          ref: work/ai-manager-payment-ux-2026-11-20
+          ref: main
       - name: Validate application JavaScript
         run: |
           node --version
