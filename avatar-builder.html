@@ -54,7 +54,7 @@ function App(){
    }
   };
   const start=()=>{Promise.all([worker(),worker()]).catch(err=>console.warn('Préchargement des variantes féminines interrompu :',err))};
-  if(typeof requestIdleCallback==='function')requestIdleCallback(start,{timeout:900});else setTimeout(start,350);
+  setTimeout(start,120);
   return()=>{cancelled=true};
  },[pkg,gender,editor]);
  useEffect(()=>{function receive(e){if(e.origin!==location.origin||!e.data||e.data.source!=='malachite-avatar-parent')return;if(e.data.type==='set-gender'){setSaving(false);setAvatarReady(false);setGender(e.data.gender==='female'?'female':'male')}if(e.data.type==='saving')setSaving(true);if(e.data.type==='save-error'||e.data.type==='saved')setSaving(false)}window.addEventListener('message',receive);parent.postMessage({source:'malachite-avatar-builder',type:'mounted'},location.origin);return()=>window.removeEventListener('message',receive)},[]);
