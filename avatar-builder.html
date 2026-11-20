@@ -16,16 +16,16 @@
 <script type="module">
 import React,{useState,useEffect,useMemo,useRef} from 'react';
 import{createRoot}from'react-dom/client';
-import{HumanCanvas,createHumanEditor,useHumanPackage}from'https://esm.sh/humanforge@0.8.1/web?external=react,react-dom,three';
+import{HumanCanvas,createHumanEditor}from'https://esm.sh/humanforge@0.8.1/web?external=react,react-dom,three';
+import{loadHumanPackage,warmHumanPackage}from'https://esm.sh/humanforge@0.8.1/human?external=three';
 const h=React.createElement,ASSETS='https://cdn.jsdelivr.net/gh/abdulrehman043/humanforge@v0.5.0/assets/human';
 function App(){
  const [gender,setGender]=useState(new URLSearchParams(location.search).get('gender')==='female'?'female':'male');
- const [config,setConfig]=useState(null),[sectionIndex,setSectionIndex]=useState(0),[framing,setFraming]=useState('face'),[avatarReady,setAvatarReady]=useState(false);
- const canvas=useRef(null);
- const {pkg,error}=useHumanPackage(ASSETS);
+ const [pkg,setPkg]=useState(null),[editor,setEditor]=useState(null),[config,setConfig]=useState(null),[sectionIndex,setSectionIndex]=useState(0),[framing,setFraming]=useState('face'),[avatarReady,setAvatarReady]=useState(false),[assetsReady,setAssetsReady]=useState(false),[progress,setProgress]=useState({done:0,total:0}),[error,setError]=useState(null);
+ const canvas=useRef(null),packagePromise=useRef(null);
  const options=useMemo(()=>({gender,sections:['face','skin','eyes','brows','nose','mouth','hair','body','outfit','shoes'],detailRange:.65}),[gender]);
- const editor=useMemo(()=>pkg?createHumanEditor(pkg,options):null,[pkg,options]);
- useEffect(()=>{if(editor){setAvatarReady(false);setConfig(editor.normalize(null));setSectionIndex(0)}},[editor]);
+ useEffect(()=>{let live=true;setError(null);if(!packagePromise.current)packagePromise.current=loadHumanPackage(ASSETS);packagePromise.current.then(value=>{if(live)setPkg(value)},reason=>{if(live)setError(reason instanceof Error?reason:new Error(String(reason)))});return()=>{live=false}},[]);
+ useEffect(()=>{if(!pkg)return;let live=true;const nextEditor=createHumanEditor(pkg,options);const nextConfig=nextEditor.normalize(null);setEditor(nextEditor);setConfig(nextConfig);setAvatarReady(false);setAssetsReady(false);setProgress({done:0,total:0});setSectionIndex(0);parent.postMessage({source:'malachite-avatar-builder',type:'progress',phase:'Préparation des modèles et textures',done:0,total:0},location.origin);warmHumanPackage(pkg,{config:nextConfig,textureSize:'512',normalMaps:true,onProgress:(done,total)=>{if(live){setProgress({done,total});parent.postMessage({source:'malachite-avatar-builder',type:'progress',phase:'Téléchargement des éléments 3D',done,total},location.origin)}}}).then(()=>{if(live){setAssetsReady(true);parent.postMessage({source:'malachite-avatar-builder',type:'progress',phase:'Modèle prêt à afficher',done:1,total:1},location.origin)}},reason=>{if(live)setError(reason instanceof Error?reason:new Error(String(reason)))});return()=>{live=false}},[pkg,options]);
  useEffect(()=>{function receive(e){if(e.origin!==location.origin||!e.data||e.data.source!=='malachite-avatar-parent'||e.data.type!=='set-gender')return;setGender(e.data.gender==='female'?'female':'male')}window.addEventListener('message',receive);parent.postMessage({source:'malachite-avatar-builder',type:'mounted'},location.origin);return()=>window.removeEventListener('message',receive)},[]);
  useEffect(()=>{function report(e){parent.postMessage({source:'malachite-avatar-builder',type:'error',message:String(e.message||'Erreur JavaScript dans le créateur 3D')},location.origin)}function rejected(e){const reason=e.reason;parent.postMessage({source:'malachite-avatar-builder',type:'error',message:String(reason&&reason.message||reason||'Erreur de chargement 3D')},location.origin)}window.addEventListener('error',report);window.addEventListener('unhandledrejection',rejected);return()=>{window.removeEventListener('error',report);window.removeEventListener('unhandledrejection',rejected)}},[]);
  useEffect(()=>{if(error)parent.postMessage({source:'malachite-avatar-builder',type:'error',message:error.message||'Les fichiers 3D ne sont pas accessibles'},location.origin)},[error]);
@@ -40,7 +40,7 @@ function App(){
   return h('div',{className:'block',key:ctl.id},h('span',{className:'block-title'},ctl.label),h('div',{className:'tiles'},ctl.options.map(o=>h('button',{key:o.id??'none',type:'button',className:'tile'+(o.id===value?' active':''),title:o.label,'aria-label':o.label,onClick:()=>update(ctl.apply(config,o.id))},o.id===null?h('span',null,'Aucun'):o.preview?h('img',{src:o.preview,alt:'',loading:'lazy'}):h('span',null,o.label)))));
  }
  if(error)return h('div',{className:'error'},'Impossible de charger les modèles 3D : '+error.message);
- if(!pkg||!editor||!config)return h('div',{className:'loading'},'Préparation du modèle humain 3D…');
+ if(!pkg||!editor||!config||!assetsReady)return h('div',{className:'loading'},h('div',null,error?'Impossible de charger les modèles 3D : '+error.message:'Préparation du modèle humain 3D…'),h('div',{style:{height:'8px',background:'#eee',borderRadius:'99px',overflow:'hidden',margin:'14px auto',maxWidth:'280px'}},h('div',{style:{height:'100%',width:progress.total?Math.round(progress.done/progress.total*100)+'%':'8%',background:'#b72e63',transition:'width .2s'}})),h('div',{style:{fontSize:'12px'}},progress.total?progress.done+' / '+progress.total+' éléments chargés':'Connexion aux ressources 3D…'));
  const section=editor.sections[Math.min(sectionIndex,editor.sections.length-1)];
  return h('div',{className:'app'},
   h('header',{className:'head'},h('div',null,h('div',{className:'title'},'Mon avatar 3D réaliste'),h('div',{className:'hint'},'Personnage virtuel · visage, peau, cheveux et vêtements')),h('button',{className:'close',onClick:cancel},'Fermer')),
