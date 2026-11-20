@@ -34,7 +34,7 @@ function App(){
   // Préchargement progressif des choix visibles, pour les deux genres.
   // Un seul élément à la fois évite de saturer la connexion mobile.
   const attrs=getHumanCatalog(pkg,{gender});
-  const keys=customTab==='cheveux'?['hair.style']:customTab==='tenues'?['outfit.style','headwear.style','shoes.style']:[];
+  const keys=customTab==='cheveux'?['hair.style']:customTab==='tenues'?['outfit.style','headwear.style','shoes.style','hat.style']:[];
   const variants=[];
   const base=editor.normalize(null);
   for(const key of keys){
@@ -117,7 +117,7 @@ function App(){
   timer=setTimeout(apply,0);
   return()=>{cancelled=true;clearTimeout(timer)};
  },[config,avatarReady]);
- const customContent=customTab==='tenues'?[catalogBlock('outfit.style','Choisir un vêtement','items'),garmentColorBlock('outfit','Couleur du vêtement'),catalogBlock('headwear.style','Accessoires de tête','items'),garmentColorBlock('headwear','Couleur de l’accessoire'),catalogBlock('shoes.style','Chaussures','items'),garmentColorBlock('shoes','Couleur des chaussures')]:customTab==='peau'?[catalogBlock('skin.tone','Choisir une couleur de peau','colors')]:customTab==='cheveux'?[catalogBlock('hair.style','Choisir une coupe','items'),catalogBlock('hair.color','Couleur des cheveux','colors')]:null;
+ const customContent=customTab==='tenues'?[catalogBlock('outfit.style','Choisir un vêtement','items'),garmentColorBlock('outfit','Couleur du vêtement'),catalogBlock('headwear.style','Accessoires de tête','items'),garmentColorBlock('headwear','Couleur de l’accessoire'),catalogBlock('hat.style','Chapeaux','items'),garmentColorBlock('hat','Couleur du chapeau'),catalogBlock('shoes.style','Chaussures','items'),garmentColorBlock('shoes','Couleur des chaussures')]:customTab==='peau'?[catalogBlock('skin.tone','Choisir une couleur de peau','colors')]:customTab==='cheveux'?[catalogBlock('hair.style','Choisir une coupe','items'),catalogBlock('hair.color','Couleur des cheveux','colors')]:null;
  const expressions={naturel:{},sourire:{mouthSmile:.8},clinOeil:{eyeBlinkLeft:1},surpris:{jawOpen:.65,browInnerUp:.7},triste:{mouthFrown:.65,browInnerUp:.45},grimace:{noseSneerLeft:.8,noseSneerRight:.8,mouthPress:.55,eyeSquintLeft:.25,eyeSquintRight:.25}};
  function pose(next){
   setGesture(next);
