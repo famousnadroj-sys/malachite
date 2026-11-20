@@ -6,7 +6,7 @@
 <link rel="preconnect" href="https://esm.sh" crossorigin><link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin><link rel="dns-prefetch" href="//esm.sh"><link rel="dns-prefetch" href="//cdn.jsdelivr.net">
 <style>
 *{box-sizing:border-box}html,body,#root{margin:0;width:100%;height:100%;min-height:100%;font:14px system-ui,-apple-system,sans-serif;color:#222;background:#fff}
-.app{height:100dvh;display:flex;flex-direction:column;padding:10px;gap:8px}.head{display:flex;align-items:center;justify-content:space-between;gap:8px}.title{font-weight:750;font-size:18px}.hint{font-size:12px;color:#777;margin-top:3px}.gender{display:flex;gap:8px}.gender button,.close,.toolbar button{border:1px solid #ead6df;background:#fff;border-radius:999px;padding:8px 14px;font-weight:650;color:#67334a}.gender button.active,.toolbar button.active{background:#b72e63;color:white;border-color:#b72e63}.close{padding:8px 13px}.editor{flex:1;min-height:0;display:grid;grid-template-rows:minmax(210px,48%) minmax(0,1fr);border:1px solid #eceef1;border-radius:14px;overflow:hidden}.stage{position:relative;min-height:210px;background:#eee9e7}.stage canvas{width:100%;height:100%;display:block;touch-action:none}.toolbar{position:absolute;top:9px;left:9px;display:flex;gap:6px}.toolbar button{padding:6px 11px;font-size:12px}.panel{display:flex;flex-direction:column;min-height:0;border-top:1px solid #eceef1}.tabs{display:flex;gap:5px;overflow-x:auto;padding:8px;scrollbar-width:none}.tabs button{flex:none;border:0;border-radius:999px;background:#f1f2f4;padding:7px 11px;font-size:12px;color:#444}.tabs button.active{background:#b72e63;color:#fff}.controls{flex:1;overflow:auto;padding:6px 12px 12px}.control-row{display:grid;grid-template-columns:110px minmax(0,1fr) 36px;align-items:center;gap:8px;margin:12px 0}.control-row input{width:100%;accent-color:#b72e63}.control-label{font-size:12px;color:#555}.control-value{font-size:11px;color:#777;text-align:right;font-variant-numeric:tabular-nums}.block{margin:10px 0}.block-title{display:block;font-size:12px;font-weight:650;color:#555;margin-bottom:7px}.swatches{display:flex;flex-wrap:wrap;gap:9px}.swatch{width:31px;height:31px;border-radius:50%;border:2px solid #ddd;padding:0}.swatch.active{outline:2px solid #b72e63;outline-offset:2px}.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:7px}.tile{aspect-ratio:1;border:1px solid #ddd;border-radius:9px;background:#fff;overflow:hidden;padding:3px}.tile.active{border:2px solid #b72e63}.tile img{width:100%;height:100%;object-fit:contain}.tile span{font-size:10px}.exprbar{display:flex;gap:6px;overflow-x:auto;padding:7px 8px;border-top:1px solid #f0e5e9}.exprbar button,.gesturebar button{flex:none;border:1px solid #ead6df;background:#fff;border-radius:999px;padding:7px 10px;font-size:11px;color:#67334a}.exprbar button.active,.gesturebar button.active{background:#b72e63;color:#fff}.gesturebar{display:flex;gap:6px;overflow-x:auto;padding:0 8px 7px}.editor{grid-template-rows:minmax(190px,42%) minmax(0,1fr)}.panel{overflow:hidden}.controls{min-height:0;overscroll-behavior:contain}.tabs{flex-shrink:0}.save{flex:none;border:0;border-radius:12px;background:#b72e63;color:#fff;padding:12px;font-weight:750}.loading{padding:24px;text-align:center;color:#666}.error{padding:18px;color:#a00}
+.app{height:100dvh;display:flex;flex-direction:column;padding:10px;gap:8px}.head{display:flex;align-items:center;justify-content:space-between;gap:8px}.title{font-weight:750;font-size:18px}.hint{font-size:12px;color:#777;margin-top:3px}.gender{display:flex;gap:8px}.gender button,.close,.toolbar button{border:1px solid #ead6df;background:#fff;border-radius:999px;padding:8px 14px;font-weight:650;color:#67334a}.gender button.active,.toolbar button.active{background:#b72e63;color:white;border-color:#b72e63}.close{padding:8px 10px;font-size:12px;white-space:nowrap;flex:none}.editor{flex:1;min-height:0;display:grid;grid-template-rows:minmax(210px,48%) minmax(0,1fr);border:1px solid #eceef1;border-radius:14px;overflow:hidden}.stage{position:relative;min-height:210px;background:#eee9e7}.stage canvas{width:100%;height:100%;display:block;touch-action:none}.toolbar{position:absolute;top:9px;left:9px;display:flex;gap:6px}.toolbar button{padding:6px 11px;font-size:12px}.panel{display:flex;flex-direction:column;min-height:0;border-top:1px solid #eceef1}.tabs{display:flex;gap:5px;overflow-x:auto;padding:8px;scrollbar-width:none}.tabs button{flex:none;border:0;border-radius:999px;background:#f1f2f4;padding:7px 11px;font-size:12px;color:#444}.tabs button.active{background:#b72e63;color:#fff}.controls{flex:1;overflow:auto;padding:6px 12px 12px}.control-row{display:grid;grid-template-columns:110px minmax(0,1fr) 36px;align-items:center;gap:8px;margin:12px 0}.control-row input{width:100%;accent-color:#b72e63}.control-label{font-size:12px;color:#555}.control-value{font-size:11px;color:#777;text-align:right;font-variant-numeric:tabular-nums}.block{margin:10px 0}.block-title{display:block;font-size:12px;font-weight:650;color:#555;margin-bottom:7px}.swatches{display:flex;flex-wrap:wrap;gap:9px}.swatch{width:31px;height:31px;border-radius:50%;border:2px solid #ddd;padding:0}.swatch.active{outline:2px solid #b72e63;outline-offset:2px}.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:7px}.tile{aspect-ratio:1;border:1px solid #ddd;border-radius:9px;background:#fff;overflow:hidden;padding:3px}.tile.active{border:2px solid #b72e63}.tile img{width:100%;height:100%;object-fit:contain}.tile span{font-size:10px}.exprbar{display:flex;gap:6px;overflow-x:auto;padding:7px 8px;border-top:1px solid #f0e5e9}.exprbar button,.gesturebar button{flex:none;border:1px solid #ead6df;background:#fff;border-radius:999px;padding:7px 10px;font-size:11px;color:#67334a}.exprbar button.active,.gesturebar button.active{background:#b72e63;color:#fff}.gesturebar{display:flex;gap:6px;overflow-x:auto;padding:0 8px 7px}.editor{grid-template-rows:minmax(190px,42%) minmax(0,1fr)}.panel{overflow:hidden}.controls{min-height:0;overscroll-behavior:contain}.tabs{flex-shrink:0}.save{flex:none;border:0;border-radius:12px;background:#b72e63;color:#fff;padding:12px;font-weight:750}.loading{padding:24px;text-align:center;color:#666}.error{padding:18px;color:#a00}
 </style>
 <script type="importmap">
 {"imports":{"react":"https://esm.sh/react@18.3.1","react/jsx-runtime":"https://esm.sh/react@18.3.1/jsx-runtime","react-dom":"https://esm.sh/react-dom@18.3.1","react-dom/client":"https://esm.sh/react-dom@18.3.1/client","three":"https://esm.sh/three@0.186.1","three/":"https://esm.sh/three@0.186.1/"}}
@@ -32,37 +32,33 @@ function App(){
   if(!pkg||!editor||gender!=='female'||femaleWarmupStarted.current)return;
   femaleWarmupStarted.current=true;
   let cancelled=false;
-  const base=editor.normalize(null);
-  const attrs=getHumanCatalog(pkg,{gender:'female'});
-  const variants=[];
-  for(const key of ['hair.style','outfit.style','headwear.style','shoes.style','skin.tone']){
-   const attr=attrs.find(item=>item.key===key);
-   if(!attr)continue;
-   for(const option of attr.options){
-    if(option.id===null)continue;
-    variants.push(attr.apply(base,option.id));
-   }
-  }
-  // Deux téléchargements à la fois : les fichiers communs sont dédupliqués par les caches HumanForge.
-  let cursor=0;
-  const worker=async()=>{
-   while(!cancelled){
-    const index=cursor++;
-    if(index>=variants.length)return;
-    try{await warmHumanPackage(pkg,{config:variants[index],textureSize:'512',normalMaps:false})}
-    catch(err){console.warn('Préchargement féminin différé :',err)}
-   }
-  };
-  const start=()=>{Promise.all([worker(),worker()]).catch(err=>console.warn('Préchargement des variantes féminines interrompu :',err))};
-  setTimeout(start,120);
-  return()=>{cancelled=true};
+  // Ne pas télécharger toute la garde-robe en arrière-plan : cela sature le réseau
+  // mobile et ralentit précisément les choix que l'utilisateur est en train de faire.
+  // On prépare seulement le look initial ; chaque nouveau choix est ensuite mis en cache
+  // à la demande, sans bloquer l'actualisation visuelle du modèle.
+  const initialConfig=editor.normalize(null);
+  const timer=setTimeout(()=>{
+   if(cancelled)return;
+   warmHumanPackage(pkg,{config:initialConfig,textureSize:'512',normalMaps:false})
+    .catch(err=>console.warn('Préparation du look féminin différée :',err));
+  },180);
+  return()=>{cancelled=true;clearTimeout(timer)};
  },[pkg,gender,editor]);
  useEffect(()=>{function receive(e){if(e.origin!==location.origin||!e.data||e.data.source!=='malachite-avatar-parent')return;if(e.data.type==='set-gender'){setSaving(false);setAvatarReady(false);setGender(e.data.gender==='female'?'female':'male')}if(e.data.type==='saving')setSaving(true);if(e.data.type==='save-error'||e.data.type==='saved')setSaving(false)}window.addEventListener('message',receive);parent.postMessage({source:'malachite-avatar-builder',type:'mounted'},location.origin);return()=>window.removeEventListener('message',receive)},[]);
  useEffect(()=>{function report(e){parent.postMessage({source:'malachite-avatar-builder',type:'error',message:String(e.message||'Erreur JavaScript dans le créateur 3D')},location.origin)}function rejected(e){const reason=e.reason;parent.postMessage({source:'malachite-avatar-builder',type:'error',message:String(reason&&reason.message||reason||'Erreur de chargement 3D')},location.origin)}window.addEventListener('error',report);window.addEventListener('unhandledrejection',rejected);return()=>{window.removeEventListener('error',report);window.removeEventListener('unhandledrejection',rejected)}},[]);
  useEffect(()=>{if(error)parent.postMessage({source:'malachite-avatar-builder',type:'error',message:error.message||'Les fichiers 3D ne sont pas accessibles'},location.origin)},[error]);
  function cancel(){parent.postMessage({source:'malachite-avatar-builder',type:'cancel'},location.origin)}
  function save(){if(!config||!canvas.current||!avatarReady||saving)return;const image=canvas.current.snapshot();if(!image){alert('La capture 3D n’a pas pu être créée. Réessaie.');return}setSaving(true);parent.postMessage({source:'malachite-avatar-builder',type:'save',config,image},location.origin)}
- function update(next){setConfig(editor.normalize(next))}
+ function update(next){
+  const normalized=editor.normalize(next);
+  // Le changement de sélection reste immédiat. Le même look est préparé en parallèle
+  // pour que HumanCanvas réutilise les ressources déjà mises en cache.
+  setConfig(normalized);
+  if(gender==='female'&&pkg){
+   warmHumanPackage(pkg,{config:normalized,textureSize:'512',normalMaps:false})
+    .catch(err=>console.warn('Chargement de la variante féminine à la demande :',err));
+  }
+ }
  function control(ctl){
   const value=ctl.value(config);
   if(ctl.kind==='slider')return h('label',{className:'control-row',key:ctl.id},h('span',{className:'control-label'},ctl.label),h('input',{type:'range',min:ctl.min,max:ctl.max,step:ctl.step,value,onChange:e=>update(ctl.apply(config,Number(e.target.value)))}),h('span',{className:'control-value'},Number(value).toFixed(2)));
@@ -120,7 +116,7 @@ function App(){
   canvas.current?.render();
 }
  return h('div',{className:'app'},
-  h('header',{className:'head'},h('div',null,h('div',{className:'title'},'Mon avatar 3D réaliste'),h('div',{className:'hint'},'Personnage virtuel · visage, peau, cheveux et vêtements')),h('button',{className:'close',onClick:cancel},'Fermer')),
+  h('header',{className:'head'},h('div',null,h('div',{className:'title'},'Mon avatar 3D réaliste'),h('div',{className:'hint'},'Personnage virtuel · visage, peau, cheveux et vêtements')),h('button',{className:'close',onClick:cancel,'aria-label':'Retour à la plateforme'},'← Retour à la plateforme')),
   h('div',{className:'gender'},h('button',{className:gender==='male'?'active':'',onClick:()=>{setAvatarReady(false);setGender('male')}},'Homme'),h('button',{className:gender==='female'?'active':'',onClick:()=>{setAvatarReady(false);setGender('female')}},'Femme')),
   h('div',{className:'editor'},
    h('div',{className:'stage'},h(HumanCanvas,{ref:canvas,pkg,config,framing,expressions:expressions[expression]||{},background:'#eee9e7',textureSize:'512',rotatable:true,style:{position:'absolute',inset:0,width:'100%',height:'100%'},onReady:()=>{setAvatarReady(true);const avatar=canvas.current?.avatar;if(avatar&&!performanceConfigured.current){performanceConfigured.current=true;avatar.normalMaps=false;avatar.anisotropy=1;}poseBase.current=null;if(gesture!=='aucun')requestAnimationFrame(()=>pose(gesture));parent.postMessage({source:'malachite-avatar-builder',type:'ready'},location.origin)}}),h('div',{className:'toolbar'},h('button',{className:framing==='face'?'active':'',onClick:()=>setFraming('face')},'Visage'),h('button',{className:framing==='body'?'active':'',onClick:()=>setFraming('body')},'Corps'))),
