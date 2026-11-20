@@ -211,3 +211,22 @@ if (html.includes("Premium — 3 $")) {
 if (!html.includes("Premium — 2 USD / mois")) {
   throw new Error('The active Premium price must be 2 USD per month.');
 }
+
+const paymentMigration = fs.readFileSync('supabase/migrations/20261120130000_restrict_payment_review_rpc.sql', 'utf8');
+for (const item of [
+  'revoke all on function public.traiter_paiement(bigint, boolean) from public, anon',
+  'revoke all on function public.traiter_paiement(bigint, boolean, text) from public, anon',
+  'grant execute on function public.traiter_paiement(bigint, boolean, text) to authenticated',
+  'payment_review_rpc_must_not_be_executable_by_anon',
+]) {
+  if (!paymentMigration.toLowerCase().includes(item.toLowerCase())) {
+    throw new Error('Payment RPC privilege guard missing: ' + item);
+  }
+}
+if (!html.includes('maxlength="100" placeholder="Référence exacte du SMS"') ||
+    !html.includes('c.length<4||c.length>100')) {
+  throw new Error('Payment reference length must match the database RLS policy (4–100 characters).');
+}
+if (html.includes('maxlength="120" placeholder="Référence de transaction"')) {
+  throw new Error('Payment reference input exceeds the database limit.');
+}
