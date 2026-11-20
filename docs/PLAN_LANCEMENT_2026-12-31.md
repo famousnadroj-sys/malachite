@@ -19,7 +19,7 @@ Branche de préparation : `work/ai-manager-payment-ux-2026-11-20`
 | Frontend | Application web/PWA dans `index.html`, avec scripts et avatar builder séparés | Tests réels Android, navigation, réseau lent, accessibilité |
 | Premium | Affichage à 2 USD / 30 jours dans la branche | Valider devise, montant réellement encaissé, renouvellement et mentions commerciales |
 | Airtel / Orange | Choix d'opérateur et références déclarées dans l'interface | Vérifier l'éligibilité marchand, obtenir les accès officiels et tester sandbox |
-| Paiement | Enregistrement d'une demande, contrôle manuel admin via RPC | Confirmation opérateur indépendante, idempotence, rapprochement, remboursements et litiges |
+| Paiement | Demande avec opérateur, référence et justificatif privé ; index anti-doublon préparé ; contrôle manuel admin via RPC | Appliquer les migrations en staging, tester les politiques RLS et confirmer les paiements auprès de l'opérateur ; intégration webhook toujours à faire |
 | Reçus | Aucune colonne de reçu ni bucket privé confirmé dans le schéma consulté | Concevoir stockage privé, limites MIME/taille, antivirus/validation, accès signé et suppression |
 | AI Manager | Panneau de prévisualisation uniquement | Backend agent, outils autorisés, tâches planifiées, journal d'audit, tests et budget |
 | Modération | Tables signalements/suspensions et Edge Function admin existantes | Vérifier les cas limites, recours, notification et protection contre abus |
