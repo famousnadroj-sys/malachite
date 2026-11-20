@@ -1903,9 +1903,8 @@ IC.centre='<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>';
      console.warn('Lecture du profil impossible',fresh.error);
      if(!p){alert('Impossible de lire ce profil : '+(fresh.error.message||'erreur de permission ou de connexion')+'.');return;}
     }else if(!p){
-     console.warn('Aucune fiche publique trouvée pour ce compte de conversation');
-     p={id:id,prenom:'Profil à compléter',age:null,genre:null,commune:null,quartier:null,profession:null,bio:'Ce compte existe dans les conversations, mais aucune fiche de profil n’a été créée. Son propriétaire doit compléter son profil.',interets:[],photos:[],prompts:[],avatar:{},profile_private:false,_profileMissing:true};
-     if(Array.isArray(profs))profs.push(p);
+     console.warn('Aucune fiche de profil accessible pour ce compte de conversation');
+     p={id:id,prenom:'Profil indisponible',age:null,genre:null,commune:null,quartier:null,profession:null,bio:'Aucune fiche de profil ne peut être affichée pour le moment. Le compte peut être incomplet ou soumis à une restriction. Les informations personnelles restent protégées.',interets:[],photos:[],prompts:[],avatar:{},profile_private:false,_profileUnavailable:true};
     }
    }
    if(p&&typeof resolveProfilePhotos==='function')await resolveProfilePhotos(p);
