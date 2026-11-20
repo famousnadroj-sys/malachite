@@ -330,3 +330,8 @@ const aiWorker = fs.readFileSync('supabase/functions/malachite-ai-worker/index.t
 if (!aiWorker.includes('CONFIGURED_MODEL.startsWith("gemini-2.5-") ? "gemini-3.5-flash-lite"') || !aiWorker.includes('(CONFIGURED_MODEL || "gemini-3.5-flash-lite")')) {
   throw new Error('AI worker must use the verified Gemini model fallback.');
 }
+
+const privilegeMigration = fs.readFileSync('supabase/migrations/202611210001_revoke_authenticated_table_bypass_privileges.sql', 'utf8').toLowerCase();
+for (const item of ['revoke truncate, references, trigger on all tables in schema public from authenticated', 'alter default privileges for role postgres in schema public', 'revoke all on tables from anon', 'revoke all on sequences from anon']) {
+  if (!privilegeMigration.includes(item)) throw new Error('Database table privilege hardening missing: ' + item);
+}
