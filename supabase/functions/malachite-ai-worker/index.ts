@@ -3,7 +3,6 @@ import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 const CONFIGURED_MODEL = Deno.env.get("MALACHITE_AI_MODEL") || "";
 const MODEL = CONFIGURED_MODEL.startsWith("gemini-2.5-") ? "gemini-3.5-flash-lite" : (CONFIGURED_MODEL || "gemini-3.5-flash-lite");
 const AI_KEY = Deno.env.get("GEMINI_API_KEY") || "";
-const AI_AUTONOMY_ENABLED = true; // AI briefings are enabled by the database setting below.
 
 function json(status: number, body: Record<string, unknown>) {
   return new Response(JSON.stringify(body), {
