@@ -34,6 +34,8 @@ with check (
   and statut = 'attente'
   and offre = any (array['Premium','Boost','Badge Vérifié','Contact','Appels'])
   and char_length(btrim(code)) between 4 and 100
+  and operateur in ('airtel','orange')
+  and receipt_path is not null
   and (
     (offre = 'Contact'
       and cible is not null
