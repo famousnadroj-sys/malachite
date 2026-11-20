@@ -1924,20 +1924,23 @@ async function pay(){
  }catch(e){$('pm').textContent='Erreur temporaire. Vérifie ta connexion puis réessaie.'}
  finally{if(btn)btn.disabled=false}
 }async async function payC(){
- var c=$('uc').value.trim(),operator=$('malContactOperator')?$('malContactOperator').value:'airtel',file=$('ucProof')&&$('ucProof').files[0];
+ var c=$('uc').value.trim(),operator=$('malContactOperator')?$('malContactOperator').value:'airtel',file=$('ucProof')&&$('ucProof').files[0],btn=$('um')&&$('um').previousElementSibling;
  if(c.length<4||c.length>100){$('um').textContent='Entre une référence valide (4 à 100 caractères).';return}
+ if(btn)btn.disabled=true;
  $('um').textContent='Envoi sécurisé du justificatif…';
- var r=await malSubmitPayment({offer:'Contact',target:open,code:c,operator:operator,file:file});
- $('um').textContent=r.error||'Demande reçue. Le contact sera débloqué après vérification du transfert.';
- if(r.ok){$('uc').value='';$('ucProof').value=''}
+ try{
+  var r=await malSubmitPayment({offer:'Contact',target:open,code:c,operator:operator,file:file});
+  $('um').textContent=r.error||'Demande reçue. Le contact sera débloqué après vérification du transfert.';
+  if(r.ok){$('uc').value='';$('ucProof').value=''}
+ }catch(e){$('um').textContent='Erreur temporaire. Vérifie ta connexion puis réessaie.'}
+ finally{if(btn)btn.disabled=false}
 }
 async function loadAdm(){
  var r=await sb.from('paiements').select('*').eq('statut','attente').order('created_at');
  adm=r.data||[];
  await Promise.all(adm.map(async function(x){
   if(!x.receipt_path)return;
-  var signed=await sb.storage.from('payment-receipts').createSignedUrl(x.receipt_path,300);
-  x.receipt_url=signed.error?null:signed.data.signedUrl;
+  try{var signed=await sb.storage.from('payment-receipts').createSignedUrl(x.receipt_path,300);x.receipt_url=signed.error?null:signed.data.signedUrl}catch(e){x.receipt_url=null}
  }));
  var s=await sb.from('signalements').select('*').order('created_at',{ascending:false}).limit(100);sigs=s.error?[]:(s.data||[]);
  var z=await sb.from('suspensions').select('user_id,depuis,motif').order('depuis',{ascending:false});admSuspensions=z.error?[]:(z.data||[]);
@@ -1948,7 +1951,7 @@ async function loadAdm(){
 var malSupportRows=[];
 function supportAdmin(){return '<h2>🛟 Réclamations et assistance</h2><div class="list">'+(malSupportRows.length?malSupportRows.map(function(x){return '<div class="card"><b>'+esc(x.sujet)+'</b><div class="sub">'+esc(x.categorie)+' · '+esc(x.statut)+' · '+new Date(x.created_at).toLocaleString('fr-FR')+'</div><p>'+esc(x.message)+'</p><label>Réponse administrative<textarea id="malReply'+x.id+'" maxlength="1000">'+esc(x.reponse_admin||'')+'</textarea></label><select id="malStatus'+x.id+'"><option value="en_cours">En cours</option><option value="resolu">Résolu</option><option value="rejete">Rejeté</option></select><button onclick="malResolveSupport('+x.id+')">Enregistrer le traitement</button></div>'}).join(''):'<p class="note">Aucune demande.</p>')+'</div>'}
 async function malResolveSupport(id){var status=$('malStatus'+id).value,reply=$('malReply'+id).value.trim();var r=await sb.from('demandes_support').update({statut:status,reponse_admin:reply,traite_par:me.id,traite_le:new Date().toISOString()}).eq('id',id);if(r.error){alert('Erreur : '+r.error.message);return}await loadAdm()}
-function aiManagerPreview(){return '<section class="box list" style="margin-bottom:16px;border:1px solid var(--pink)"><div class="top"><div style="font-size:28px">🤖</div><div><b>Malachite AI Manager</b><div class="note">Centre de gestion intelligent · préparation 2027</div></div></div><div class="wall"><b>État : prototype non activé</b><p class="note">L’assistant permanent n’est pas encore connecté. Aucune décision automatique ni action sur les comptes n’est exécutée par cette maquette.</p></div><div class="g2"><div class="plan"><b>💳 Paiements</b><p>Détection des doublons, contrôle des références et suivi Premium.</p></div><div class="plan"><b>🛡️ Comptes</b><p>Détection des comportements anormaux et suspensions temporaires encadrées.</p></div><div class="plan"><b>🚩 Signalements</b><p>Classement par gravité et traitement des cas urgents.</p></div><div class="plan"><b>⭐ Avis & support</b><p>Réponses aux questions et regroupement des problèmes.</p></div></div><p class="note">Les paiements ambigus, sanctions définitives, contestations et actions irréversibles resteront soumis à ton contrôle. Chaque action sera journalisée.</p></section>'}
+function aiManagerPreview(){return '<section class="box list" style="margin-bottom:16px;border:1px solid var(--pink)"><div class="top"><div style="font-size:28px">🤖</div><div><b>Malachite AI Manager</b><div class="note">Centre de gestion intelligent · lancement visé le 31 décembre 2026</div></div></div><div class="wall"><b>État : prototype non activé</b><p class="note">L’assistant permanent n’est pas encore connecté. Aucune décision automatique ni action sur les comptes n’est exécutée par cette maquette.</p></div><div class="g2"><div class="plan"><b>💳 Paiements</b><p>Détection des doublons, contrôle des références et suivi Premium.</p></div><div class="plan"><b>🛡️ Comptes</b><p>Détection des comportements anormaux et suspensions temporaires encadrées.</p></div><div class="plan"><b>🚩 Signalements</b><p>Classement par gravité et traitement des cas urgents.</p></div><div class="plan"><b>⭐ Avis & support</b><p>Réponses aux questions et regroupement des problèmes.</p></div></div><p class="note">Les paiements ambigus, sanctions définitives, contestations et actions irréversibles resteront soumis à ton contrôle. Chaque action sera journalisée.</p></section>'}
 function admin(){return aiManagerPreview()+reportsAdmin()+suspensionsAdmin()+admin0()+supportAdmin()+avisList()}
 function draw(keep){
  var oldMsgs=$('msgs'),nearBottom=!oldMsgs||oldMsgs.scrollHeight-oldMsgs.scrollTop-oldMsgs.clientHeight<140,oldTop=oldMsgs?oldMsgs.scrollTop:0;
