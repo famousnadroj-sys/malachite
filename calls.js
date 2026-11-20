@@ -83,12 +83,14 @@
     else if(row.status==='ended'||row.status==='expired'){if(jitsiApi)finishCall(false);else{closeUI();callState=null;alert(row.status==='expired'?'Pas de réponse.':'Appel terminé.')}}
    });
    await subscribeReady(ch);sessionChannel=ch;
-   var ins=await sb.from('call_sessions').insert({id:id,caller_id:me.id,callee_id:target,room:room,mode:mode,status:'pending',expires_at:new Date(Date.now()+90000).toISOString()});
+   var ins=await sb.rpc('start_call_session',{p_id:id,p_callee_id:target,p_room:room,p_mode:mode,p_expires_at:new Date(Date.now()+90000).toISOString()});
    if(ins.error)throw ins.error;
-   callState={id:id,caller:true,caller_id:me.id,callee_id:target,mode:mode,room:room,status:'pending'};
+   var created=Array.isArray(ins.data)?ins.data[0]:ins.data;
+   if(!created||!created.id)throw new Error('La base n’a pas confirmé la création de l’appel.');
+   callState={id:created.id,caller:true,caller_id:created.caller_id,callee_id:created.callee_id,mode:created.mode,room:created.room,status:created.status};
    overlay(mode==='video'?'Appel vidéo en cours':'Appel audio en cours','<p>Appel envoyé à '+esc((prof(target)||{}).prenom||'ton match')+'. En attente de réponse…</p>','<button class="hangup" onclick="malHangup()">Annuler l’appel</button>',false);
    callState.timeout=setTimeout(async function(){if(callState&&callState.id===id&&callState.status==='pending'){await sb.from('call_sessions').update({status:'expired'}).eq('id',id);finishCall(false);alert('Aucune réponse. Réessaie plus tard.')}},90000);
-  }catch(e){console.error('Appel Malachite',e);var em=e&&e.message?e.message:'erreur inconnue';if(em.indexOf('row-level security')>=0||em.indexOf('42501')>=0)em='La base refuse cet appel : vérifie que Premium ou ton Pass Appels est actif et que vous avez un match réciproque avec cette personne.';alert('Appel impossible : '+em);if(sessionChannel){sb.removeChannel(sessionChannel);sessionChannel=null}callState=null}
+  }catch(e){console.error('Appel Malachite',e);var em=e&&e.message?e.message:'erreur inconnue';if(em.indexOf('call_entitlement_required')>=0)em='Les appels nécessitent Premium actif ou un Pass Appels validé.';else if(em.indexOf('mutual_match_required')>=0)em='Appel impossible : ce membre ne figure pas comme match réciproque dans la base. Ouvre un match confirmé.';else if(em.indexOf('call_already_active')>=0)em='Un appel est déjà en cours pour toi ou ce membre. Termine-le avant de recommencer.';else if(em.indexOf('row-level security')>=0||em.indexOf('42501')>=0)em='La base a refusé la création de l’appel. Réessaie après reconnexion.';alert('Appel impossible : '+em);if(sessionChannel){sb.removeChannel(sessionChannel);sessionChannel=null}callState=null}
   finally{callBusy=false}
  }
  async function loadJitsi(){
