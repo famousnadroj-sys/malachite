@@ -199,7 +199,7 @@ for (const item of [
 ]) {
   if (!html.includes(item)) throw new Error('Launch payment requirement missing: ' + item);
 }
-if (!html.includes("payload={offre:data.offer,code:data.code,operateur:data.operator,receipt_path:receipt.path}") ||
+if (!html.includes("var payload={offre:data.offer,code:data.code,operateur:data.operator,receipt_path:receipt.path}") ||
     !html.includes("sb.from('paiements').insert(payload)")) {
   throw new Error('Payment submission must preserve offer, reference, operator and private receipt path.');
 }
