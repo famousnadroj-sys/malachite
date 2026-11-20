@@ -2,7 +2,6 @@ import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
 const MODEL = Deno.env.get("MALACHITE_AI_MODEL") || "gemini-2.5-flash";
 const AI_KEY = Deno.env.get("GEMINI_API_KEY") || "";
-const WORKER_SECRET = Deno.env.get("MALACHITE_WORKER_SECRET") || "";
 const AI_AUTONOMY_ENABLED = Deno.env.get("MALACHITE_AI_AUTONOMY_ENABLED") === "true";
 
 function json(status: number, body: Record<string, unknown>) {
@@ -10,15 +9,6 @@ function json(status: number, body: Record<string, unknown>) {
     status,
     headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
   });
-}
-
-function constantTimeEqual(a: string, b: string): boolean {
-  const left = new TextEncoder().encode(a);
-  const right = new TextEncoder().encode(b);
-  let diff = left.length ^ right.length;
-  const length = Math.max(left.length, right.length);
-  for (let i = 0; i < length; i++) diff |= (left[i] || 0) ^ (right[i] || 0);
-  return diff === 0;
 }
 
 async function countRows(client: any, table: string, column: string, filter?: (q: any) => any) {
@@ -84,24 +74,34 @@ async function generateBriefing(metrics: Record<string, unknown>, previous: Reco
 
 Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
-  if (!WORKER_SECRET) return json(503, { error: "worker_secret_not_configured" });
-  const supplied = req.headers.get("x-malachite-worker-token") || "";
-  if (!constantTimeEqual(supplied, WORKER_SECRET)) return json(401, { error: "unauthorized" });
 
-  const started = Date.now();
   const url = Deno.env.get("SUPABASE_URL");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!url || !serviceKey) return json(503, { error: "server_configuration_missing" });
 
-  let trigger: "cron" | "manual" = "cron";
-  try {
-    const body = await req.json().catch(() => ({}));
-    if (body?.trigger === "manual") trigger = "manual";
-  } catch { /* Empty request body is valid for scheduled runs. */ }
-
+  // Verify a short-lived HMAC signed in Postgres. The Vault key is never exposed to this
+  // function or placed in pg_net's request queue.
+  const timestamp = req.headers.get("x-mal-timestamp") || "";
+  const signature = req.headers.get("x-mal-signature") || "";
+  const bodyText = await req.text();
   const admin = createClient(url, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
+  const { data: authorized, error: authError } = await admin.rpc(
+    "verify_malachite_ai_worker_signature",
+    { p_timestamp: timestamp, p_body: bodyText, p_signature: signature },
+  );
+  if (authError || authorized !== true) return json(401, { error: "unauthorized" });
+
+  let trigger: "cron" | "manual" = "cron";
+  try {
+    const body = JSON.parse(bodyText || "{}");
+    if (body?.trigger === "manual") trigger = "manual";
+  } catch {
+    return json(400, { error: "invalid_json" });
+  }
+
+  const started = Date.now();
   const { data: run, error: runError } = await admin.from("ai_ops_runs")
     .insert({ trigger_source: trigger, status: "failed" })
     .select("id")
@@ -115,7 +115,7 @@ Deno.serve(async (req: Request) => {
     let status: "success" | "partial" = "success";
     let errorCode: string | null = null;
 
-    // Polling is cheap; generation is deliberately capped to one briefing per six hours.
+    // Polling is inexpensive; generation is capped at one briefing per six hours.
     if (AI_AUTONOMY_ENABLED && AI_KEY) {
       const { data: previousSummary, error: previousError } = await admin.from("ai_ops_runs")
         .select("started_at,metrics")
