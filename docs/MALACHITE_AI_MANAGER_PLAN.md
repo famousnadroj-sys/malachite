@@ -2,7 +2,7 @@
 
 ## Statut et garde-fous
 - La branche de préparation n'est ni fusionnée dans `main`, ni publiée, ni déployée.
-- Aucun changement de schéma n'a été appliqué à la base Supabase de production pendant cet audit.
+- Les migrations de durcissement RPC, reçus additifs et optimisation support ont été appliquées en production ; la politique stricte de reçus attend le déploiement du frontend compatible.
 - Aucune clé API IA, aucun compte marchand ni service payant n'a été activé.
 - Le panneau « Malachite AI Manager » est un prototype visuel marqué comme non activé. Aucune Edge Function AI Manager, clé fournisseur IA, file de tâches ou automatisation autonome n'est déployée.
 
@@ -11,7 +11,7 @@
 - Moyens affichés : Airtel Money et Orange Money.
 - Le formulaire de cette branche demande une référence et un justificatif image, téléversé dans un bucket privé avant l'insertion de la demande.
 - Le code d'administration permet une vérification humaine ; il ne s'agit pas d'une confirmation automatique de l'opérateur.
-- Vérification SQL de production du 20 novembre 2026 : la colonne `public.paiements.receipt_path` et le bucket privé `payment-receipts` sont absents. Le nouveau parcours ne doit donc pas être publié avant migration additive, déploiement frontend, puis politique stricte et tests multi-comptes.
+- Vérification SQL de production du 20 novembre 2026 : `public.paiements.receipt_path`, le bucket privé `payment-receipts` (5 Mo, JPEG/PNG/WebP), les politiques Storage et l'index anti-doublon sont présents. L'ancienne politique INSERT est conservée temporairement ; déployer le frontend compatible, vérifier les clients PWA, appliquer ensuite la politique stricte et tester avec deux comptes.
 - Une capture d'écran ou une référence saisie ne prouve jamais à elle seule que l'argent est arrivé.
 
 ## Paiements automatiques — architecture requise
@@ -47,16 +47,15 @@
 ## État observé dans Supabase actif — 20 novembre 2026
 - Edge Functions actives observées : `admin-user-moderation` et `username-login`. Aucune fonction webhook de paiement ou AI Manager n'a été trouvée.
 - La fonction privée `private.traiter_paiement` contrôle l'autorisation administrateur et traite les demandes après vérification humaine.
-- **Durcissement RPC restant :** la vérification SQL indique que `anon` peut encore appeler le wrapper public `traiter_paiement(bigint, boolean, text)` ; la surcharge à deux paramètres est refusée. Le wrapper n'est pas `SECURITY DEFINER` et délègue à `private.traiter_paiement`, dont le corps vérifie `private.is_admin()` avant toute action. Les tests ne montrent donc pas de contournement de l'autorisation administrateur, mais le droit `anon` doit tout de même être révoqué en défense en profondeur. La migration `20261120130000_restrict_payment_review_rpc.sql` est présente dans la branche, mais n'est pas appliquée en production.
+- **Durcissement RPC effectué :** la migration `restrict_payment_review_rpc` est inscrite en production (`20261120195441`). Vérification SQL : `anon` ne peut appeler aucune des deux surcharges ; `authenticated` conserve l'exécution. Le contrôle interne `private.is_admin()` demeure en place.
 - L'advisor signale `public.start_call_session` en `SECURITY DEFINER`, exécutable par `authenticated`. La fonction contrôle `auth.uid()`, les conditions d'appel et le match réciproque ; ne pas la convertir aveuglément en `SECURITY INVOKER`, car les droits/RLS actuels empêchent certaines lectures nécessaires. Revue dédiée et tests négatifs requis.
 - `private.admins` a RLS sans politique directe ; l'accès direct reste fermé et les contrôles doivent passer par `private.is_admin()`.
 - La protection contre les mots de passe compromis est désactivée dans Supabase Auth.
-- Deux clés étrangères de `demandes_support` ne sont pas indexées et deux politiques réévaluent les fonctions Auth par ligne. La migration corrective est préparée, non appliquée.
-- La production ne contient pas encore `paiements.receipt_path`, le bucket privé de reçus ni l'index anti-doublon préparé.
+- Les deux index FK de `demandes_support` et les optimisations RLS sont appliqués et vérifiés en production.
 
 ## Ordre de travail avant activation
-1. Corriger les privilèges RPC exposés et vérifier les droits effectifs des deux surcharges.
-2. Appliquer la migration additive de reçus, puis déployer le frontend compatible, puis seulement appliquer la politique stricte.
+1. Les privilèges RPC paiement ont été corrigés et vérifiés.
+2. La migration additive de reçus a été appliquée ; déployer le frontend compatible, puis seulement appliquer la politique stricte.
 3. Tester avec deux comptes distincts l'upload, les lectures propriétaire/admin, les suppressions, les doublons, les URL signées et les refus d'accès.
 4. Revoir `start_call_session` avec tests de deux comptes et conserver les protections inter-utilisateurs.
 5. Activer la protection contre les mots de passe compromis dans Auth.
