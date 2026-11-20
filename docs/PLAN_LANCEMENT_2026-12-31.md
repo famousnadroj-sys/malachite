@@ -23,10 +23,10 @@ Préparer le site comme si la mise en ligne devait avoir lieu dès demain. La da
 | Premium | Affichage à 2 USD / 30 jours dans la branche | Valider devise, montant réellement encaissé, renouvellement et mentions commerciales |
 | Airtel / Orange | Choix d'opérateur et références déclarées dans l'interface | Vérifier l'éligibilité marchand, obtenir les accès officiels et tester sandbox |
 | Paiement | Demande avec opérateur, référence et justificatif privé ; index anti-doublon préparé ; contrôle manuel admin via RPC | Appliquer les migrations en staging, exécuter `supabase/tests/payment_receipts_security_checks.sql`, tester les politiques RLS, le nettoyage des fichiers orphelins et confirmer les paiements auprès de l'opérateur ; intégration webhook toujours à faire |
-| Reçus | Le schéma Supabase actif ne contient pas encore `paiements.receipt_path` ; le bucket privé `payment-receipts` n'est pas confirmé comme déployé. | Concevoir stockage privé, limites MIME/taille, antivirus/validation, accès signé et suppression |
-| AI Manager | Panneau de prévisualisation uniquement | Backend agent, outils autorisés, tâches planifiées, journal d'audit, tests et budget |
+| Reçus | Stockage privé et règles d'accès préparés dans la branche ; le schéma Supabase actif ne contient pas encore `paiements.receipt_path` et le bucket n'est pas confirmé comme déployé. | Appliquer les migrations en environnement de test, vérifier RLS, accès signé, nettoyage et parcours complet avant production |
+| AI Manager | Panneau de prévisualisation uniquement ; aucune fonction IA n'est déployée | Fournisseur IA et secret serveur, Edge Function authentifiée, tâches planifiées, outils autorisés, journal d'audit, tests et budget |
 | Modération | Tables signalements/suspensions et Edge Function admin existantes | Vérifier les cas limites, recours, notification et protection contre abus |
-| Sécurité | RLS et migrations présentes ; advisors ont encore des alertes | Revue des alertes, tests négatifs, contrôle de configuration Auth |
+| Sécurité | RLS et migrations présentes ; une alerte `SECURITY DEFINER` et la protection des mots de passe compromis restent visibles sur la base active. Des migrations de correction et d'optimisation sont préparées dans la branche. | Appliquer et tester les migrations, activer la protection Auth, relancer les advisors et les tests négatifs |
 | Déploiement | Workflow GitHub Actions de validation présent | Exécuter CI sur PR, tester le build et répéter le parcours de déploiement sans publier |
 
 ## Paiements — règle impérative
