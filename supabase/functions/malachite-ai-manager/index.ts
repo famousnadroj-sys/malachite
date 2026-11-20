@@ -61,7 +61,7 @@ Deno.serve(async (req: Request) => {
   const token = authorization.match(/^Bearer\s+(.+)$/i)?.[1];
   if (!token) return json(401, { error: "authentication_required" }, origin);
 
-  let body: { message?: unknown; action?: unknown };
+  let body: { message?: unknown; action?: unknown; history?: unknown };
   try { body = await req.json(); } catch { return json(400, { error: "invalid_json" }, origin); }
   const action = body.action === "dashboard" ? "dashboard" : "chat";
   const message = typeof body.message === "string" ? body.message.trim() : "";
@@ -109,7 +109,7 @@ Deno.serve(async (req: Request) => {
     "Ne demande jamais de mots de passe, codes OTP, PIN, clés API ou données personnelles sensibles. Signale les limites et donne des étapes concrètes."
   ].join(" ");
 
-  const endpoint = "https://generativelanguage.googleapis.com/v1beta/models/" +
+  const conversation = Array.isArray(body.history) ? body.history.slice(-8).filter((item: any) => item && (item.role === "user" || item.role === "model") && typeof item.text === "string").map((item: any) => ({ role: item.role, parts: [{ text: item.text.slice(0, 2000) }] })) : [];\n  conversation.push({ role: "user", parts: [{ text: message }] });\n\n  const endpoint = "https://generativelanguage.googleapis.com/v1beta/models/" +
     encodeURIComponent(MODEL) + ":generateContent?key=" + encodeURIComponent(API_KEY);
   let upstream: Response;
   try {
@@ -118,7 +118,7 @@ Deno.serve(async (req: Request) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: system }] },
-        contents: [{ role: "user", parts: [{ text: message }] }],
+        contents: conversation,
         generationConfig: { temperature: 0.25, maxOutputTokens: 900 },
       }),
       signal: AbortSignal.timeout(20_000),
