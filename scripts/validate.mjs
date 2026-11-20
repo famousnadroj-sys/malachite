@@ -335,3 +335,8 @@ const privilegeMigration = fs.readFileSync('supabase/migrations/20261120223753_r
 for (const item of ['revoke truncate, references, trigger on all tables in schema public from authenticated', 'alter default privileges for role postgres in schema public', 'revoke all on tables from anon', 'revoke all on sequences from anon']) {
   if (!privilegeMigration.includes(item)) throw new Error('Database table privilege hardening missing: ' + item);
 }
+
+const blockedCallsMigration = fs.readFileSync('supabase/migrations/20261120224036_prevent_calls_between_blocked_members.sql', 'utf8').toLowerCase();
+for (const item of ['private.is_blocked_with(p_callee_id)', "raise exception 'call_blocked'", 'not private.is_blocked_with(call_sessions.callee_id)']) {
+  if (!blockedCallsMigration.includes(item)) throw new Error('Blocked-member call protection missing: ' + item);
+}
