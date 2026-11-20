@@ -1756,7 +1756,7 @@ function malWarmAvatarBuilder(){
  if(malAvatarPreloadFrame){return}
  var gender=malAvatarGender(mode==='up');
  var frame=document.createElement('iframe');frame.title='Préchargement du créateur 3D Malachite';frame.setAttribute('aria-hidden','true');
- malPlaceAvatarFrame(frame,false);frame.dataset.gender=gender;frame.src='avatar-builder.html?gender='+gender+'&preload=1&v=5';
+ malPlaceAvatarFrame(frame,false);frame.dataset.gender=gender;frame.src='avatar-builder.html?gender='+gender+'&preload=1&v=6';
  document.body.appendChild(frame);malAvatarPreloadFrame=frame;malAvatarPreloadGender=gender;malAvatarPreloadReady=false;
 }
 function closeMalAvatarBuilder(){
@@ -1793,7 +1793,7 @@ async function malPersistAvatar3d(config,image){
    mine=Object.assign({},mine,r.data);try{await resolveProfilePhotos(mine)}catch(photoError){console.warn('Avatar enregistré; actualisation des autres photos différée.',photoError)}
    var ix=profs.findIndex(function(p){return p.id===me.id});if(ix>=0)profs[ix]=mine;else profs.push(mine);
   }else{malAvatar3dDraft=avatar;profileDraft.avatar=avatar}
-  malAvatarTouched=false;closeMalAvatarBuilder();tab='me';profileEditing=false;draw(true);
+  malAvatarTouched=false;if(malAvatarPreloadFrame&&malAvatarPreloadFrame.contentWindow)malAvatarPreloadFrame.contentWindow.postMessage({source:'malachite-avatar-parent',type:'saved'},location.origin);closeMalAvatarBuilder();tab='me';profileEditing=false;draw(true);
  }catch(e){await sb.storage.from('profile-photos').remove([path]);throw e}
 }
 var malPendingAvatarAttachBusy=false;
@@ -1833,7 +1833,7 @@ window.addEventListener('message',async function(event){
    pendingSignupAvatar={config:event.data.config,image:event.data.image};
    try{localStorage.setItem('malachite-pending-avatar:'+String(signupDraft.email||'').toLowerCase(),JSON.stringify(pendingSignupAvatar))}catch(e){alert('Impossible de conserver cet avatar sur cet appareil. Essaie une image plus légère.');return}
    try{var blob=await fetch(event.data.image).then(function(r){return r.blob()});if(pendingSignupPreview)URL.revokeObjectURL(pendingSignupPreview);pendingSignupPreview=URL.createObjectURL(blob)}catch(_){}
-   closeMalAvatarBuilder();draw();return;
+   if(malAvatarPreloadFrame&&malAvatarPreloadFrame.contentWindow)malAvatarPreloadFrame.contentWindow.postMessage({source:'malachite-avatar-parent',type:'saved'},location.origin);closeMalAvatarBuilder();draw();return;
   }
   var previousAvatar=mine&&mine.id?mine.avatar:null;
   if(mine&&mine.id){
@@ -1844,7 +1844,7 @@ window.addEventListener('message',async function(event){
   }
   malPersistAvatar3d(event.data.config,event.data.image).catch(function(e){
    if(mine&&mine.id){mine=Object.assign({},mine,{avatar:previousAvatar||null});var rollbackIndex=profs.findIndex(function(p){return p.id===me.id});if(rollbackIndex>=0)profs[rollbackIndex]=mine;draw(true)}
-   var activeFrame=document.querySelector('#malAvatarBuilderOverlay iframe');if(activeFrame)activeFrame.contentWindow.postMessage({source:'malachite-avatar-parent',type:'save-error'},location.origin);
+   if(malAvatarPreloadFrame&&malAvatarPreloadFrame.contentWindow)malAvatarPreloadFrame.contentWindow.postMessage({source:'malachite-avatar-parent',type:'save-error'},location.origin);
    alert('Avatar non enregistré : '+(e.message||'erreur inconnue'));
   });
  }
