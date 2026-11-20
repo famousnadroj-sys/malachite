@@ -2223,7 +2223,7 @@ async function startMalachiteCall(mode){
   await waitForMalChannel(channel);malCallSessionChannel=channel;
   var ins=await sb.from('call_sessions').insert({id:sessionId,caller_id:me.id,callee_id:target,room:room,mode:mode,status:'pending',expires_at:new Date(Date.now()+90000).toISOString()});
   if(ins.error)throw ins.error;
-  malCallState={id:sessionId,caller:true,mode:mode,room:room,status:'pending'};
+  malCallState={id:sessionId,caller:true,caller_id:me.id,callee_id:target,mode:mode,room:room,status:'pending'};
   malCallOverlay(mode==='video'?'Appel vidéo en cours…':'Appel audio en cours…','<div style="font-size:42px">📞</div><p>Appel envoyé à '+esc((prof(target)||{}).prenom||'ton match')+'. En attente de réponse…</p>','<button class="hangup" onclick="finishMalCall(true)">Annuler l’appel</button>',false);
   malCallState.timeout=setTimeout(async function(){if(malCallState&&malCallState.id===sessionId&&malCallState.status==='pending'){await sb.from('call_sessions').update({status:'expired'}).eq('id',sessionId);finishMalCall(false);alert('Aucune réponse. Réessaie plus tard.')}},90000);
  }catch(e){console.error('Appel Malachite',e);alert('Appel impossible : '+(e.message||'erreur inconnue'));if(malCallSessionChannel){sb.removeChannel(malCallSessionChannel);malCallSessionChannel=null}malCallState=null}
