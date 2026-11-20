@@ -23,27 +23,38 @@ const h=React.createElement,ASSETS='https://cdn.jsdelivr.net/gh/abdulrehman043/h
 function App(){
  const [gender,setGender]=useState(new URLSearchParams(location.search).get('gender')==='female'?'female':'male'),[saving,setSaving]=useState(false);
  const [pkg,setPkg]=useState(null),[editor,setEditor]=useState(null),[config,setConfig]=useState(null),[sectionIndex,setSectionIndex]=useState(0),[customTab,setCustomTab]=useState('tenues'),[framing,setFraming]=useState('face'),[avatarReady,setAvatarReady]=useState(false),[assetsReady,setAssetsReady]=useState(false),[progress,setProgress]=useState({done:0,total:0}),[error,setError]=useState(null),[expression,setExpression]=useState('naturel'),[gesture,setGesture]=useState('aucun');
- const canvas=useRef(null),packagePromise=useRef(null),poseBase=useRef(null),gestureFrame=useRef(0),performanceConfigured=useRef(false),femaleWarmupStarted=useRef(false);
+ const canvas=useRef(null),packagePromise=useRef(null),poseBase=useRef(null),gestureFrame=useRef(0),performanceConfigured=useRef(false);
  const catalog=useMemo(()=>pkg?getHumanCatalog(pkg,{gender}):[],[pkg,gender]);
  const options=useMemo(()=>({gender,sections:['face','skin','eyes','brows','nose','mouth','ears','hair','headwear','hat','body','outfit','shoes'],colors:{hair:['#171311','#39251d','#69432e','#a66a3f','#d6b47b','#eee0c7','#a83e38','#514b83'],eyebrows:['#171311','#39251d','#69432e','#a66a3f','#d6b47b'],garments:['#111827','#374151','#6b7280','#f8fafc','#dc2626','#ea580c','#eab308','#16a34a','#0d9488','#2563eb','#4f46e5','#9333ea','#db2777','#92400e','#d6b48c','#f9a8d4']},defaults:{african:.9,asian:.02,caucasian:.08},detailRange:.75}),[gender]);
  useEffect(()=>{let live=true;setError(null);if(!packagePromise.current)packagePromise.current=loadHumanPackage(ASSETS);packagePromise.current.then(value=>{if(live)setPkg(value)},reason=>{if(live)setError(reason instanceof Error?reason:new Error(String(reason)))});return()=>{live=false}},[]);
  useEffect(()=>{if(!pkg)return;const nextEditor=createHumanEditor(pkg,options);const nextConfig=nextEditor.normalize(null);setEditor(nextEditor);setConfig(nextConfig);setAvatarReady(false);setAssetsReady(true);setProgress({done:0,total:0});setSectionIndex(0);poseBase.current=null;parent.postMessage({source:'malachite-avatar-builder',type:'progress',phase:'Affichage du modèle 3D',done:0,total:0},location.origin)},[pkg,options]);
  useEffect(()=>{
-  if(!pkg||!editor||gender!=='female'||femaleWarmupStarted.current)return;
-  femaleWarmupStarted.current=true;
+  if(!pkg||!editor||!avatarReady)return;
   let cancelled=false;
-  // Ne pas télécharger toute la garde-robe en arrière-plan : cela sature le réseau
-  // mobile et ralentit précisément les choix que l'utilisateur est en train de faire.
-  // On prépare seulement le look initial ; chaque nouveau choix est ensuite mis en cache
-  // à la demande, sans bloquer l'actualisation visuelle du modèle.
-  const initialConfig=editor.normalize(null);
-  const timer=setTimeout(()=>{
-   if(cancelled)return;
-   warmHumanPackage(pkg,{config:initialConfig,textureSize:'512',normalMaps:false})
-    .catch(err=>console.warn('Préparation du look féminin différée :',err));
-  },180);
+  // Préchargement progressif des choix visibles, pour les deux genres.
+  // Un seul élément à la fois évite de saturer la connexion mobile.
+  const attrs=getHumanCatalog(pkg,{gender});
+  const keys=customTab==='cheveux'?['hair.style']:customTab==='tenues'?['outfit.style','headwear.style','shoes.style']:[];
+  const variants=[];
+  const base=editor.normalize(null);
+  for(const key of keys){
+   const attr=attrs.find(item=>item.key===key);
+   if(!attr)continue;
+   for(const option of attr.options){
+    if(option.id===null)continue;
+    variants.push(attr.apply(base,option.id));
+   }
+  }
+  let cursor=0;
+  const timer=setTimeout(async()=>{
+   while(!cancelled&&cursor<variants.length){
+    const variant=variants[cursor++];
+    try{await warmHumanPackage(pkg,{config:variant,textureSize:'512',normalMaps:false})}
+    catch(err){console.warn('Préchargement progressif différé :',err)}
+   }
+  },220);
   return()=>{cancelled=true;clearTimeout(timer)};
- },[pkg,gender,editor]);
+ },[pkg,editor,gender,customTab,avatarReady]);
  useEffect(()=>{function receive(e){if(e.origin!==location.origin||!e.data||e.data.source!=='malachite-avatar-parent')return;if(e.data.type==='set-gender'){setSaving(false);setAvatarReady(false);setGender(e.data.gender==='female'?'female':'male')}if(e.data.type==='saving')setSaving(true);if(e.data.type==='save-error'||e.data.type==='saved')setSaving(false)}window.addEventListener('message',receive);parent.postMessage({source:'malachite-avatar-builder',type:'mounted'},location.origin);return()=>window.removeEventListener('message',receive)},[]);
  useEffect(()=>{function report(e){parent.postMessage({source:'malachite-avatar-builder',type:'error',message:String(e.message||'Erreur JavaScript dans le créateur 3D')},location.origin)}function rejected(e){const reason=e.reason;parent.postMessage({source:'malachite-avatar-builder',type:'error',message:String(reason&&reason.message||reason||'Erreur de chargement 3D')},location.origin)}window.addEventListener('error',report);window.addEventListener('unhandledrejection',rejected);return()=>{window.removeEventListener('error',report);window.removeEventListener('unhandledrejection',rejected)}},[]);
  useEffect(()=>{if(error)parent.postMessage({source:'malachite-avatar-builder',type:'error',message:error.message||'Les fichiers 3D ne sont pas accessibles'},location.origin)},[error]);
@@ -51,12 +62,11 @@ function App(){
  function save(){if(!config||!canvas.current||!avatarReady||saving)return;const image=canvas.current.snapshot();if(!image){alert('La capture 3D n’a pas pu être créée. Réessaie.');return}setSaving(true);parent.postMessage({source:'malachite-avatar-builder',type:'save',config,image},location.origin)}
  function update(next,warmAsset=false){
   const normalized=editor.normalize(next);
-  // Le changement de sélection reste immédiat ; seuls les changements de modèle
-  // (cheveux, tenue, chaussures, accessoire, peau) déclenchent un préchargement.
+  // Afficher immédiatement le choix ; le téléchargement est partagé avec le cache HumanForge.
   setConfig(normalized);
-  if(warmAsset&&gender==='female'&&pkg){
+  if(warmAsset&&pkg){
    warmHumanPackage(pkg,{config:normalized,textureSize:'512',normalMaps:false})
-    .catch(err=>console.warn('Chargement de la variante féminine à la demande :',err));
+    .catch(err=>console.warn('Chargement de la variante à la demande :',err));
   }
  }
  function control(ctl){
@@ -71,7 +81,43 @@ function App(){
  const section=editor.sections[Math.min(sectionIndex,editor.sections.length-1)];
  const catalogControl=(key)=>catalog.find(item=>item.key===key);
  const catalogBlock=(key,title,mode)=>{const attr=catalogControl(key);if(!attr)return h('div',{className:'block',key},h('span',{className:'block-title'},title),h('div',{className:'hint'},'Options indisponibles dans le catalogue 3D actuel'));const value=attr.value(config);const choices=key==='hair.style'?[...attr.options].sort((x,y)=>{const rank=id=>({'afro01':0,'braid01':1,'short01':2,'short02':3,'short03':4,'short04':5,'culturalibre_hair_01':6,'culturalibre_hair_02':7}[id]??20);return rank(x.id)-rank(y.id)}):attr.options;return h('div',{className:'block',key},h('span',{className:'block-title'},title),h('div',{className:mode==='colors'?'swatches':'tiles'},choices.map(opt=>h('button',{key:opt.id??'none',type:'button',className:(mode==='colors'?'swatch':'tile')+((opt.id===value)?' active':''),title:opt.label,'aria-label':opt.label,style:mode==='colors'?{background:opt.swatch||'#ddd'}:undefined,onClick:()=>update(attr.apply(config,opt.id),['hair.style','outfit.style','headwear.style','shoes.style','skin.tone'].includes(key))},mode==='colors'?null:opt.preview?h('img',{src:opt.preview,alt:'',loading:'lazy'}):h('span',null,opt.label)))))};
- const customContent=customTab==='tenues'?[catalogBlock('outfit.style','Choisir un vêtement','items'),catalogBlock('outfit.color','Couleur du vêtement','colors'),catalogBlock('headwear.style','Accessoires de tête','items'),catalogBlock('headwear.color','Couleur de l’accessoire','colors'),catalogBlock('shoes.style','Chaussures','items')]:customTab==='peau'?[catalogBlock('skin.tone','Choisir une couleur de peau','colors')]:customTab==='cheveux'?[catalogBlock('hair.style','Choisir une coupe','items'),catalogBlock('hair.color','Couleur des cheveux','colors')]:null;
+ const slotForClothing=(id)=>id.startsWith('shoes')?'shoes':/hijab|amira|shayla|scarf|turban/.test(id)?'headwear':/hat|fedora|cap|helmet/.test(id)?'hat':'outfit';
+ const garmentColorBlock=(slot,title)=>{
+  const palette=options.colors.garments;
+  const value=config.garmentColors?.[slot]||'#ffffff';
+  return h('div',{className:'block',key:'color-'+slot},
+   h('span',{className:'block-title'},title),
+   h('div',{className:'swatches'},palette.map(color=>h('button',{
+    key:color,type:'button',className:'swatch'+(value.toLowerCase()===color.toLowerCase()?' active':''),
+    style:{background:color},title:color,'aria-label':title+' '+color,
+    onClick:()=>setConfig(editor.normalize({...config,garmentColors:{...config.garmentColors,[slot]:color}}))
+   })))
+  );
+ };
+ useEffect(()=>{
+  if(!avatarReady||!config||!canvas.current?.avatar)return;
+  let cancelled=false,attempt=0,timer=0;
+  const apply=()=>{
+   if(cancelled)return;
+   const avatar=canvas.current?.avatar,proxies=avatar?.proxies;
+   if(!proxies)return;
+   const present=[...proxies.values()].filter(p=>p.meta?.kind==='clothes');
+   const wanted=config.clothes||[];
+   const allReady=wanted.every(id=>present.some(p=>p.meta.id===id));
+   if(!allReady&&attempt++<80){timer=setTimeout(apply,100);return}
+   for(const p of present){
+    const slot=slotForClothing(p.meta.id),color=config.garmentColors?.[slot];
+    if(!color)continue;
+    for(const material of [p.mesh?.material,p.soft?.material]){
+     if(material?.color){material.color.set(color);material.needsUpdate=true}
+    }
+   }
+   avatar.group?.updateMatrixWorld(true);canvas.current?.render?.();
+  };
+  timer=setTimeout(apply,0);
+  return()=>{cancelled=true;clearTimeout(timer)};
+ },[config,avatarReady]);
+ const customContent=customTab==='tenues'?[catalogBlock('outfit.style','Choisir un vêtement','items'),garmentColorBlock('outfit','Couleur du vêtement'),catalogBlock('headwear.style','Accessoires de tête','items'),garmentColorBlock('headwear','Couleur de l’accessoire'),catalogBlock('shoes.style','Chaussures','items'),garmentColorBlock('shoes','Couleur des chaussures')]:customTab==='peau'?[catalogBlock('skin.tone','Choisir une couleur de peau','colors')]:customTab==='cheveux'?[catalogBlock('hair.style','Choisir une coupe','items'),catalogBlock('hair.color','Couleur des cheveux','colors')]:null;
  const expressions={naturel:{},sourire:{mouthSmile:.8},clinOeil:{eyeBlinkLeft:1},surpris:{jawOpen:.65,browInnerUp:.7},triste:{mouthFrown:.65,browInnerUp:.45},grimace:{noseSneerLeft:.8,noseSneerRight:.8,mouthPress:.55,eyeSquintLeft:.25,eyeSquintRight:.25}};
  function pose(next){
   setGesture(next);
