@@ -43,7 +43,7 @@ async function getMetrics(adminClient: any) {
   const now = new Date();
   const since = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const isoNow = now.toISOString();
-  const [members, newMembers, premium, pendingPayments, newReports, openSupport, suspended] = await Promise.all([
+  const [members, newMembers, premium, pendingPayments, newReports, openSupport, suspended, reviews, blocks] = await Promise.all([
     countRows(adminClient, "profiles", "id"),
     countRows(adminClient, "profiles", "id", q => q.gte("created_at", since)),
     countRows(adminClient, "statuts", "user_id", q => q.gt("premium_until", isoNow)),
@@ -51,11 +51,14 @@ async function getMetrics(adminClient: any) {
     countRows(adminClient, "signalements", "id", q => q.eq("statut", "nouveau")),
     countRows(adminClient, "demandes_support", "id", q => q.in("statut", ["nouveau", "en_cours"])),
     countRows(adminClient, "suspensions", "user_id"),
+    countRows(adminClient, "avis_site", "id"),
+    countRows(adminClient, "blocages", "user_id"),
   ]);
   return {
     members, new_members_7d: newMembers, premium_active: premium,
     pending_payments: pendingPayments, new_reports: newReports,
     open_support: openSupport, suspended_members: suspended,
+    member_reviews: reviews, member_blocks: blocks,
     ai_ready: Boolean(API_KEY), generated_at: isoNow,
   };
 }
