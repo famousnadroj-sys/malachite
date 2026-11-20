@@ -150,5 +150,6 @@ function receive(e){if(e.origin!==location.origin||!e.data||e.data.source!=='mal
   )
  );
 }
-createRoot(document.getElementById('root')).render(h(App));
+class AvatarErrorBoundary extends React.Component{constructor(props){super(props);this.state={error:null}}static getDerivedStateFromError(error){return{error}}componentDidCatch(error){try{parent.postMessage({source:'malachite-avatar-builder',type:'error',message:error&&error.message||'Erreur pendant le rendu du créateur 3D'},location.origin)}catch(_){}}render(){return this.state.error?h('div',{className:'error'},'Le créateur 3D a rencontré une erreur : '+String(this.state.error.message||this.state.error)):this.props.children}}
+createRoot(document.getElementById('root')).render(h(AvatarErrorBoundary,null,h(App)));
 </script></body></html>
