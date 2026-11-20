@@ -1756,7 +1756,7 @@ function malWarmAvatarBuilder(){
  if(malAvatarPreloadFrame){return}
  var gender=malAvatarGender(mode==='up');
  var frame=document.createElement('iframe');frame.title='Préchargement du créateur 3D Malachite';frame.setAttribute('aria-hidden','true');
- malPlaceAvatarFrame(frame,false);frame.dataset.gender=gender;frame.src='avatar-builder.html?gender='+gender+'&preload=1&v=7';
+ malPlaceAvatarFrame(frame,false);frame.dataset.gender=gender;frame.src='avatar-builder.html?gender='+gender+'&preload=1&v=8';
  document.body.appendChild(frame);malAvatarPreloadFrame=frame;malAvatarPreloadGender=gender;malAvatarPreloadReady=false;
 }
 function closeMalAvatarBuilder(){
