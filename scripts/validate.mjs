@@ -203,6 +203,13 @@ if (!html.includes("var payload={offre:data.offer,code:data.code,operateur:data.
     !html.includes("sb.from('paiements').insert(payload)")) {
   throw new Error('Payment submission must preserve offer, reference, operator and private receipt path.');
 }
+const receiptMigration = fs.readFileSync('supabase/migrations/20261120140000_private_payment_receipts.sql', 'utf8');
+if (!receiptMigration.includes("o.bucket_id = 'payment-receipts'") ||
+    !receiptMigration.includes("o.name = paiements.receipt_path") ||
+    !receiptMigration.includes("(storage.foldername(o.name))[1] = (select auth.uid())::text")) {
+  throw new Error('Payment insert policy must verify the uploaded receipt exists in the authenticated user folder.');
+}
+
 if (!html.includes("function aiManagerPreview()") || !html.includes("prototype non activé") || !html.includes("Aucune décision automatique")) {
   throw new Error('AI Manager must remain explicitly marked as inactive until server-side integration is tested.');
 }
