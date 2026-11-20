@@ -52,6 +52,21 @@ if (!html.includes('target===me.id')) {
 }
 
 
+const i18n = fs.readFileSync('i18n.js', 'utf8');
+const i18nTemp = path.join(os.tmpdir(), 'malachite-i18n.js');
+fs.writeFileSync(i18nTemp, i18n);
+const i18nCheck = spawnSync(process.execPath, ['--check', i18nTemp], { encoding: 'utf8' });
+if (i18nCheck.status !== 0) {
+  process.stderr.write(i18nCheck.stderr || i18nCheck.stdout);
+  process.exit(i18nCheck.status || 1);
+}
+for (const item of ['<script src="i18n.js"></script>', 'option value="en"', 'malAvatarSvg(malAvatarState)', "avatar.type==='vector'"]) {
+  if (!html.includes(item)) throw new Error('Personalization requirement missing: ' + item);
+}
+for (const item of ['LANGS', "'Découvrir':'Discover'", 'window.malAvatarSvg', 'window.malSaveAvatar', 'MutationObserver']) {
+  if (!i18n.includes(item)) throw new Error('Localization/avatar requirement missing: ' + item);
+}
+
 const calls = fs.readFileSync('calls.js', 'utf8');
 const callsTemp = path.join(os.tmpdir(), 'malachite-calls.js');
 fs.writeFileSync(callsTemp, calls);
