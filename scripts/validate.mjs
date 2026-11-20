@@ -123,6 +123,16 @@ const manifest = JSON.parse(fs.readFileSync('manifest.webmanifest', 'utf8'));
 if (manifest.start_url !== './' || manifest.scope !== './' || manifest.display !== 'standalone') {
   throw new Error('PWA manifest configuration is incomplete.');
 }
+if (!html.includes("createSignedUrls(paths,3600)") || !html.includes("profilePhotoSignedCache") || !html.includes("if(tab==='me')draw(true)")) {
+  throw new Error('Own profile images must be signed in batches and rendered as soon as the profile is ready.');
+}
+if (!html.includes('fetchpriority="high"') || !html.includes('mal-own-cover-image')) {
+  throw new Error('Own profile hero/avatar images must be prioritized for immediate display.');
+}
+const aiManager = fs.readFileSync('malachite-ai.js', 'utf8');
+for (const item of ['malAiLoadDashboard', 'malAiInsights', 'malAiQuickPrompt', 'malachite-ai-manager', 'history.slice(-9,-1)']) {
+  if (!aiManager.includes(item)) throw new Error('AI Manager dashboard capability missing: ' + item);
+}
 const sw = fs.readFileSync('sw.js', 'utf8');
 const swTemp = path.join(os.tmpdir(), 'malachite-sw.js');
 fs.writeFileSync(swTemp, sw);
@@ -131,6 +141,7 @@ if (swCheck.status !== 0) {
   process.stderr.write(swCheck.stderr || swCheck.stdout);
   process.exit(swCheck.status || 1);
 }
+if (!sw.includes('./malachite-ai.js') || !sw.includes('malachite-static-v61')) throw new Error('AI Manager module must be cached and static cache version bumped.');
 if (!sw.includes('storage') || !sw.includes('Authorization')) throw new Error('Service worker must bypass Supabase private APIs.');
 if (!html.includes("navigator.serviceWorker.addEventListener('controllerchange'") ||
     !html.includes("id='malSwUpdateNotice'") ||
