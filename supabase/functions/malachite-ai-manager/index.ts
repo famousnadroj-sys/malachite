@@ -14,7 +14,7 @@ function json(status: number, body: Record<string, unknown>, origin?: string | n
   return new Response(JSON.stringify(body), { status, headers });
 }
 
-async function countRows(client: ReturnType<typeof createClient>, table: string, column: string, filter?: (q: any) => any) {
+async function countRows(client: any, table: string, column: string, filter?: (q: any) => any) {
   let query = client.from(table).select(column, { count: "exact", head: true });
   if (filter) query = filter(query);
   const { count, error } = await query;
@@ -22,7 +22,7 @@ async function countRows(client: ReturnType<typeof createClient>, table: string,
   return count || 0;
 }
 
-async function getMetrics(adminClient: ReturnType<typeof createClient>) {
+async function getMetrics(adminClient: any) {
   const now = new Date();
   const since = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const isoNow = now.toISOString();
