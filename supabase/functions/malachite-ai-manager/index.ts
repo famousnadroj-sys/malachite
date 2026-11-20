@@ -31,6 +31,7 @@ async function getOperations(adminClient: any) {
     ["blocks", "blocages", "user_id,cible,created_at", "created_at"],
     ["reviews", "avis_site", "id,note,categorie,message,created_at", "created_at"],
     ["support", "demandes_support", "id,categorie,sujet,message,statut,created_at", "created_at"],
+    ["alerts", "malachite_ai_alerts", "id,alert_key,severity,title,details,status,first_seen_at,last_seen_at,resolved_at", "last_seen_at"],
   ] as const;
   const entries = await Promise.all(specs.map(async ([key, table, columns, orderColumn]) => {
     const { data, error } = await adminClient.from(table).select(columns).order(orderColumn, { ascending: false }).limit(25);
