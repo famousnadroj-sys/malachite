@@ -49,7 +49,6 @@ const AvatarCanvas=React.forwardRef(function AvatarCanvas({pkg,config,framing,ex
    const resize=()=>{if(!renderer)return;const w=Math.max(1,el.clientWidth),hh=Math.max(1,el.clientHeight);renderer.setSize(w,hh,false);camera.aspect=w/hh;camera.updateProjectionMatrix();draw()};
    if(typeof ResizeObserver!=='undefined'){observer=new ResizeObserver(resize);observer.observe(el)}else{resizeHandler=resize;window.addEventListener('resize',resize)}
    resize();
-   Promise.resolve(avatar.setConfig(config)).then(()=>{if(live){draw();readyCallback.current?.(avatar)}}).catch(e=>{if(live)errorCallback.current?.(e)});
    return()=>{live=false;if(observer)observer.disconnect();if(resizeHandler)window.removeEventListener('resize',resizeHandler);if(raf)cancelAnimationFrame(raf);avatar?.dispose();renderer?.dispose();el.replaceChildren();stage.current=null};
   }catch(e){errorCallback.current?.(e);return()=>{live=false;renderer?.dispose();el.replaceChildren()}}
  },[pkg]);
