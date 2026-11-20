@@ -128,7 +128,13 @@ if (!html.includes("msg-status read") || !html.includes("aria-label=\"Lu\"")) th
 if (!migrations.includes('message_receipts') || !migrations.includes('recipient marks read') || !migrations.includes('revoke all on public.message_receipts')) throw new Error('Secure message receipt migrations are missing.');
 if (!html.includes('cache.expiresAt=now+3500000')) throw new Error('Signed media URL cache must refresh its expiry after renewal.');
 if (!html.includes("Signature des médias de la conversation ('+bucket+')")) throw new Error('Media URL resolution must isolate failures by storage bucket.');
-if (!sw.includes('malachite-static-v19')) throw new Error('Service worker cache must be refreshed after chat changes.');
+if (!sw.includes('malachite-static-v20')) throw new Error('Service worker cache must be refreshed after chat changes.');
 if (!html.includes("status==='SUBSCRIBED'")) throw new Error('Realtime recovery must immediately resync the active conversation after reconnect.');
 if (!html.includes('timer=setInterval(function(){if(tab==="chat"&&!document.hidden)loadChat()},10000)')) throw new Error('Active chat fallback sync must run every 10 seconds.');
+if (!html.includes("sb.channel('malachite-online-v1'")) throw new Error('Realtime online presence channel is missing.');
+if (!html.includes('function refreshPresenceUI()') || !html.includes('function trackPresence()')) throw new Error('Online presence synchronization is missing.');
+if (!html.includes("on('broadcast',{event:'typing'}")) throw new Error('Realtime typing indicators are missing.');
+if (!html.includes('oninput="setTyping()"') || !html.includes('class="chat-typing"')) throw new Error('Typing indicator UI and composer hook are missing.');
+if (!html.includes('class="conv-avatar" onclick="event.stopPropagation();viewProf')) throw new Error('Conversation avatar must open the immersive member profile.');
+if (!html.includes('async function viewProf(id,startIndex)') || !html.includes('class="mal-profile-overlay"')) throw new Error('Immersive profile viewer must remain available.');
 console.log('Malachite frontend, PWA, private media, SQL policy and Admin security checks passed.');
