@@ -1771,7 +1771,7 @@ function openMalAvatarBuilder(forSignup){
  if(!frame){frame=document.createElement('iframe');frame.src='avatar-builder.html?gender='+gender;frame.setAttribute('allow','fullscreen');malAvatarPreloadFrame=frame;frame.addEventListener('load',function(){frame.dataset.loaded='1';frame.contentWindow.postMessage({source:'malachite-avatar-parent',type:'set-gender',gender},location.origin)},{once:true})}
  frame.title='Créateur d’avatar 3D Malachite';frame.style.cssText='width:min(100%,900px);height:100%;max-height:100dvh;border:0;border-radius:0;background:#fff;opacity:1;pointer-events:auto;position:relative;left:auto;top:auto;z-index:auto';
  overlay.appendChild(frame);
- if(frame.dataset.loaded==='1')frame.contentWindow.postMessage({source:'malachite-avatar-parent',type:'set-gender',gender},location.origin);
+ if(frame.dataset.loaded==='1')frame.contentWindow.postMessage({source:'malachite-avatar-parent',type:'set-gender',gender},location.origin);else frame.addEventListener('load',function(){frame.dataset.loaded='1';frame.contentWindow.postMessage({source:'malachite-avatar-parent',type:'set-gender',gender},location.origin)},{once:true});
  overlay.addEventListener('click',function(e){if(e.target===overlay)closeMalAvatarBuilder()});document.body.appendChild(overlay);
 }
 async function malPersistAvatar3d(config,image){
