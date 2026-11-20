@@ -72,6 +72,30 @@ async function generateBriefing(metrics: Record<string, unknown>, previous: Reco
   return summary;
 }
 
+
+async function synchronizeAlerts(admin: any, metrics: Record<string, unknown>) {
+  const rules = [
+    { key: "pending_payments", count: Number(metrics.payments_waiting_human_review || 0), severity: "warning", title: "Paiements en attente de vérification" },
+    { key: "new_reports", count: Number(metrics.new_reports_waiting_review || 0), severity: "critical", title: "Signalements nécessitant un examen" },
+    { key: "open_support", count: Number(metrics.open_support_requests || 0), severity: "info", title: "Demandes de support ouvertes" },
+  ] as const;
+  for (const rule of rules) {
+    if (rule.count > 0) {
+      const { error } = await admin.from("malachite_ai_alerts").upsert({
+        alert_key: rule.key, severity: rule.severity, title: rule.title,
+        details: { count: rule.count }, status: "open",
+        last_seen_at: new Date().toISOString(), resolved_at: null,
+      }, { onConflict: "alert_key" });
+      if (error) throw new Error("alert_upsert_failed:" + rule.key);
+    } else {
+      const { error } = await admin.from("malachite_ai_alerts").update({
+        status: "resolved", resolved_at: new Date().toISOString(),
+      }).eq("alert_key", rule.key).eq("status", "open");
+      if (error) throw new Error("alert_resolve_failed:" + rule.key);
+    }
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
 
@@ -114,6 +138,7 @@ Deno.serve(async (req: Request) => {
     if (settingError) throw new Error("autonomy_settings_unavailable");
     const briefingEnabled = autonomySetting?.ai_briefings_enabled === true;
     const metrics = await collectMetrics(admin);
+    await synchronizeAlerts(admin, metrics);
     let summary: string | null = null;
     let model: string | null = null;
     let status: "success" | "partial" = "success";
