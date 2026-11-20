@@ -137,12 +137,15 @@ Deno.serve(async (req: Request) => {
   conversation.push({ role: "user", parts: [{ text: message }] });
 
   const endpoint = "https://generativelanguage.googleapis.com/v1beta/models/" +
-    encodeURIComponent(MODEL) + ":generateContent?key=" + encodeURIComponent(API_KEY);
+    encodeURIComponent(MODEL) + ":generateContent";
   let upstream: Response;
   try {
     upstream = await fetch(endpoint, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": API_KEY,
+      },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: system }] },
         contents: conversation,
@@ -150,11 +153,44 @@ Deno.serve(async (req: Request) => {
       }),
       signal: AbortSignal.timeout(20_000),
     });
-  } catch { return json(502, { error: "ai_provider_unreachable" }, origin); }
-  if (!upstream.ok) return json(502, { error: "ai_provider_error", provider_status: upstream.status }, origin);
-  const result = await upstream.json();
+  } catch (error) {
+    const timedOut = error instanceof DOMException && error.name === "TimeoutError";
+    console.error("Gemini transport failure:", timedOut ? "timeout" : "network_error");
+    return json(502, { error: timedOut ? "ai_provider_timeout" : "ai_provider_unreachable" }, origin);
+  }
+
+  let result: any;
+  try {
+    result = await upstream.json();
+  } catch {
+    console.error("Gemini returned a non-JSON response; status:", upstream.status);
+    return json(502, { error: "ai_provider_invalid_response", provider_status: upstream.status }, origin);
+  }
+
+  if (!upstream.ok) {
+    const providerStatus = typeof result?.error?.status === "string" ? result.error.status : "UNKNOWN";
+    const providerCode = typeof result?.error?.code === "number" ? result.error.code : upstream.status;
+    // Log only Google's machine-readable error classification; never log the API key or request URL.
+    console.error("Gemini API rejected request:", JSON.stringify({
+      http_status: upstream.status,
+      provider_status: providerStatus,
+      provider_code: providerCode,
+    }));
+    return json(502, {
+      error: "ai_provider_error",
+      provider_status: upstream.status,
+      provider_code: providerStatus,
+    }, origin);
+  }
+
   const reply = result?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text || "").join("").trim();
-  if (!reply) return json(502, { error: "empty_ai_response" }, origin);
+  if (!reply) {
+    const finishReason = typeof result?.candidates?.[0]?.finishReason === "string"
+      ? result.candidates[0].finishReason
+      : "UNKNOWN";
+    console.error("Gemini returned no text candidate:", finishReason);
+    return json(502, { error: "empty_ai_response", finish_reason: finishReason }, origin);
+  }
 
   const { error: auditError } = await adminClient.from("ai_manager_audit").insert({
     admin_id: auth.user.id, model: MODEL, status: "success",
