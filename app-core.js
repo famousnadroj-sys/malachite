@@ -216,6 +216,7 @@ async function ensureSignupProfile(user,metadata){
 async function load(){
  var uid=me&&me.id;if(!uid)return;var seq=++loadSeq;
  var keepWarmCache=loadedUid===uid&&profs.length>0&&Date.now()-profilesLoadedAt<300000;
+ if(keepWarmCache){sub();return;}
  if(!keepWarmCache){mine=null;profileDraft={};ph=[];phUrls=[];priv={};privLoadFailed=false;}
  var results=await Promise.all([
   sb.from('profiles').select('id,username,prenom,age,genre,commune,quartier,profession,bio,interets,photos,created_at,prompts,derniere_vue,avatar,profile_private'),
@@ -268,7 +269,7 @@ async function load(){
 }
 function authView(){
  var up=mode==='up';
- var imgs=['https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=700&h=950&fit=crop&crop=faces','https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=700&h=950&fit=crop&crop=faces','https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=700&h=950&fit=crop&crop=faces'];
+ var imgs=['https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=480&h=650&fit=crop&crop=faces&auto=format&q=65','https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=480&h=650&fit=crop&crop=faces&auto=format&q=65','https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=480&h=650&fit=crop&crop=faces&auto=format&q=65'];
  if(up){
   var step=signupStep||1,d=signupDraft||{},fields='';
   if(step===1)fields='<div class="mal-step-fields"><label>Nom affiché *<input id="suFirst" autocomplete="name" value="'+esc(d.prenom||'')+'" placeholder="Ex. Nadroj"></label><label>Nom d’utilisateur unique *<input id="suUsername" autocomplete="username" value="'+esc(d.username||'')+'" placeholder="Ex. nadroj_01"><small>3 à 24 caractères : lettres, chiffres et _</small></label><label>Adresse e-mail *<input id="suEmail" type="email" autocomplete="email" value="'+esc(d.email||'')+'" placeholder="exemple@email.com"></label><label>Mot de passe *<input id="suPassword" type="password" autocomplete="new-password" value="'+esc(d.password||'')+'" placeholder="8 caractères minimum"></label><label>Confirmer le mot de passe *<input id="suPasswordConfirm" type="password" autocomplete="new-password" value="'+esc(d.passwordConfirm||'')+'" placeholder="Répète ton mot de passe"></label></div>';
@@ -760,7 +761,7 @@ function sub(){
  if(msgChannel){sb.removeChannel(msgChannel);msgChannel=null}
  subOn=true;subUserId=me.id;msgRealtimeReady=false;
  if(!backgroundTimersStarted){
-  backgroundTimersStarted=true;setInterval(poll,30000);poll();if(tab!=='chat')matchPoll();setInterval(function(){if(tab!=='chat')matchPoll()},60000);initSW();setInterval(beat,60000);beat();setInterval(cupidPass,25000);document.addEventListener('visibilitychange',function(){if(document.hidden){beat(true);if(presenceChannel)presenceChannel.untrack().catch(function(e){console.warn('Arrêt de présence',e)})}else{trackPresence();beat();poll();matchPoll();syncIncomingDeliveries().catch(function(e){console.warn('Synchronisation après retour',e)});if(tab==='chat'&&open)markIncomingReceipts(msgs,true).catch(function(e){console.warn('Lecture après retour au premier plan',e)})}});window.addEventListener('pagehide',function(){beat(true)});window.addEventListener('online',function(){trackPresence();syncIncomingDeliveries().catch(function(e){console.warn('Synchronisation après reconnexion',e)});if(tab==='chat'&&open)markIncomingReceipts(msgs,true).catch(function(e){console.warn('Lecture après reconnexion',e)});});
+  backgroundTimersStarted=true;setInterval(poll,120000);poll();if(tab!=='chat')matchPoll();setInterval(function(){if(tab!=='chat')matchPoll()},180000);initSW();setInterval(beat,120000);beat();setInterval(cupidPass,90000);document.addEventListener('visibilitychange',function(){if(document.hidden){beat(true);if(presenceChannel)presenceChannel.untrack().catch(function(e){console.warn('Arrêt de présence',e)})}else{trackPresence();beat();poll();matchPoll();syncIncomingDeliveries().catch(function(e){console.warn('Synchronisation après retour',e)});if(tab==='chat'&&open)markIncomingReceipts(msgs,true).catch(function(e){console.warn('Lecture après retour au premier plan',e)})}});window.addEventListener('pagehide',function(){beat(true)});window.addEventListener('online',function(){trackPresence();syncIncomingDeliveries().catch(function(e){console.warn('Synchronisation après reconnexion',e)});if(tab==='chat'&&open)markIncomingReceipts(msgs,true).catch(function(e){console.warn('Lecture après reconnexion',e)});});
  }
  startPresence();
  msgChannel=sb.channel('msgs-'+me.id)
@@ -808,11 +809,12 @@ function beep(){try{var a=new (window.AudioContext||window.webkitAudioContext)()
 function toast(t,b,dest,id){var d=document.createElement('div');d.className='toast';d.innerHTML='<b>'+esc(t)+'</b><span>'+esc(b)+'</span>';d.onclick=function(){d.remove();if(dest=='chat'){open=id||null;go('chat')}else go(dest)};document.body.appendChild(d);setTimeout(function(){d.remove()},5500)}
 function notify(t,b,dest,id){toast(t,b,dest,id);try{if(navigator.vibrate)navigator.vibrate([100,50,100])}catch(e){}if(document.hidden&&'Notification' in window&&Notification.permission=='granted'&&swr)swr.showNotification(t,{body:b,tag:t+b,vibrate:[100,50,100]});beep()}
 function initSW(){
- if(!('serviceWorker' in navigator))return;
+ if(!('serviceWorker' in navigator)||window.__malSwInitStarted)return;
+ window.__malSwInitStarted=true;
  var applying=false;
  function offerUpdate(reg){if(!reg||!reg.waiting||!navigator.serviceWorker.controller||document.getElementById('malSwUpdateNotice'))return;var notice=document.createElement('div');notice.id='malSwUpdateNotice';notice.className='toast';notice.innerHTML='<b>Nouvelle version de Malachite disponible</b><span>Tes données enregistrées restent sur ton compte. Actualise quand tu es prêt.</span><button type="button" class="b1">Actualiser</button>';notice.querySelector('button').addEventListener('click',function(){if(applying)return;applying=true;notice.querySelector('button').disabled=true;reg.waiting.postMessage({type:'SKIP_WAITING'})});document.body.appendChild(notice)}
  navigator.serviceWorker.addEventListener('controllerchange',function(){if(applying)window.location.reload()});
- navigator.serviceWorker.register('sw.js').then(function(reg){swr=reg;offerUpdate(reg);reg.addEventListener('updatefound',function(){var worker=reg.installing;if(!worker)return;worker.addEventListener('statechange',function(){if(worker.state==='installed')offerUpdate(reg)})});setInterval(function(){reg.update().catch(function(){})},60000)}).catch(function(){});
+ navigator.serviceWorker.register('sw.js').then(function(reg){swr=reg;offerUpdate(reg);reg.addEventListener('updatefound',function(){var worker=reg.installing;if(!worker)return;worker.addEventListener('statechange',function(){if(worker.state==='installed')offerUpdate(reg)})});setInterval(function(){reg.update().catch(function(){})},600000)}).catch(function(){});
 }
 initSW();
 function askNotif(){if(!('Notification' in window)){alert('Ton navigateur ne gère pas les notifications.');return}Notification.requestPermission().then(function(){draw(true)})}
@@ -823,7 +825,7 @@ async function poll(){
  pollBusy=true;
  try{
   var messageTask=null;
-  if(tab!=='chat'){
+  if(tab!=='chat'&&!msgRealtimeReady){
    var query=sb.from('messages').select('id,de,a,texte,created_at,media_type');
    query=pollInit?query.gt('id',lastMsgId).order('id',{ascending:true}).limit(100):query.order('id',{ascending:false}).limit(200);
    messageTask=query;
@@ -948,7 +950,7 @@ function setTyping(){if(!typingChannel||!me||typingTarget!==open)return;var inpu
 function stopTyping(){clearTimeout(typingStopTimer);if(typingChannel&&typingActive&&me)typingChannel.send({type:'broadcast',event:'typing',payload:{user_id:me.id,typing:false}});typingActive=false}
 function closeTypingChannel(){stopTyping();clearTimeout(typingHideTimer);if(typingChannel){sb.removeChannel(typingChannel);typingChannel=null}typingTarget=null}
 function beat(force){if(!me||(!force&&document.hidden))return;sb.from('profiles').update({derniere_vue:new Date().toISOString()}).eq('id',me.id).then(function(r){if(r&&r.error)console.warn('Mise à jour de la dernière présence',r.error)})}
-function cupidPass(){if(document.hidden||!me||tab=='chat')return;var c=document.createElement('div');c.className='cpf';c.style.top=(25+Math.random()*40)+'%';c.textContent='😇➳';document.body.appendChild(c);setTimeout(function(){c.remove()},7200)}
+function cupidPass(){if(document.hidden||!me||tab=='chat'||document.documentElement.classList.contains('mal-low-power'))return;var c=document.createElement('div');c.className='cpf';c.style.top=(25+Math.random()*40)+'%';c.textContent='😇➳';document.body.appendChild(c);setTimeout(function(){c.remove()},7200)}
 (function(){var b=document.createElement('div');b.id='bgfx';for(var i=0;i<8;i++){var e=document.createElement('i');e.textContent=['💗','💕','🌸','💖'][i%4];e.style.left=(5+i*12)+'%';e.style.animationDelay=(i*2)+'s';e.style.fontSize=(18+i%3*8)+'px';b.appendChild(e)}document.body.appendChild(b)})();
 function thread(){var p=prof(open)||{},day='',T=TH[cth],h=fxl()+'<div class="chtop"><div class="top"><button onclick="closeConv()" aria-label="Retour" style="padding:8px 12px">←</button>'+'<button class="mal-chat-profile" type="button" data-profile-id="'+esc(open)+'" onclick="window.malOpenProfile(this.dataset.profileId)" aria-label="Ouvrir le profil de '+esc(p.prenom||'ce membre')+'">'+av(p)+'<span><b>'+esc(p.prenom||'Membre')+'</b><small id="pst">'+presence(p)+'</small></span><i>Voir le profil ›</i></button><button onclick="thOpen=!thOpen;draw(true)" aria-label="Changer le fond" style="padding:8px 12px">🎨</button><button onclick="toggleBlock(open)" aria-label="Bloquer ou débloquer ce membre" style="padding:8px 12px">🚫</button></div>'+(thOpen?'<div class="ths">'+TH.map(function(t,i){return '<button class="'+(i==cth?'sel':'')+'" title="'+t[0]+'" style="background:'+t[1]+'" onclick="setTh('+i+')"></button>'}).join('')+'</div><div class="note">Fond : '+esc(T[0])+'</div>':'')+'<div id="chatMatchBox">'+matchBox()+'</div></div><div id="chatTyping" class="chat-typing" aria-live="polite" hidden><span></span><span></span><span></span> '+esc(p.prenom||'Cette personne')+' écrit…</div><div class="chat" id="msgs" style="--cfg:'+T[2]+'">';
 msgs.forEach(function(m,i){var d=new Date(m.created_at),k=d.toDateString();if(k!=day){day=k;h+='<div class="dsep">'+(k==new Date().toDateString()?'Aujourd’hui':d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'}))+'</div>'}h+=bub(m,i)});

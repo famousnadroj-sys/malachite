@@ -147,7 +147,7 @@ for (const item of ['malachite-copilots.js', 'Malachite Pulse', 'AutoCare', 'Mal
   if (!frontend.includes(item) && !copilots.includes(item)) throw new Error('Copilot module requirement missing: ' + item);
 }
 const serviceWorkerEarly = fs.readFileSync('sw.js', 'utf8');
-if (!serviceWorkerEarly.includes('./malachite-copilots.js') || !serviceWorkerEarly.includes('malachite-static-v84')) {
+if (!serviceWorkerEarly.includes('./malachite-copilots.js') || !serviceWorkerEarly.includes('malachite-static-v85')) {
   throw new Error('Copilot module must be included in the versioned PWA cache.');
 }
 
@@ -179,6 +179,13 @@ const performanceGuard = fs.readFileSync('malachite-performance.js', 'utf8');
 if (!performanceGuard.includes('mal-low-power') || !performanceGuard.includes('navigator.deviceMemory') || !performanceGuard.includes('connection.saveData')) {
   throw new Error('Low-power devices must use the lightweight visual mode.');
 }
+
+
+const appCore = frontendScripts[0];
+if (!appCore.includes("if(keepWarmCache){sub();return;}")) throw new Error('Warm profile cache must avoid repeat full profile reloads.');
+if (!appCore.includes("if(tab!=='chat'&&!msgRealtimeReady)")) throw new Error('Message polling must be fallback-only when realtime is unavailable.');
+if (!appCore.includes('setInterval(poll,120000)') || !appCore.includes('setInterval(beat,120000)')) throw new Error('Background polling must use reduced intervals.');
+if (!performanceGuard.includes('html.mal-low-power *{animation:none!important')) throw new Error('Low-power devices must disable costly visual effects.');
 
 const sw = fs.readFileSync('sw.js', 'utf8');
 const swTemp = path.join(os.tmpdir(), 'malachite-sw.js');
@@ -234,8 +241,8 @@ if (!frontend.includes('async function resolveMessagesMedia(rows)') || !frontend
 if (!frontend.includes("filter:'a=eq.'+me.id") || !frontend.includes("filter:'de=eq.'+me.id")) throw new Error('Realtime messages must be filtered to the signed-in user.');
 if (!frontend.includes("preload=\"none\"")) throw new Error('Chat videos must not preload all media data.');
 if (!frontend.includes('async function loadOlderMessages()')) throw new Error('Chat history must load older messages incrementally.');
-if (!frontend.includes("setInterval(poll,30000)")) throw new Error('Background message polling must not overload the chat view.');
-if (!frontend.includes("if(tab!=='chat'){\n   var query=sb.from('messages')") || !frontend.includes('messageTask=query')) throw new Error('Realtime chat must avoid duplicate full message polling.');
+if (!frontend.includes("setInterval(poll,120000)")) throw new Error('Background message polling must not overload the chat view.');
+if (!frontend.includes("if(tab!=='chat'&&!msgRealtimeReady){\n   var query=sb.from('messages')") || !frontend.includes('messageTask=query')) throw new Error('Realtime chat must avoid duplicate full message polling.');
 if (!frontend.includes("chatLoadBusyKeys[key]")) throw new Error('Opening another chat must not wait for a different conversation request.');
 if (!frontend.includes("appendChatRows([temp])") || !frontend.includes("pendingNode.replaceWith(holder.firstElementChild)")) throw new Error('Sending text must not redraw and interrupt media playback.');
 if (!frontend.includes("String(m.display_url).indexOf('blob:')===0")) throw new Error('Uploaded local media previews must still be replaced with private signed URLs.');
@@ -364,7 +371,7 @@ const campaignTemp = path.join(os.tmpdir(), 'malachite-campaigns.js');
 fs.writeFileSync(campaignTemp, campaignModule);
 const campaignCheck = spawnSync(process.execPath, ['--check', campaignTemp], { encoding: 'utf8' });
 if (campaignCheck.status !== 0) { process.stderr.write(campaignCheck.stderr || campaignCheck.stdout); process.exit(campaignCheck.status || 1); }
-for (const item of ['malachite-campaigns.js', 'malachite-static-v84']) {
+for (const item of ['malachite-campaigns.js', 'malachite-static-v85']) {
   if (!frontend.includes(item) && !sw.includes(item)) throw new Error('Campaign module release requirement missing: ' + item);
 }
 for (const item of ['campagnes', 'malachite-campaigns', 'SPONSORISÉ', 'malSaveCampaign', 'loadPublicCampaigns']) {
@@ -383,7 +390,7 @@ if (performanceCheck.status !== 0) { process.stderr.write(performanceCheck.stder
 for (const item of ['malachite-performance.js', 'img.loading', 'img.decoding']) {
   if (!performanceModule.includes(item) && !frontend.includes(item)) throw new Error('Mobile performance requirement missing: ' + item);
 }
-if (!sw.includes('./malachite-campaigns.js') || !sw.includes('./malachite-performance.js') || !sw.includes('malachite-static-v84')) {
+if (!sw.includes('./malachite-campaigns.js') || !sw.includes('./malachite-performance.js') || !sw.includes('malachite-static-v85')) {
   throw new Error('Campaign and performance modules must be included in the v67 PWA cache.');
 }
 
