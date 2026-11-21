@@ -4,16 +4,17 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 const html = fs.readFileSync('index.html', 'utf8');
-const inlineScripts = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)]
-  .map((match) => match[1])
-  .filter((source) => source.trim().length > 0);
-if (inlineScripts.length === 0) throw new Error('No inline application script found.');
-const temp = path.join(os.tmpdir(), 'malachite-inline.js');
-fs.writeFileSync(temp, inlineScripts.join('\n;\n'));
-const js = spawnSync(process.execPath, ['--check', temp], { encoding: 'utf8' });
-if (js.status !== 0) {
-  process.stderr.write(js.stderr || js.stdout);
-  process.exit(js.status || 1);
+const frontendFiles = ['app-core.js', 'malachite-avatar-ui.js', 'malachite-chat-ui.js', 'malachite-avatar-helper.js', 'malachite-living-engine.js', 'malachite-premium-profiles.js'];
+const frontendScripts = frontendFiles.map((file) => fs.readFileSync(file, 'utf8'));
+const frontend = [html, ...frontendScripts].join('\n');
+for (const [index, source] of frontendScripts.entries()) {
+  const temp = path.join(os.tmpdir(), 'malachite-deferred-' + index + '.js');
+  fs.writeFileSync(temp, source);
+  const js = spawnSync(process.execPath, ['--check', temp], { encoding: 'utf8' });
+  if (js.status !== 0) {
+    process.stderr.write(js.stderr || js.stdout);
+    process.exit(js.status || 1);
+  }
 }
 
 const requiredFrontend = [
@@ -33,34 +34,34 @@ const requiredFrontend = [
   '@media(min-width:760px)',
 ];
 for (const item of requiredFrontend) {
-  if (!html.includes(item)) throw new Error('Frontend requirement missing: ' + item);
+  if (!frontend.includes(item)) throw new Error('Frontend requirement missing: ' + item);
 }
-if (html.includes("profiles').select('*')")) throw new Error('Public profile query must not select private columns.');
-if (!html.includes("insert({de:me.id,profil:id,motif:motif})")) throw new Error('Report must include the authenticated reporter id.');
-if ((html.match(/storage\.from\('photos'\)\.upload/g) || []).length) throw new Error('New uploads must not use the legacy public photos bucket.');
+if (frontend.includes("profiles').select('*')")) throw new Error('Public profile query must not select private columns.');
+if (!frontend.includes("insert({de:me.id,profil:id,motif:motif})")) throw new Error('Report must include the authenticated reporter id.');
+if ((frontend.match(/storage\.from\('photos'\)\.upload/g) || []).length) throw new Error('New uploads must not use the legacy public photos bucket.');
 if (/service[_-]?role|sb_secret_/i.test(html)) throw new Error('Privileged Supabase credentials must never appear in browser code.');
-if (html.includes('contact_interdit')) throw new Error('Private message content must not be scanned to block contact details.');
-if (!html.includes('id="mal-chat-fullscreen-restore-v2"') ||
-    !html.includes('body.mal-chat-mode>header,body.mal-chat-mode>nav{display:none!important}') ||
-    !html.includes('body.mal-chat-mode main#v{position:fixed!important;inset:0!important') ||
-    !html.includes('body.mal-chat-mode .sendbar{position:relative!important') ||
-    !html.includes('body.mal-chat-mode .sendbar .chat-composer #mi{display:block!important') ||
-    !html.includes('body.mal-chat-mode .sendbar .chat-composer .chat-tool,body.mal-chat-mode .sendbar .chat-composer .chat-send{display:inline-flex!important')) {
+if (frontend.includes('contact_interdit')) throw new Error('Private message content must not be scanned to block contact details.');
+if (!frontend.includes('id="mal-chat-fullscreen-restore-v2"') ||
+    !frontend.includes('body.mal-chat-mode>header,body.mal-chat-mode>nav{display:none!important}') ||
+    !frontend.includes('body.mal-chat-mode main#v{position:fixed!important;inset:0!important') ||
+    !frontend.includes('body.mal-chat-mode .sendbar{position:relative!important') ||
+    !frontend.includes('body.mal-chat-mode .sendbar .chat-composer #mi{display:block!important') ||
+    !frontend.includes('body.mal-chat-mode .sendbar .chat-composer .chat-tool,body.mal-chat-mode .sendbar .chat-composer .chat-send{display:inline-flex!important')) {
   throw new Error('Full-screen conversation, text input and media controls must remain visible and usable.');
 }
-if (!html.includes('function persistMalView()') || !html.includes('function restoreMalView()')) {
+if (!frontend.includes('function persistMalView()') || !frontend.includes('function restoreMalView()')) {
   throw new Error('Chat navigation must survive a same-tab refresh.');
 }
-if (!html.includes('function sendSticker(emoji)') || !html.includes('m.media_type==="document"')) {
+if (!frontend.includes('function sendSticker(emoji)') || !frontend.includes('m.media_type==="document"')) {
   throw new Error('Chat stickers and document rendering must remain available.');
 }
-if (!html.includes('createSignedUrl(path,3600,{download:true})')) {
+if (!frontend.includes('createSignedUrl(path,3600,{download:true})')) {
   throw new Error('Private document downloads must use signed download URLs.');
 }
-if (html.includes('timer=setInterval(loadChat,4000)')) {
+if (frontend.includes('timer=setInterval(loadChat,4000)')) {
   throw new Error('Chat polling must not run every four seconds.');
 }
-if (!html.includes('target===me.id')) {
+if (!frontend.includes('target===me.id')) {
   throw new Error('Self-conversations must be blocked before message inserts.');
 }
 
@@ -73,10 +74,10 @@ if (i18nCheck.status !== 0) {
   process.stderr.write(i18nCheck.stderr || i18nCheck.stdout);
   process.exit(i18nCheck.status || 1);
 }
-for (const item of ['<script src="i18n.js"></script>', 'option value="en"', 'avatar-builder.html', 'function openMalAvatarBuilder(forSignup)', "a.type==='humanforge-3d'"]) {
-  if (!html.includes(item)) throw new Error('Personalization/avatar requirement missing: ' + item);
+for (const item of ['<script src="i18n.js" defer></script>', 'option value="en"', 'avatar-builder.html', 'function openMalAvatarBuilder(forSignup)', "a.type==='humanforge-3d'"]) {
+  if (!frontend.includes(item)) throw new Error('Personalization/avatar requirement missing: ' + item);
 }
-if (!html.includes("openMalAvatarBuilder(true)") || !html.includes('malAttachPendingSignupAvatar') || !html.includes('malachite-pending-avatar:')) throw new Error('Signup 3D avatar flow is incomplete.');
+if (!frontend.includes("openMalAvatarBuilder(true)") || !frontend.includes('malAttachPendingSignupAvatar') || !frontend.includes('malachite-pending-avatar:')) throw new Error('Signup 3D avatar flow is incomplete.');
 const avatarBuilder = fs.readFileSync('avatar-builder.html', 'utf8');
 if (!avatarBuilder.includes("textureSize:'512'") || !avatarBuilder.includes("type:'ready'") || !(avatarBuilder.includes('HumanCanvas') || avatarBuilder.includes('AvatarCanvas')) || !avatarBuilder.includes('createHumanEditor') || !avatarBuilder.includes('HumanForge') && !avatarBuilder.includes('humanforge@0.8.1') || !avatarBuilder.includes('malachite-avatar-builder')) {
   throw new Error('Realistic 3D avatar builder integration is incomplete.');
@@ -100,7 +101,7 @@ if (callsCheck.status !== 0) {
   process.stderr.write(callsCheck.stderr || callsCheck.stdout);
   process.exit(callsCheck.status || 1);
 }
-if (!html.includes('<script src="calls.js"></script>')) throw new Error('Realtime call client must be loaded by the application.');
+if (!frontend.includes('<script src="calls.js" defer></script>')) throw new Error('Realtime call client must be loaded by the application.');
 if (!calls.includes('Les appels sécurisés seront réactivés après leur mise en place') ||
     !calls.includes("h=h.replace('<button disabled title=")) {
   throw new Error('Mutual-match call actions must replace the legacy disabled call button.');
@@ -131,10 +132,10 @@ const manifest = JSON.parse(fs.readFileSync('manifest.webmanifest', 'utf8'));
 if (manifest.start_url !== './' || manifest.scope !== './' || manifest.display !== 'standalone') {
   throw new Error('PWA manifest configuration is incomplete.');
 }
-if (!html.includes("createSignedUrls(paths,3600)") || !html.includes("profilePhotoSignedCache") || !html.includes("if(tab==='me')draw(true)")) {
+if (!frontend.includes("createSignedUrls(paths,3600)") || !frontend.includes("profilePhotoSignedCache") || !frontend.includes("if(tab==='me')draw(true)")) {
   throw new Error('Own profile images must be signed in batches and rendered as soon as the profile is ready.');
 }
-if (!html.includes('fetchpriority="high"') || !html.includes('mal-own-cover-image')) {
+if (!frontend.includes('fetchpriority="high"') || !frontend.includes('mal-own-cover-image')) {
   throw new Error('Own profile hero/avatar images must be prioritized for immediate display.');
 }
 const copilots = fs.readFileSync('malachite-copilots.js', 'utf8');
@@ -143,10 +144,10 @@ fs.writeFileSync(copilotsTemp, copilots);
 const copilotsCheck = spawnSync(process.execPath, ['--check', copilotsTemp], { encoding: 'utf8' });
 if (copilotsCheck.status !== 0) { process.stderr.write(copilotsCheck.stderr || copilotsCheck.stdout); process.exit(copilotsCheck.status || 1); }
 for (const item of ['malachite-copilots.js', 'Malachite Pulse', 'AutoCare', 'Malachite Command']) {
-  if (!html.includes(item) && !copilots.includes(item)) throw new Error('Copilot module requirement missing: ' + item);
+  if (!frontend.includes(item) && !copilots.includes(item)) throw new Error('Copilot module requirement missing: ' + item);
 }
 const serviceWorkerEarly = fs.readFileSync('sw.js', 'utf8');
-if (!serviceWorkerEarly.includes('./malachite-copilots.js') || !serviceWorkerEarly.includes('malachite-static-v83')) {
+if (!serviceWorkerEarly.includes('./malachite-copilots.js') || !serviceWorkerEarly.includes('malachite-static-v84')) {
   throw new Error('Copilot module must be included in the versioned PWA cache.');
 }
 
@@ -189,11 +190,12 @@ if (swCheck.status !== 0) {
 }
 if (!sw.includes('./malachite-ai.js') || !sw.includes('malachite-static-v62')) throw new Error('AI Manager module must be cached and static cache version bumped.');
 if (!sw.includes('Serve the cached app shell immediately') || !sw.includes('networkPage.then')) throw new Error('Navigation must serve cached app shell immediately and refresh it in the background.');
+for (const asset of ['app-core.js','malachite-avatar-ui.js','malachite-chat-ui.js','malachite-avatar-helper.js','malachite-living-engine.js','malachite-premium-profiles.js']) if (!sw.includes(asset)) throw new Error('Deferred application asset missing from service-worker cache: '+asset);
 if (!sw.includes('storage') || !sw.includes('Authorization')) throw new Error('Service worker must bypass Supabase private APIs.');
-if (!html.includes("if(f.size>50*1024*1024){setChatUploadStatus('Vidéo trop lourde : 50 Mo maximum par vidéo.');clear();return}") || !html.includes('chunkSize:6*1024*1024') || !html.includes('async function uploadChatAsset')) throw new Error('Chat video upload must support 50 MB files through resumable TUS uploads.');
-if (!html.includes("navigator.serviceWorker.addEventListener('controllerchange'") ||
-    !html.includes("id='malSwUpdateNotice'") ||
-    !html.includes("window.location.reload()")) {
+if (!frontend.includes("if(f.size>50*1024*1024){setChatUploadStatus('Vidéo trop lourde : 50 Mo maximum par vidéo.');clear();return}") || !frontend.includes('chunkSize:6*1024*1024') || !frontend.includes('async function uploadChatAsset')) throw new Error('Chat video upload must support 50 MB files through resumable TUS uploads.');
+if (!frontend.includes("navigator.serviceWorker.addEventListener('controllerchange'") ||
+    !frontend.includes("id='malSwUpdateNotice'") ||
+    !frontend.includes("window.location.reload()")) {
   throw new Error('Existing PWA clients must be prompted to refresh after an app update.');
 }
 
@@ -222,54 +224,54 @@ for (const item of [
   if (!moderationFunction.includes(item)) throw new Error('Admin moderation security check missing: ' + item);
 }
 if (moderationFunction.includes('ADMIN_EMAIL')) throw new Error('Admin identity must come from the private database allow-list.');
-if (!html.includes('function openConv(id){if(!id||!me)return;')) throw new Error('Conversation entry handler missing.');
-if (!html.includes("persistMalView();draw(true);loadChat();timer=setInterval(function(){if(tab==='chat'&&open&&!document.hidden&&!msgRealtimeReady)loadChat()},15000)")) throw new Error('Conversation must render immediately and use a 15-second fallback only when Realtime is unavailable.');
-if (!html.includes('if(firstLoad){\n    msgs=msgs.concat(fresh)')) throw new Error('Initial messages must render in the conversation.');
-if (!html.includes('resolveMessagesMedia(mediaRows).then(function()')) throw new Error('Media resolution must run after the first message render.');
-if (!html.includes("Promise.all([sb.from('avis_match').select('ok')")) throw new Error('Conversation match checks must run concurrently.');
-if (!html.includes("sb.channel('msgs-'+me.id)")) throw new Error('Per-user Realtime message updates must remain enabled.');
-if (!html.includes('async function resolveMessagesMedia(rows)') || !html.includes("createSignedUrls(paths,3600)")) throw new Error('Chat media URLs must be resolved in batches.');
-if (!html.includes("filter:'a=eq.'+me.id") || !html.includes("filter:'de=eq.'+me.id")) throw new Error('Realtime messages must be filtered to the signed-in user.');
-if (!html.includes("preload=\"none\"")) throw new Error('Chat videos must not preload all media data.');
-if (!html.includes('async function loadOlderMessages()')) throw new Error('Chat history must load older messages incrementally.');
-if (!html.includes("setInterval(poll,30000)")) throw new Error('Background message polling must not overload the chat view.');
-if (!html.includes("if(tab!=='chat'){\n   var query=sb.from('messages')") || !html.includes('messageTask=query')) throw new Error('Realtime chat must avoid duplicate full message polling.');
-if (!html.includes("chatLoadBusyKeys[key]")) throw new Error('Opening another chat must not wait for a different conversation request.');
-if (!html.includes("appendChatRows([temp])") || !html.includes("pendingNode.replaceWith(holder.firstElementChild)")) throw new Error('Sending text must not redraw and interrupt media playback.');
-if (!html.includes("String(m.display_url).indexOf('blob:')===0")) throw new Error('Uploaded local media previews must still be replaced with private signed URLs.');
-if (html.includes("sb.channel('msgs').on('postgres_changes'")) throw new Error('Unfiltered global message realtime subscriptions are forbidden.');
-if (!html.includes("if(t=='chat'){loadChat();timer=setInterval(function(){if(tab==='chat'&&!document.hidden&&!msgRealtimeReady)loadChat()},20000);if(open)return}")) throw new Error('Chat navigation must load messages and use a conditional fallback sync.');
-if (!html.includes("id=\"chatSendError\"")) throw new Error('Message errors must update without rebuilding the conversation.');
-const insertChatStart = html.indexOf('async function insertChatMessage');
-const insertChatEnd = html.indexOf('async function snd()', insertChatStart);
-if (insertChatStart < 0 || insertChatEnd < 0 || html.slice(insertChatStart, insertChatEnd).includes('draw(true)')) throw new Error('Sending a message must not rebuild the chat DOM.');
-if (!html.includes("catch(error){if(localPreview)m.display_url=localPreview;throw error}")) throw new Error('Failed signing must not discard the local media preview.');
-if (!html.includes('function receiptMarkup(m,pending)') || !html.includes('function markIncomingReceipts(rows,asRead)')) throw new Error('Message delivery and read receipt UI is missing.');
+if (!frontend.includes('function openConv(id){if(!id||!me)return;')) throw new Error('Conversation entry handler missing.');
+if (!frontend.includes("persistMalView();draw(true);loadChat();timer=setInterval(function(){if(tab==='chat'&&open&&!document.hidden&&!msgRealtimeReady)loadChat()},15000)")) throw new Error('Conversation must render immediately and use a 15-second fallback only when Realtime is unavailable.');
+if (!frontend.includes('if(firstLoad){\n    msgs=msgs.concat(fresh)')) throw new Error('Initial messages must render in the conversation.');
+if (!frontend.includes('resolveMessagesMedia(mediaRows).then(function()')) throw new Error('Media resolution must run after the first message render.');
+if (!frontend.includes("Promise.all([sb.from('avis_match').select('ok')")) throw new Error('Conversation match checks must run concurrently.');
+if (!frontend.includes("sb.channel('msgs-'+me.id)")) throw new Error('Per-user Realtime message updates must remain enabled.');
+if (!frontend.includes('async function resolveMessagesMedia(rows)') || !frontend.includes("createSignedUrls(paths,3600)")) throw new Error('Chat media URLs must be resolved in batches.');
+if (!frontend.includes("filter:'a=eq.'+me.id") || !frontend.includes("filter:'de=eq.'+me.id")) throw new Error('Realtime messages must be filtered to the signed-in user.');
+if (!frontend.includes("preload=\"none\"")) throw new Error('Chat videos must not preload all media data.');
+if (!frontend.includes('async function loadOlderMessages()')) throw new Error('Chat history must load older messages incrementally.');
+if (!frontend.includes("setInterval(poll,30000)")) throw new Error('Background message polling must not overload the chat view.');
+if (!frontend.includes("if(tab!=='chat'){\n   var query=sb.from('messages')") || !frontend.includes('messageTask=query')) throw new Error('Realtime chat must avoid duplicate full message polling.');
+if (!frontend.includes("chatLoadBusyKeys[key]")) throw new Error('Opening another chat must not wait for a different conversation request.');
+if (!frontend.includes("appendChatRows([temp])") || !frontend.includes("pendingNode.replaceWith(holder.firstElementChild)")) throw new Error('Sending text must not redraw and interrupt media playback.');
+if (!frontend.includes("String(m.display_url).indexOf('blob:')===0")) throw new Error('Uploaded local media previews must still be replaced with private signed URLs.');
+if (frontend.includes("sb.channel('msgs').on('postgres_changes'")) throw new Error('Unfiltered global message realtime subscriptions are forbidden.');
+if (!frontend.includes("if(t=='chat'){loadChat();timer=setInterval(function(){if(tab==='chat'&&!document.hidden&&!msgRealtimeReady)loadChat()},20000);if(open)return}")) throw new Error('Chat navigation must load messages and use a conditional fallback sync.');
+if (!frontend.includes("id=\"chatSendError\"")) throw new Error('Message errors must update without rebuilding the conversation.');
+const insertChatStart = frontend.indexOf('async function insertChatMessage');
+const insertChatEnd = frontend.indexOf('async function snd()', insertChatStart);
+if (insertChatStart < 0 || insertChatEnd < 0 || frontend.slice(insertChatStart, insertChatEnd).includes('draw(true)')) throw new Error('Sending a message must not rebuild the chat DOM.');
+if (!frontend.includes("catch(error){if(localPreview)m.display_url=localPreview;throw error}")) throw new Error('Failed signing must not discard the local media preview.');
+if (!frontend.includes('function receiptMarkup(m,pending)') || !frontend.includes('function markIncomingReceipts(rows,asRead)')) throw new Error('Message delivery and read receipt UI is missing.');
 const bubbleStarts = [];
 let bubbleSearch = 0;
-while ((bubbleSearch = html.indexOf('function bub(m,i)', bubbleSearch)) !== -1) { bubbleStarts.push(bubbleSearch); bubbleSearch += 1; }
+while ((bubbleSearch = frontend.indexOf('function bub(m,i)', bubbleSearch)) !== -1) { bubbleStarts.push(bubbleSearch); bubbleSearch += 1; }
 if (bubbleStarts.length < 2) throw new Error('Expected chat bubble implementations were not found.');
-const activeBubble = html.slice(bubbleStarts[bubbleStarts.length - 1], html.indexOf('async function sendVideo', bubbleStarts[bubbleStarts.length - 1]));
+const activeBubble = frontend.slice(bubbleStarts[bubbleStarts.length - 1], frontend.indexOf('async function sendVideo', bubbleStarts[bubbleStarts.length - 1]));
 if (!activeBubble.includes('receiptMarkup(m,pending)')) throw new Error('The active chat bubble renderer must display delivery/read indicators.');
-if (!html.includes('body.mal-chat-mode .m .msg-status svg')) throw new Error('Message status icons must have visible chat-scoped styling.');
-if (!html.includes('aria-label="Envoyé"') || !html.includes('aria-label="Reçu"') || !html.includes('aria-label="Lu"') || !html.includes('aria-label="En attente d’envoi"')) throw new Error('All four message status states must be accessible.');
-if (!html.includes("table:'message_receipts'") || !html.includes('function handleReceiptEvent(payload)')) throw new Error('Realtime message receipt updates are missing.');
-if (!html.includes("markIncomingReceipts(incoming,document.visibilityState==='visible')")) throw new Error('Opening a conversation must record delivery and read state.');
-if (!html.includes("msg-status read") || !html.includes("aria-label=\"Lu\"")) throw new Error('Read receipts must be visibly distinct from delivered receipts.');
+if (!frontend.includes('body.mal-chat-mode .m .msg-status svg')) throw new Error('Message status icons must have visible chat-scoped styling.');
+if (!frontend.includes('aria-label="Envoyé"') || !frontend.includes('aria-label="Reçu"') || !frontend.includes('aria-label="Lu"') || !frontend.includes('aria-label="En attente d’envoi"')) throw new Error('All four message status states must be accessible.');
+if (!frontend.includes("table:'message_receipts'") || !frontend.includes('function handleReceiptEvent(payload)')) throw new Error('Realtime message receipt updates are missing.');
+if (!frontend.includes("markIncomingReceipts(incoming,document.visibilityState==='visible')")) throw new Error('Opening a conversation must record delivery and read state.');
+if (!frontend.includes("msg-status read") || !frontend.includes("aria-label=\"Lu\"")) throw new Error('Read receipts must be visibly distinct from delivered receipts.');
 if (!migrations.includes('message_receipts') || !migrations.includes('recipient marks read') || !migrations.includes('revoke all on public.message_receipts')) throw new Error('Secure message receipt migrations are missing.');
 if (!migrations.includes('avatar=case when p_profile ?') || !migrations.includes('profile_private,avatar')) throw new Error('Profile avatar persistence migration is missing.');
-if (html.includes('Ajoute une photo de profil avant d’enregistrer.')) throw new Error('Profile creation must allow a saved avatar instead of requiring a photo.');
-if (!html.includes('cache.expiresAt=now+3500000')) throw new Error('Signed media URL cache must refresh its expiry after renewal.');
-if (!html.includes("Signature des médias de la conversation ('+bucket+')")) throw new Error('Media URL resolution must isolate failures by storage bucket.');
+if (frontend.includes('Ajoute une photo de profil avant d’enregistrer.')) throw new Error('Profile creation must allow a saved avatar instead of requiring a photo.');
+if (!frontend.includes('cache.expiresAt=now+3500000')) throw new Error('Signed media URL cache must refresh its expiry after renewal.');
+if (!frontend.includes("Signature des médias de la conversation ('+bucket+')")) throw new Error('Media URL resolution must isolate failures by storage bucket.');
 if (!sw.match(/malachite-static-v[0-9]+/) || !sw.includes('./calls.js') || !sw.includes('./malachite-ad-studio.js')) throw new Error('Service worker must cache a versioned app shell including the call client.');
-if (!html.includes("status==='SUBSCRIBED'")) throw new Error('Realtime recovery must immediately resync the active conversation after reconnect.');
-if (!html.includes("timer=setInterval(function(){if(tab==='chat'&&!document.hidden&&!msgRealtimeReady)loadChat()},20000)")) throw new Error('Fallback chat sync must pause while hidden and run only when Realtime is unavailable.');
-if (!html.includes("sb.channel('malachite-online-v1'")) throw new Error('Realtime online presence channel is missing.');
-if (!html.includes('function refreshPresenceUI()') || !html.includes('function trackPresence()')) throw new Error('Online presence synchronization is missing.');
-if (!html.includes("on('broadcast',{event:'typing'}")) throw new Error('Realtime typing indicators are missing.');
-if (!html.includes('oninput="setTyping()"') || !html.includes('class="chat-typing"')) throw new Error('Typing indicator UI and composer hook are missing.');
-if (!html.includes('class="conv-avatar" onclick="event.stopPropagation();viewProf')) throw new Error('Conversation avatar must open the immersive member profile.');
-if (!html.includes('async function viewProf(id,startIndex)') || !html.includes("window.malOpenProfile=async function(id,startIndex)") || !html.includes("layer.className='mal-profile-viewer'")) throw new Error('Immersive profile viewer must remain available.');
+if (!frontend.includes("status==='SUBSCRIBED'")) throw new Error('Realtime recovery must immediately resync the active conversation after reconnect.');
+if (!frontend.includes("timer=setInterval(function(){if(tab==='chat'&&!document.hidden&&!msgRealtimeReady)loadChat()},20000)")) throw new Error('Fallback chat sync must pause while hidden and run only when Realtime is unavailable.');
+if (!frontend.includes("sb.channel('malachite-online-v1'")) throw new Error('Realtime online presence channel is missing.');
+if (!frontend.includes('function refreshPresenceUI()') || !frontend.includes('function trackPresence()')) throw new Error('Online presence synchronization is missing.');
+if (!frontend.includes("on('broadcast',{event:'typing'}")) throw new Error('Realtime typing indicators are missing.');
+if (!frontend.includes('oninput="setTyping()"') || !frontend.includes('class="chat-typing"')) throw new Error('Typing indicator UI and composer hook are missing.');
+if (!frontend.includes('class="conv-avatar" onclick="event.stopPropagation();viewProf')) throw new Error('Conversation avatar must open the immersive member profile.');
+if (!frontend.includes('async function viewProf(id,startIndex)') || !frontend.includes("window.malOpenProfile=async function(id,startIndex)") || !frontend.includes("layer.className='mal-profile-viewer'")) throw new Error('Immersive profile viewer must remain available.');
 console.log('Malachite frontend, PWA, private media, SQL policy and Admin security checks passed.');
 
 
@@ -283,19 +285,19 @@ for (const item of [
   "Une capture d’écran seule ne déclenche jamais Premium.",
   "Ne communique jamais ton code PIN ni ton OTP.",
 ]) {
-  if (!html.includes(item)) throw new Error('Launch payment requirement missing: ' + item);
+  if (!frontend.includes(item)) throw new Error('Launch payment requirement missing: ' + item);
 }
-if (!html.includes("var payload={offre:data.offer,code:data.code,operateur:data.operator,receipt_path:receipt.path}") ||
-    !html.includes("sb.from('paiements').insert(payload)")) {
+if (!frontend.includes("var payload={offre:data.offer,code:data.code,operateur:data.operator,receipt_path:receipt.path}") ||
+    !frontend.includes("sb.from('paiements').insert(payload)")) {
   throw new Error('Payment submission must preserve offer, reference, operator and private receipt path.');
 }
-if (!html.includes("function aiManagerPreview()") || !html.includes("moteur IA Malachite existant") || !html.includes("actions sensibles restent sous ton contrôle")) {
+if (!frontend.includes("function aiManagerPreview()") || !frontend.includes("moteur IA Malachite existant") || !frontend.includes("actions sensibles restent sous ton contrôle")) {
   throw new Error('AI copilots must describe the existing engine and preserve human approval for sensitive actions.');
 }
-if (html.includes("Premium — 3 $")) {
+if (frontend.includes("Premium — 3 $")) {
   throw new Error('Legacy Premium price of 3 USD remains anywhere in the frontend.');
 }
-if (!html.includes("Premium — 2 USD / mois")) {
+if (!frontend.includes("Premium — 2 USD / mois")) {
   throw new Error('The active Premium price must be 2 USD per month.');
 }
 
@@ -310,11 +312,11 @@ for (const item of [
     throw new Error('Payment RPC privilege guard missing: ' + item);
   }
 }
-if (!html.includes('maxlength="100" placeholder="Référence exacte du SMS"') ||
-    !html.includes('c.length<4||c.length>100')) {
+if (!frontend.includes('maxlength="100" placeholder="Référence exacte du SMS"') ||
+    !frontend.includes('c.length<4||c.length>100')) {
   throw new Error('Payment reference length must match the database RLS policy (4–100 characters).');
 }
-if (html.includes('maxlength="120" placeholder="Référence de transaction"')) {
+if (frontend.includes('maxlength="120" placeholder="Référence de transaction"')) {
   throw new Error('Payment reference input exceeds the database limit.');
 }
 
@@ -349,10 +351,10 @@ for (const item of [
   "id=\"ucProof\"",
   "receipt_path:receipt.path",
 ]) {
-  if (!html.includes(item)) throw new Error('Payment receipt workflow missing: ' + item);
+  if (!frontend.includes(item)) throw new Error('Payment receipt workflow missing: ' + item);
 }
 
-if (!html.includes("remove([receipt.path])")) {
+if (!frontend.includes("remove([receipt.path])")) {
   throw new Error('Failed payment inserts must clean up unlinked private receipt files.');
 }
 
@@ -362,13 +364,13 @@ const campaignTemp = path.join(os.tmpdir(), 'malachite-campaigns.js');
 fs.writeFileSync(campaignTemp, campaignModule);
 const campaignCheck = spawnSync(process.execPath, ['--check', campaignTemp], { encoding: 'utf8' });
 if (campaignCheck.status !== 0) { process.stderr.write(campaignCheck.stderr || campaignCheck.stdout); process.exit(campaignCheck.status || 1); }
-for (const item of ['malachite-campaigns.js', 'malachite-static-v83']) {
-  if (!html.includes(item) && !sw.includes(item)) throw new Error('Campaign module release requirement missing: ' + item);
+for (const item of ['malachite-campaigns.js', 'malachite-static-v84']) {
+  if (!frontend.includes(item) && !sw.includes(item)) throw new Error('Campaign module release requirement missing: ' + item);
 }
 for (const item of ['campagnes', 'malachite-campaigns', 'SPONSORISÉ', 'malSaveCampaign', 'loadPublicCampaigns']) {
-  if (!campaignModule.includes(item) && !html.includes(item)) throw new Error('Campaign feature requirement missing: ' + item);
+  if (!campaignModule.includes(item) && !frontend.includes(item)) throw new Error('Campaign feature requirement missing: ' + item);
 }
-const latestPaymentAdmin = html.slice(html.lastIndexOf('function admin0(){'), html.indexOf('function malShowLegal', html.lastIndexOf('function admin0(){')));
+const latestPaymentAdmin = frontend.slice(frontend.lastIndexOf('function admin0(){'), frontend.indexOf('function malShowLegal', frontend.lastIndexOf('function admin0(){')));
 if (!latestPaymentAdmin.includes('Confirmer reçu') || latestPaymentAdmin.includes('trtBatch()') || latestPaymentAdmin.includes('Valider ce lot')) {
   throw new Error('Payment review must remain individual and simple.');
 }
@@ -379,9 +381,9 @@ fs.writeFileSync(performanceTemp, performanceModule);
 const performanceCheck = spawnSync(process.execPath, ['--check', performanceTemp], { encoding: 'utf8' });
 if (performanceCheck.status !== 0) { process.stderr.write(performanceCheck.stderr || performanceCheck.stdout); process.exit(performanceCheck.status || 1); }
 for (const item of ['malachite-performance.js', 'img.loading', 'img.decoding']) {
-  if (!performanceModule.includes(item) && !html.includes(item)) throw new Error('Mobile performance requirement missing: ' + item);
+  if (!performanceModule.includes(item) && !frontend.includes(item)) throw new Error('Mobile performance requirement missing: ' + item);
 }
-if (!sw.includes('./malachite-campaigns.js') || !sw.includes('./malachite-performance.js') || !sw.includes('malachite-static-v83')) {
+if (!sw.includes('./malachite-campaigns.js') || !sw.includes('./malachite-performance.js') || !sw.includes('malachite-static-v84')) {
   throw new Error('Campaign and performance modules must be included in the v67 PWA cache.');
 }
 
@@ -425,7 +427,7 @@ if (memberExperienceCheck.status !== 0) { process.stderr.write(memberExperienceC
 for (const item of ['malAnnounceUserNotification', 'publish_user_announcement', 'malSetOfferPage', 'visualViewport', 'related_message_id']) {
   if (!memberExperience.includes(item)) throw new Error('Member experience requirement missing: ' + item);
 }
-if (!html.includes('malachite-user-experience.js') || !sw.includes('./malachite-user-experience.js')) {
+if (!frontend.includes('malachite-user-experience.js') || !sw.includes('./malachite-user-experience.js')) {
   throw new Error('Member experience module must be loaded and cached by the PWA.');
 }
 const inboxMigration = fs.readFileSync('supabase/migrations/20261121105751_user_notification_inbox.sql', 'utf8');
@@ -448,7 +450,7 @@ for (const item of ['action_type', 'action_id', 'private.create_my_notification'
   if (!notificationActionsMigration.includes(item)) throw new Error('Notification action-target migration requirement missing: ' + item);
 }
 for (const item of ['openLinkedMessage', 'back-to-site', 'p_related_user_id', 'photo du reçu ou capture d’écran', 'loadedAt']) {
-  if (!memberExperience.includes(item) && !html.includes(item)) throw new Error('Notification navigation or performance requirement missing: ' + item);
+  if (!memberExperience.includes(item) && !frontend.includes(item)) throw new Error('Notification navigation or performance requirement missing: ' + item);
 }
 
 const uniqueActionRpcMigration = fs.readFileSync('supabase/migrations/20261121112701_use_unique_action_notification_rpc.sql', 'utf8').toLowerCase();
