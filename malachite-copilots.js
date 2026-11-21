@@ -39,7 +39,7 @@
       '<div class="mal-command"><label for="malCommandInput">Malachite Command</label><div><input id="malCommandInput" maxlength="300" placeholder="Ex. Prépare mon briefing de la journée…" autocomplete="off"><button id="malCommandRun" type="button">Lancer ↗</button></div><small>Raccourci : Ctrl + K · les commandes envoient une demande au copilote IA existant.</small></div>' +
       '<div class="mal-pulse" id="malPulse"><div class="mal-pulse-head"><b>Malachite Pulse</b><span>Surveillance des indicateurs affichés</span></div><div class="mal-pulse-body" id="malPulseBody">Lecture des indicateurs…</div></div>' +
       '<div class="mal-autocare" id="malAutoCare"><div class="mal-pulse-head"><b>AutoCare</b><span>Diagnostic local de cet appareil</span></div><div class="mal-autocare-body" id="malAutoCareBody">Mesure des performances…</div></div>' +
-      '<p class="mal-copilot-note">Transparence : ces copilotes sont des profils de consignes utilisant le même service IA Malachite, pas six modèles autonomes. Pulse lit les chiffres déjà affichés. AutoCare mesure localement le navigateur ; aucune télémétrie n'est envoyée.</p>' +
+      '<p class="mal-copilot-note">Transparence : ces copilotes sont des profils de consignes utilisant le même service IA Malachite, pas six modèles autonomes. Pulse lit les chiffres déjà affichés. AutoCare mesure localement le navigateur ; aucune télémétrie n’est envoyée.</p>' +
       '</section>';
   }
 
