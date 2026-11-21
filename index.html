@@ -2059,7 +2059,7 @@ async function loadAdm(){
  if(malAdminPage==='members'){tasks.push(sb.from('signalements').select('*').order('created_at',{ascending:false}).limit(100));keys.push('reports');tasks.push(sb.from('suspensions').select('user_id,depuis,motif').order('depuis',{ascending:false}));keys.push('suspensions')}
  if(malAdminPage==='settings'&&malSettingsPage==='support'){tasks.push(sb.from('demandes_support').select('*').order('created_at',{ascending:false}).limit(100));keys.push('support')}
  if(malAdminPage==='settings'&&malSettingsPage==='avis'){tasks.push(sb.from('avis_site').select('*').order('created_at',{ascending:false}).limit(50));keys.push('reviews')}
- if(malAdminPage==='settings'&&malSettingsPage==='publicite'){tasks.push(sb.from('campagnes').select('*').order('created_at',{ascending:false}).limit(40));keys.push('campaigns')}
+ if((malAdminPage==='campaigns'||(malAdminPage==='settings'&&malSettingsPage==='publicite'))){tasks.push(sb.from('campagnes').select('*').order('created_at',{ascending:false}).limit(40));keys.push('campaigns')}
  var results=await Promise.all(tasks),byKey={};keys.forEach(function(k,i){byKey[k]=results[i]});
  var pr=byKey.payments;if(pr.error){console.error('Chargement paiements',pr.error);alert('Impossible de charger les paiements. Réessaie.');return}
  admTotal=pr.count||0;adm=pr.data||[];
@@ -2700,6 +2700,7 @@ body.mal-chat-mode .msg-action-sheet{border-radius:14px 14px 0 0!important}
 <script src="malachite-ai.js" defer></script>
 <script src="malachite-copilots.js" defer></script>
 <script src="malachite-campaigns.js" defer></script>
+<script src="malachite-ad-studio.js" defer></script>
 <script src="malachite-performance.js" defer></script>
 
 <script src="admin-push.js" defer></script>
