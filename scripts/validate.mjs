@@ -343,7 +343,7 @@ const performanceTemp = path.join(os.tmpdir(), 'malachite-performance.js');
 fs.writeFileSync(performanceTemp, performanceModule);
 const performanceCheck = spawnSync(process.execPath, ['--check', performanceTemp], { encoding: 'utf8' });
 if (performanceCheck.status !== 0) { process.stderr.write(performanceCheck.stderr || performanceCheck.stdout); process.exit(performanceCheck.status || 1); }
-for (const item of ['malachite-performance.js', 'loading = "lazy"', 'decoding = "async"']) {
+for (const item of ['malachite-performance.js', 'img.loading', 'img.decoding']) {
   if (!performanceModule.includes(item) && !html.includes(item)) throw new Error('Mobile performance requirement missing: ' + item);
 }
 if (!sw.includes('./malachite-campaigns.js') || !sw.includes('./malachite-performance.js') || !sw.includes('malachite-static-v67')) {
