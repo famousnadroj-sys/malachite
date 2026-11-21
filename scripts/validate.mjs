@@ -326,7 +326,7 @@ const campaignTemp = path.join(os.tmpdir(), 'malachite-campaigns.js');
 fs.writeFileSync(campaignTemp, campaignModule);
 const campaignCheck = spawnSync(process.execPath, ['--check', campaignTemp], { encoding: 'utf8' });
 if (campaignCheck.status !== 0) { process.stderr.write(campaignCheck.stderr || campaignCheck.stdout); process.exit(campaignCheck.status || 1); }
-for (const item of ['malachite-campaigns.js', 'malachite-static-v66']) {
+for (const item of ['malachite-campaigns.js', 'malachite-static-v67']) {
   if (!html.includes(item) && !sw.includes(item)) throw new Error('Campaign module release requirement missing: ' + item);
 }
 for (const item of ['campagnes', 'malachite-campaigns', 'SPONSORISÉ', 'malSaveCampaign', 'loadPublicCampaigns']) {
@@ -335,6 +335,18 @@ for (const item of ['campagnes', 'malachite-campaigns', 'SPONSORISÉ', 'malSaveC
 const latestPaymentAdmin = html.slice(html.lastIndexOf('function admin0(){'), html.indexOf('function malShowLegal', html.lastIndexOf('function admin0(){')));
 if (!latestPaymentAdmin.includes('Confirmer reçu') || latestPaymentAdmin.includes('trtBatch()') || latestPaymentAdmin.includes('Valider ce lot')) {
   throw new Error('Payment review must remain individual and simple.');
+}
+
+const performanceModule = fs.readFileSync('malachite-performance.js', 'utf8');
+const performanceTemp = path.join(os.tmpdir(), 'malachite-performance.js');
+fs.writeFileSync(performanceTemp, performanceModule);
+const performanceCheck = spawnSync(process.execPath, ['--check', performanceTemp], { encoding: 'utf8' });
+if (performanceCheck.status !== 0) { process.stderr.write(performanceCheck.stderr || performanceCheck.stdout); process.exit(performanceCheck.status || 1); }
+for (const item of ['malachite-performance.js', 'loading = "lazy"', 'decoding = "async"']) {
+  if (!performanceModule.includes(item) && !html.includes(item)) throw new Error('Mobile performance requirement missing: ' + item);
+}
+if (!sw.includes('./malachite-campaigns.js') || !sw.includes('./malachite-performance.js') || !sw.includes('malachite-static-v67')) {
+  throw new Error('Campaign and performance modules must be included in the v67 PWA cache.');
 }
 
 const aiManagerModule = fs.readFileSync('malachite-ai.js', 'utf8');
