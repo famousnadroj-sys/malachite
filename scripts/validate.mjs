@@ -427,3 +427,11 @@ const notificationHardening = fs.readFileSync('supabase/migrations/2026112111010
 for (const item of ['security invoker', 'private.publish_user_announcement', 'private.create_my_notification', 'user_notifications_related_message_idx', 'user_notifications_related_user_idx']) {
   if (!notificationHardening.includes(item)) throw new Error('Notification RPC hardening requirement missing: ' + item);
 }
+
+const notificationActionsMigration = fs.readFileSync('supabase/migrations/20261121112030_notification_action_targets_and_indexes.sql', 'utf8').toLowerCase();
+for (const item of ['action_type', 'action_id', 'private.create_my_notification', 'security definer', 'user_notifications_user_created_idx']) {
+  if (!notificationActionsMigration.includes(item)) throw new Error('Notification action-target migration requirement missing: ' + item);
+}
+for (const item of ['openLinkedMessage', 'back-to-site', 'p_related_user_id', 'photo du reçu ou capture d’écran', 'loadedAt']) {
+  if (!memberExperience.includes(item) && !html.includes(item)) throw new Error('Notification navigation or performance requirement missing: ' + item);
+}
