@@ -108,7 +108,7 @@
       metric("Chargement", load == null ? "—" : load + " ms") +
       metric("Ressources", resources == null ? "—" : resources) +
       metric("Tâches longues observées", longTasks) + '</div>' +
-      '<small class="mal-pulse-foot">Mesures navigateur indicatives, influencées par le réseau, le cache et l'appareil. Elles ne remplacent pas un test Lighthouse ni un test réel sur plusieurs téléphones.</small>';
+      '<small class="mal-pulse-foot">Mesures navigateur indicatives, influencées par le réseau, le cache et l’appareil. Elles ne remplacent pas un test Lighthouse ni un test réel sur plusieurs téléphones.</small>';
   }
 
   function install() {
