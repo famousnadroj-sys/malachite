@@ -40,11 +40,13 @@ if (!html.includes("insert({de:me.id,profil:id,motif:motif})")) throw new Error(
 if ((html.match(/storage\.from\('photos'\)\.upload/g) || []).length) throw new Error('New uploads must not use the legacy public photos bucket.');
 if (/service[_-]?role|sb_secret_/i.test(html)) throw new Error('Privileged Supabase credentials must never appear in browser code.');
 if (html.includes('contact_interdit')) throw new Error('Private message content must not be scanned to block contact details.');
-if (!html.includes('id="mal-chat-bars-repair-v1"') ||
-    !html.includes('body.mal-chat-mode>nav{display:flex!important') ||
-    !html.includes('body.mal-chat-mode .sendbar{position:fixed!important') ||
-    !html.includes('body.mal-chat-mode .sendbar .chat-composer #mi{display:block!important')) {
-  throw new Error('Conversation header, navigation and message composer must remain visible on mobile.');
+if (!html.includes('id="mal-chat-fullscreen-restore-v2"') ||
+    !html.includes('body.mal-chat-mode>header,body.mal-chat-mode>nav{display:none!important}') ||
+    !html.includes('body.mal-chat-mode main#v{position:fixed!important;inset:0!important') ||
+    !html.includes('body.mal-chat-mode .sendbar{position:relative!important') ||
+    !html.includes('body.mal-chat-mode .sendbar .chat-composer #mi{display:block!important') ||
+    !html.includes('body.mal-chat-mode .sendbar .chat-composer .chat-tool,body.mal-chat-mode .sendbar .chat-composer .chat-send{display:inline-flex!important')) {
+  throw new Error('Full-screen conversation, text input and media controls must remain visible and usable.');
 }
 if (!html.includes('function persistMalView()') || !html.includes('function restoreMalView()')) {
   throw new Error('Chat navigation must survive a same-tab refresh.');
@@ -144,7 +146,7 @@ for (const item of ['malachite-copilots.js', 'Malachite Pulse', 'AutoCare', 'Mal
   if (!html.includes(item) && !copilots.includes(item)) throw new Error('Copilot module requirement missing: ' + item);
 }
 const serviceWorkerEarly = fs.readFileSync('sw.js', 'utf8');
-if (!serviceWorkerEarly.includes('./malachite-copilots.js') || !serviceWorkerEarly.includes('malachite-static-v80')) {
+if (!serviceWorkerEarly.includes('./malachite-copilots.js') || !serviceWorkerEarly.includes('malachite-static-v81')) {
   throw new Error('Copilot module must be included in the versioned PWA cache.');
 }
 
@@ -353,7 +355,7 @@ const campaignTemp = path.join(os.tmpdir(), 'malachite-campaigns.js');
 fs.writeFileSync(campaignTemp, campaignModule);
 const campaignCheck = spawnSync(process.execPath, ['--check', campaignTemp], { encoding: 'utf8' });
 if (campaignCheck.status !== 0) { process.stderr.write(campaignCheck.stderr || campaignCheck.stdout); process.exit(campaignCheck.status || 1); }
-for (const item of ['malachite-campaigns.js', 'malachite-static-v80']) {
+for (const item of ['malachite-campaigns.js', 'malachite-static-v81']) {
   if (!html.includes(item) && !sw.includes(item)) throw new Error('Campaign module release requirement missing: ' + item);
 }
 for (const item of ['campagnes', 'malachite-campaigns', 'SPONSORISÉ', 'malSaveCampaign', 'loadPublicCampaigns']) {
@@ -372,7 +374,7 @@ if (performanceCheck.status !== 0) { process.stderr.write(performanceCheck.stder
 for (const item of ['malachite-performance.js', 'img.loading', 'img.decoding']) {
   if (!performanceModule.includes(item) && !html.includes(item)) throw new Error('Mobile performance requirement missing: ' + item);
 }
-if (!sw.includes('./malachite-campaigns.js') || !sw.includes('./malachite-performance.js') || !sw.includes('malachite-static-v80')) {
+if (!sw.includes('./malachite-campaigns.js') || !sw.includes('./malachite-performance.js') || !sw.includes('malachite-static-v81')) {
   throw new Error('Campaign and performance modules must be included in the v67 PWA cache.');
 }
 
