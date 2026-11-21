@@ -159,7 +159,7 @@ for (const item of ['MediaRecorder', 'captureStream(24)', 'malCreateAdVideo', 'm
   if (!adStudio.includes(item)) throw new Error('Short video ad studio capability missing: ' + item);
 }
 const adCreativeFunction = fs.readFileSync('supabase/functions/malachite-ad-creative/index.ts', 'utf8');
-for (const item of ['auth.getUser(token)', 'malachite_ai_manager_is_admin', 'gemini-3.8-flash-lite-tts', 'responseModalities:["AUDIO"]', 'audio_base64']) {
+for (const item of ['auth.getUser(token)', 'malachite_ai_manager_is_admin', 'gemini-3.8-flash-lite-tts', 'responseModalities:["AUDIO"]', 'audio_base64', 'daily_voice_limit']) {
   if (!adCreativeFunction.includes(item)) throw new Error('Secure AI ad voice endpoint requirement missing: ' + item);
 }
 const campaignMedia = fs.readFileSync('malachite-campaigns.js', 'utf8');
