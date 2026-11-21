@@ -139,6 +139,10 @@
     if (window.tab === "home" && typeof window.draw === "function") window.draw(true);
   };
 
+  var campaignStyle = document.createElement("style");
+  campaignStyle.textContent = ".mal-sponsored-section{margin:16px 0 25px}.mal-sponsored-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.mal-sponsored-card{position:relative;overflow:hidden;border:1px solid #f0d8e2;border-radius:18px;background:#fff;box-shadow:0 8px 22px rgba(70,20,42,.06)}.mal-sponsored-card>img{display:block;width:100%;height:155px;object-fit:cover}.mal-sponsored-label{position:absolute;z-index:1;top:10px;left:10px;padding:5px 8px;border-radius:99px;background:#fff;color:#873451;font-size:9px;font-weight:900;letter-spacing:.08em}.mal-sponsored-copy{padding:13px}.mal-sponsored-copy b{font-size:15px}.mal-sponsored-copy p{font-size:12px;color:#806775;line-height:1.5}.mal-sponsored-copy a{font-size:12px;font-weight:800;color:#b62c60}@media(prefers-reduced-motion:reduce){.mal-sponsored-card{scroll-behavior:auto}}";
+  document.head.appendChild(campaignStyle);
+
   window.malPublicCampaignMarkup = function () {
     var rows = window.malActiveCampaigns || [];
     if (!rows.length) return "";
