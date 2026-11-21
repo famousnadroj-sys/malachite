@@ -36,7 +36,7 @@
         return '<button type="button" class="mal-copilot-card" data-copilot="' + item[0] + '">' +
           '<span>' + item[1] + '</span><b>' + item[2] + '</b><small>' + item[3] + '</small></button>';
       }).join("") + '</div>' +
-      '<div class="mal-command"><label for="malCommandInput">Malachite Command</label><div><input id="malCommandInput" maxlength="300" placeholder="Ex. Prépare mon briefing de la journée…" autocomplete="off"><button id="malCommandRun" type="button">Lancer ↗</button></div><small>Raccourci : Ctrl + K · les commandes envoient une demande au copilote IA existant.</small></div>' +
+      '<div class="mal-command"><label for="malCommandInput">Malachite Command · Mission autonome</label><div><input id="malCommandInput" maxlength="300" placeholder="Ex. Prépare mon briefing de la journée…" autocomplete="off"><button id="malCommandRun" type="button">Lancer ↗</button></div><small>Le Manager décompose la mission en volets Finance, Guardian, Support, Intelligence et Creative. Raccourci : Ctrl + K.</small></div>' +
       '<div class="mal-pulse" id="malPulse"><div class="mal-pulse-head"><b>Malachite Pulse</b><span>Surveillance des indicateurs affichés</span></div><div class="mal-pulse-body" id="malPulseBody">Lecture des indicateurs…</div></div>' +
       '<div class="mal-autocare" id="malAutoCare"><div class="mal-pulse-head"><b>AutoCare</b><span>Diagnostic local de cet appareil</span></div><div class="mal-autocare-body" id="malAutoCareBody">Mesure des performances…</div></div>' +
       '<p class="mal-copilot-note">Transparence : ces copilotes sont des profils de consignes utilisant le même service IA Malachite, pas six modèles autonomes. Pulse lit les chiffres déjà affichés. AutoCare mesure localement le navigateur ; aucune télémétrie n’est envoyée.</p>' +
@@ -63,7 +63,7 @@
     if (!input) return;
     var value = input.value.trim();
     if (!value) return;
-    sendPrompt("Traite cette mission avec prudence, indique les faits vérifiables, les limites et les étapes recommandées sans exécuter d'action sensible : " + value);
+    sendPrompt("Agis comme Malachite Manager en mode simulation. Décompose cette mission en cinq volets : Finance, Guardian, Support, Intelligence et Creative. Pour chaque volet, distingue les faits disponibles, les informations manquantes, les risques et les recommandations. Consolide ensuite un plan d’action priorisé. N’invente aucun résultat, ne prétends pas avoir exécuté une action, et demande une validation humaine avant toute opération sensible. Mission : " + value);
     input.value = "";
   }
 
