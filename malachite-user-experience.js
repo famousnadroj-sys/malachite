@@ -470,36 +470,35 @@
     // Ces photos illustrent l'esprit du site ; elles ne représentent pas de faux membres.
     var visuals = [
       {
-        url: 'https://images.pexels.com/photos/32103487/pexels-photo-32103487/free-photo-of-happy-african-couple-enjoying-time-together-outdoors.jpeg?auto=compress&dpr=1&h=750&w=1260',
-        alt: 'Couple africain partageant un moment complice autour de son téléphone',
+        url: 'https://images.pexels.com/photos/32103487/pexels-photo-32103487/free-photo-of-happy-african-couple-enjoying-time-together-outdoors.jpeg?auto=compress&cs=tinysrgb&w=1000',
+        alt: 'Couple africain échangeant un sourire et regardant ensemble un téléphone dans un café à Accra',
         title: 'Rencontres',
         subtitle: 'Les belles histoires commencent ici'
       },
       {
-        url: 'https://images.unsplash.com/photo-1655720355810-fcdfd7a742b5?auto=format&fit=crop&w=900&q=85',
-        alt: 'Deux personnes africaines échangeant un moment de conversation et de complicité',
+        url: 'https://images.pexels.com/photos/9705741/pexels-photo-9705741.jpeg?auto=compress&cs=tinysrgb&w=1000',
+        alt: 'Jeune couple africain riant ensemble dans un moment naturel de complicité',
         title: 'Complicité',
         subtitle: 'Apprendre à se connaître'
       },
       {
-        url: 'https://images.unsplash.com/photo-1758272133803-1cbb513689ca?auto=format&fit=crop&w=900&q=85',
-        alt: 'Groupe de jeunes adultes amis réunis pour un selfie',
+        url: 'https://images.pexels.com/photos/35752214/pexels-photo-35752214/free-photo-of-group-of-happy-african-people-outdoors.png?auto=compress&cs=tinysrgb&w=1000',
+        alt: 'Groupe d’amis africains réunis dehors, souriants et proches les uns des autres',
         title: 'Amitié',
         subtitle: 'Créer de nouvelles connexions'
       },
       {
-        url: 'https://images.pexels.com/photos/9706082/pexels-photo-9706082.jpeg?auto=compress&cs=tinysrgb&w=900',
-        alt: 'Famille africaine réunie dans des vêtements traditionnels colorés',
+        url: 'https://images.pexels.com/photos/9705732/pexels-photo-9705732.jpeg?auto=compress&cs=tinysrgb&w=1000',
+        alt: 'Famille africaine partageant un moment chaleureux à la maison',
         title: 'Famille',
         subtitle: 'Les liens qui comptent'
       }
     ];
 
     function fillVisualStrip(container, items) {
-      if (!container || container.dataset.malUxExpanded) return;
-      container.querySelectorAll('img.mal-portrait-motion').forEach(function (oldImage) {
-        oldImage.remove();
-      });
+      if (!container) return;
+      // Remplace le bandeau d'anciennes vignettes : pas de doublons ni d'images aléatoires.
+      container.innerHTML = '';
       items.forEach(function (item, index) {
         var figure = document.createElement('figure');
         figure.className = 'mal-social-visual mal-portrait-motion';
@@ -509,12 +508,12 @@
         var img = document.createElement('img');
         img.src = item.url;
         img.alt = item.alt;
-        img.loading = 'lazy';
+        img.loading = index === 0 ? 'eager' : 'lazy';
         img.decoding = 'async';
         img.referrerPolicy = 'no-referrer';
         img.addEventListener('error', function () {
           figure.classList.add('is-unavailable');
-          img.remove();
+          img.alt = 'Photo temporairement indisponible — ' + item.title;
         });
 
         var caption = document.createElement('figcaption');
