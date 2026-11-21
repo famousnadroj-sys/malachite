@@ -299,7 +299,7 @@
   if(me.email==='famousnadroj@gmail.com'&&!adminPaymentChannel){
    adminPaymentChannel=sb.channel('mal-admin-payment-inbox').on('postgres_changes',{event:'INSERT',schema:'public',table:'paiements'},function(ev){
     var row=ev&&ev.new;if(!row)return;
-    notify('💳 Nouvelle demande de paiement',row.offre+' · Code : '+row.code,'adm');
+    notify('💳 Nouvelle demande de paiement',row.offre+' · Code : '+row.code,'adm','payment-'+row.id);
     if(tab==='adm'&&typeof loadAdm==='function')loadAdm();
    }).subscribe(function(status){if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED')adminPaymentChannel=null});
   }
