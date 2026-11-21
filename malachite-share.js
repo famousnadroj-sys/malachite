@@ -1,6 +1,7 @@
 (function(){
   "use strict";
-  var SITE_URL="https://famousnadroj-sys.github.io/malachite/";
+  var SITE_URL=window.location.origin+window.location.pathname;
+  function getShareUrl(){var url=new URL(SITE_URL);var user=window.me&&window.me.id;if(user)url.searchParams.set("ref",user);return url.toString()}
   var TITLE="MALACHITE";
   var DESCRIPTION="Découvre MALACHITE : fais de belles rencontres et échange avec de nouvelles personnes.";
   function init(){
@@ -41,19 +42,19 @@
     document.addEventListener("keydown",function(e){if(e.key==="Escape"&&overlay.classList.contains("open"))close()});
     function feedback(message){var el=document.getElementById("mal-share-feedback");if(el)el.textContent=message}
     function copyLink(){
-      if(navigator.clipboard&&window.isSecureContext){return navigator.clipboard.writeText(SITE_URL).then(function(){feedback("Lien copié. Tu peux le coller où tu veux.")})}
-      var field=document.createElement("textarea");field.value=SITE_URL;field.setAttribute("readonly","");field.style.position="fixed";field.style.opacity="0";document.body.appendChild(field);field.select();
+      var link=getShareUrl();if(navigator.clipboard&&window.isSecureContext){return navigator.clipboard.writeText(link).then(function(){feedback("Lien personnel copié. Tu peux le partager.")})}
+      var field=document.createElement("textarea");field.value=link;field.setAttribute("readonly","");field.style.position="fixed";field.style.opacity="0";document.body.appendChild(field);field.select();
       var ok=false;try{ok=document.execCommand("copy")}catch(e){}document.body.removeChild(field);
       feedback(ok?"Lien copié. Tu peux le coller où tu veux.":"Copie automatique indisponible : "+SITE_URL);
     }
     overlay.querySelector(".mal-share-grid").addEventListener("click",function(e){
       var action=e.target.closest("[data-share]");if(!action)return;
-      var url=encodeURIComponent(SITE_URL),text=encodeURIComponent(DESCRIPTION+" "+SITE_URL);
+      var link=getShareUrl(),url=encodeURIComponent(link),text=encodeURIComponent(DESCRIPTION+" "+link);
       if(action.dataset.share==="copy"){copyLink();return}
       if(action.dataset.share==="whatsapp"){window.open("https://wa.me/?text="+text,"_blank","noopener,noreferrer");return}
       if(action.dataset.share==="facebook"){window.open("https://www.facebook.com/sharer/sharer.php?u="+url,"_blank","noopener,noreferrer");return}
       if(action.dataset.share==="native"){
-        if(navigator.share){navigator.share({title:TITLE,text:DESCRIPTION,url:SITE_URL}).then(function(){feedback("Merci d'avoir partagé MALACHITE.")}).catch(function(err){if(err&&err.name!=="AbortError")feedback("Le partage n'a pas abouti. Essaie une autre option.")})}
+        if(navigator.share){navigator.share({title:TITLE,text:DESCRIPTION,url:link}).then(function(){feedback("Merci d'avoir partagé MALACHITE.")}).catch(function(err){if(err&&err.name!=="AbortError")feedback("Le partage n'a pas abouti. Essaie une autre option.")})}
         else{copyLink()}
       }
     });
