@@ -435,3 +435,9 @@ for (const item of ['action_type', 'action_id', 'private.create_my_notification'
 for (const item of ['openLinkedMessage', 'back-to-site', 'p_related_user_id', 'photo du reçu ou capture d’écran', 'loadedAt']) {
   if (!memberExperience.includes(item) && !html.includes(item)) throw new Error('Notification navigation or performance requirement missing: ' + item);
 }
+
+const uniqueActionRpcMigration = fs.readFileSync('supabase/migrations/20261121112700_use_unique_action_notification_rpc.sql', 'utf8').toLowerCase();
+for (const item of ['drop function if exists public.create_my_notification', 'create_my_action_notification', 'security invoker']) {
+  if (!uniqueActionRpcMigration.includes(item)) throw new Error('Unique notification RPC migration requirement missing: ' + item);
+}
+if (!memberExperience.includes("rpc('create_my_action_notification'")) throw new Error('Member notification action RPC must use its unique endpoint name.');
