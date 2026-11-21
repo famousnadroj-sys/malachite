@@ -13,7 +13,7 @@ self.addEventListener("install", (event) => {
     }));
   }));
   // Activate the new app shell immediately instead of waiting for every old tab to close.
-  await self.skipWaiting();
+  self.skipWaiting();
 });
 
 self.addEventListener("message", (event) => {
