@@ -138,7 +138,7 @@ for (const item of ['malachite-copilots.js', 'Malachite Pulse', 'AutoCare', 'Mal
   if (!html.includes(item) && !copilots.includes(item)) throw new Error('Copilot module requirement missing: ' + item);
 }
 const serviceWorkerEarly = fs.readFileSync('sw.js', 'utf8');
-if (!serviceWorkerEarly.includes('./malachite-copilots.js') || !serviceWorkerEarly.includes('malachite-static-v77')) {
+if (!serviceWorkerEarly.includes('./malachite-copilots.js') || !serviceWorkerEarly.includes('malachite-static-v78')) {
   throw new Error('Copilot module must be included in the versioned PWA cache.');
 }
 
@@ -155,7 +155,7 @@ const adStudioTemp = path.join(os.tmpdir(), 'malachite-ad-studio.js');
 fs.writeFileSync(adStudioTemp, adStudio);
 const adStudioCheck = spawnSync(process.execPath, ['--check', adStudioTemp], { encoding: 'utf8' });
 if (adStudioCheck.status !== 0) { process.stderr.write(adStudioCheck.stderr || adStudioCheck.stdout); process.exit(adStudioCheck.status || 1); }
-for (const item of ['MediaRecorder', 'captureStream(24)', 'malCreateAdVideo', 'malRecordAdVoice', 'malGenerateAdVoiceAI', 'gemini-3.8-flash-lite-tts', 'malCampaignDuration', 'malCampaignSourceVideo', 'video/webm']) {
+for (const item of ['MediaRecorder', 'captureStream(24)', 'malCreateAdVideo', 'malRecordAdVoice', 'malGenerateAdVoiceAI', 'malCampaignDuration', 'malCampaignSourceVideo', 'video/webm']) {
   if (!adStudio.includes(item)) throw new Error('Short video ad studio capability missing: ' + item);
 }
 const adCreativeFunction = fs.readFileSync('supabase/functions/malachite-ad-creative/index.ts', 'utf8');
@@ -347,7 +347,7 @@ const campaignTemp = path.join(os.tmpdir(), 'malachite-campaigns.js');
 fs.writeFileSync(campaignTemp, campaignModule);
 const campaignCheck = spawnSync(process.execPath, ['--check', campaignTemp], { encoding: 'utf8' });
 if (campaignCheck.status !== 0) { process.stderr.write(campaignCheck.stderr || campaignCheck.stdout); process.exit(campaignCheck.status || 1); }
-for (const item of ['malachite-campaigns.js', 'malachite-static-v77']) {
+for (const item of ['malachite-campaigns.js', 'malachite-static-v78']) {
   if (!html.includes(item) && !sw.includes(item)) throw new Error('Campaign module release requirement missing: ' + item);
 }
 for (const item of ['campagnes', 'malachite-campaigns', 'SPONSORISÉ', 'malSaveCampaign', 'loadPublicCampaigns']) {
@@ -366,7 +366,7 @@ if (performanceCheck.status !== 0) { process.stderr.write(performanceCheck.stder
 for (const item of ['malachite-performance.js', 'img.loading', 'img.decoding']) {
   if (!performanceModule.includes(item) && !html.includes(item)) throw new Error('Mobile performance requirement missing: ' + item);
 }
-if (!sw.includes('./malachite-campaigns.js') || !sw.includes('./malachite-performance.js') || !sw.includes('malachite-static-v77')) {
+if (!sw.includes('./malachite-campaigns.js') || !sw.includes('./malachite-performance.js') || !sw.includes('malachite-static-v78')) {
   throw new Error('Campaign and performance modules must be included in the v67 PWA cache.');
 }
 
@@ -400,4 +400,20 @@ for (const item of ['revoke truncate, references, trigger on all tables in schem
 const blockedCallsMigration = fs.readFileSync('supabase/migrations/20261120224036_prevent_calls_between_blocked_members.sql', 'utf8').toLowerCase();
 for (const item of ['private.is_blocked_with(p_callee_id)', "raise exception 'call_blocked'", 'not private.is_blocked_with(call_sessions.callee_id)']) {
   if (!blockedCallsMigration.includes(item)) throw new Error('Blocked-member call protection missing: ' + item);
+}
+
+const memberExperience = fs.readFileSync('malachite-user-experience.js', 'utf8');
+const memberExperienceTemp = path.join(os.tmpdir(), 'malachite-user-experience.js');
+fs.writeFileSync(memberExperienceTemp, memberExperience);
+const memberExperienceCheck = spawnSync(process.execPath, ['--check', memberExperienceTemp], { encoding: 'utf8' });
+if (memberExperienceCheck.status !== 0) { process.stderr.write(memberExperienceCheck.stderr || memberExperienceCheck.stdout); process.exit(memberExperienceCheck.status || 1); }
+for (const item of ['malAnnounceUserNotification', 'publish_user_announcement', 'malSetOfferPage', 'visualViewport', 'related_message_id']) {
+  if (!memberExperience.includes(item)) throw new Error('Member experience requirement missing: ' + item);
+}
+if (!html.includes('malachite-user-experience.js') || !sw.includes('./malachite-user-experience.js')) {
+  throw new Error('Member experience module must be loaded and cached by the PWA.');
+}
+const inboxMigration = fs.readFileSync('supabase/migrations/20261121110000_user_notification_inbox.sql', 'utf8');
+for (const item of ['message_received', 'publish_user_announcement', 'private.notify_new_member_message', 'related_message_id']) {
+  if (!inboxMigration.includes(item)) throw new Error('Durable notification migration requirement missing: ' + item);
 }
