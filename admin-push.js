@@ -23,6 +23,16 @@ window.malEnableAdminPush=async function(){
   alert("Alertes Malachite activées sur cet appareil.");
  }catch(error){console.error("Activation push Malachite",error);setStatus("Activation impossible : "+(error.message||"erreur temporaire")+". Réessaie après avoir vérifié la connexion.");}
 };
+window.malTestAdminPush=async function(){
+ if(!window.me||!window.ADM||window.me.email!==window.ADM){alert("Connexion administrateur requise.");return;}
+ setStatus("Envoi du test en cours…");
+ try{
+  var result=await window.sb.functions.invoke("malachite-admin-push",{body:{action:"test"}});
+  if(result.error||!result.data||!result.data.ok)throw new Error((result.data&&result.data.error)||result.error&&result.error.message||"Test impossible");
+  setStatus("Test envoyé à "+result.data.sent+" appareil(s). Vérifie la notification sur tes appareils.");
+  alert("Test envoyé à "+result.data.sent+" appareil(s).");
+ }catch(error){setStatus("Test non envoyé : "+(error.message||"erreur temporaire"));alert("Le test n’a pas abouti. Active d’abord les alertes sur cet appareil.");}
+};
 window.malRefreshAdminPushStatus=async function(){
  if(!window.me||!window.ADM||window.me.email!==window.ADM)return;
  try{
