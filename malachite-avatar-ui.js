@@ -242,7 +242,48 @@ async function loadAdm(){
  if(byKey.support){if(byKey.support.error)console.warn('Support',byKey.support.error);else malSupportRows=byKey.support.data||[]}
  if(byKey.reviews){if(byKey.reviews.error)console.warn('Avis',byKey.reviews.error);else avs=byKey.reviews.data||[]}
  if(byKey.campaigns){if(byKey.campaigns.error){console.error('Campagnes publicitaires',byKey.campaigns.error);malCampaignRows=[]}else malCampaignRows=byKey.campaigns.data||[]}
+
  draw();
+ malAiAutoAnalyzePayments(adm);
+}
+var malPaymentAiBusy=Object.create(null);
+function malPaymentAiRender(id,analysis){
+ var node=document.getElementById("malAiPaymentReview"+id);if(!node)return;
+ var status=analysis.payment_status==="success"?"Le message affiche un paiement réussi":analysis.payment_status==="pending"?"Le message indique un paiement en attente":analysis.payment_status==="failed"?"Le message indique un échec":"Statut du paiement illisible";
+ var flags=[];
+ flags.push(analysis.reference_match===true?'<span class="mal-ai-flag good">Référence identique</span>':'<span class="mal-ai-flag warn">Référence à comparer</span>');
+ if(analysis.operator==="airtel"||analysis.operator==="orange")flags.push(analysis.operator_match?'<span class="mal-ai-flag good">Opérateur concordant</span>':'<span class="mal-ai-flag warn">Opérateur différent</span>');
+ if(analysis.duplicate_reference)flags.push('<span class="mal-ai-flag bad">Référence déjà utilisée</span>');
+ var amount=analysis.amount==null?"Non détecté":String(analysis.amount)+(analysis.currency?" "+analysis.currency:"");
+ node.innerHTML='<b>Malakit AI · lecture du justificatif</b><p>'+esc(status)+' · confiance '+esc(analysis.confidence||"faible")+'</p>'+
+ '<div class="mal-ai-payment-fields"><div><small>Montant</small><b>'+esc(amount)+'</b></div><div><small>Référence lue</small><b>'+esc(analysis.transaction_reference||"Non détectée")+'</b></div>'+
+ '<div><small>Numéro expéditeur</small><b>'+esc(analysis.sender_number||"Non détecté")+'</b></div><div><small>Numéro destinataire</small><b>'+esc(analysis.recipient_number||"Non détecté")+'</b></div>'+
+ '<div><small>Date du message</small><b>'+esc(analysis.transaction_date||"Non détectée")+'</b></div><div><small>Opérateur lu</small><b>'+esc(analysis.operator||"Non identifié")+'</b></div></div>'+
+ '<div class="mal-ai-payment-flags">'+flags.join("")+'</div>'+(analysis.notes?'<p>'+esc(analysis.notes)+'</p>':'')+
+ '<p class="mal-ai-payment-warning">⚠️ L’IA lit l’image, elle ne vérifie pas l’encaissement. Compare le montant, le numéro destinataire et la référence dans ton historique Airtel/Orange avant de valider.</p>'+
+ '<button type="button" onclick="malAiAnalyzePayment('+Number(id)+')">Afficher l’analyse</button>';
+}
+window.malAiAnalyzePayment=async function(id){
+ id=Number(id);if(!Number.isSafeInteger(id)||id<=0||malPaymentAiBusy[id])return;
+ if(!me||me.email!==ADM||!window.sb||!sb.functions)return;
+ malPaymentAiBusy[id]=true;
+ var node=document.getElementById("malAiPaymentReview"+id);
+ if(node)node.innerHTML='<b>Malakit AI lit la capture…</b><p>Extraction du montant, de la référence et des numéros visibles. Aucune validation automatique.</p>';
+ try{
+  var result=await sb.functions.invoke("malachite-ai-manager",{body:{action:"analyze_payment_receipt",payment_id:id}});
+  if(result.error||!result.data||!result.data.ok)throw new Error(result.data&&result.data.error||"analyse indisponible");
+  malPaymentAiRender(id,result.data.analysis);
+ }catch(error){
+  if(node)node.innerHTML='<b>Lecture IA indisponible</b><p>'+esc(error&&error.message?error.message:"Erreur temporaire")+'. Vérifie manuellement le reçu auprès de l’opérateur.</p><button type="button" onclick="malAiAnalyzePayment('+id+')">Réessayer</button>';
+ }finally{delete malPaymentAiBusy[id]}
+};
+async function malAiAutoAnalyzePayments(rows){
+ if(!me||me.email!==ADM||tab!=="adm"||malAdminPage!=="payments")return;
+ var queue=(rows||[]).filter(function(x){return x&&x.id&&x.receipt_path&&x.statut==="attente"}).slice(0,10);
+ for(var i=0;i<queue.length;i++){
+  if(!me||me.email!==ADM||tab!=="adm")return;
+  await window.malAiAnalyzePayment(queue[i].id);
+ }
 }
 var malSupportRows=[];
 function supportAdmin(){return '<h2>🛟 Réclamations et assistance</h2><div class="list">'+(malSupportRows.length?malSupportRows.map(function(x){return '<div class="card"><b>'+esc(x.sujet)+'</b><div class="sub">'+esc(x.categorie)+' · '+esc(x.statut)+' · '+new Date(x.created_at).toLocaleString('fr-FR')+'</div><p>'+esc(x.message)+'</p><label>Réponse administrative<textarea id="malReply'+x.id+'" maxlength="1000">'+esc(x.reponse_admin||'')+'</textarea></label><select id="malStatus'+x.id+'"><option value="en_cours">En cours</option><option value="resolu">Résolu</option><option value="rejete">Rejeté</option></select><button onclick="malResolveSupport('+x.id+')">Enregistrer le traitement</button></div>'}).join(''):'<p class="note">Aucune demande.</p>')+'</div>'}
