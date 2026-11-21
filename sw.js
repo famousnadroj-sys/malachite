@@ -3,8 +3,15 @@ const CACHE = "malachite-static-v87";
 const APP_SHELL = ["./", "./manifest.webmanifest", "./icons/malachite.svg", "./calls.js", "./i18n.js", "./avatar-builder.html", "./malachite-ai.js", "./malachite-copilots.js", "./malachite-campaigns.js", "./malachite-performance.js", "./malachite-ad-studio.js", "./admin-push.js", "./malachite-user-experience.js", "./app-core.js", "./malachite-avatar-ui.js", "./malachite-chat-ui.js", "./malachite-avatar-helper.js", "./malachite-living-engine.js", "./malachite-premium-profiles.js"];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(APP_SHELL)));
-
+  // An unavailable optional asset must not abort installation of the whole app shell.
+  event.waitUntil(caches.open(CACHE).then(async (cache) => {
+    await Promise.all(APP_SHELL.map(async (path) => {
+      try {
+        const response = await fetch(path, { cache: "reload" });
+        if (response && response.ok) await cache.put(path, response);
+      } catch (_) {}
+    }));
+  }));
 });
 
 self.addEventListener("message", (event) => {
