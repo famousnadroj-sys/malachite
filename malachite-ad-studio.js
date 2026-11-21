@@ -28,6 +28,23 @@
  };
 
  var adVoiceBlob=null,adVoiceRecorder=null,adVoiceParts=[],adVoicePreviewUrl=null;
+ window.malGenerateAdVoiceAI=async function(){
+  var script=val("malCampaignNarration"),voice=val("malCampaignVoice")||"Charon";
+  if(script.length<8){alert("Écris une courte narration avant de générer la voix.");return}
+  if(!window.sb||!sb.functions){alert("Connexion au service IA indisponible.");return}
+  var button=Array.from(document.querySelectorAll(".mal-ad-actions button")).find(function(x){return x.getAttribute("onclick")==="malGenerateAdVoiceAI()"});
+  if(button){button.disabled=true;button.textContent="La voix IA est en préparation…"}
+  try{
+   var result=await sb.functions.invoke("malachite-ad-creative",{body:{action:"voiceover",script:script,voice:voice}});
+   if(result.error||!result.data||!result.data.audio_base64)throw new Error(result.data&&result.data.error==="ai_provider_not_configured"?"La clé Gemini n’est pas configurée dans Supabase.":result.data&&result.data.error==="rate_limited"?"Limite temporaire atteinte. Réessaie dans une minute.":"La voix IA n’a pas pu être générée.");
+   var raw=atob(result.data.audio_base64),bytes=new Uint8Array(raw.length);for(var i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);
+   adVoiceBlob=new Blob([bytes],{type:result.data.mime_type||"audio/wav"});
+   if(adVoicePreviewUrl)URL.revokeObjectURL(adVoicePreviewUrl);adVoicePreviewUrl=URL.createObjectURL(adVoiceBlob);
+   var player=document.getElementById("malAdVoicePreview");if(player){player.src=adVoicePreviewUrl;player.style.display="block"}
+   var status=document.getElementById("malAdVoiceStatus");if(status)status.textContent="Voix IA générée. Écoute-la, puis crée ta vidéo.";
+   if(typeof window.toast==="function")window.toast("Voix IA prête.");
+  }catch(e){alert(e.message||"Génération de la voix impossible")}finally{if(button){button.disabled=false;button.textContent="✦ Générer la voix IA"}}
+ };
  window.malRecordAdVoice=async function(){
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.MediaRecorder){alert("L’enregistrement vocal n’est pas pris en charge par ce navigateur.");return}
   try{var stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
