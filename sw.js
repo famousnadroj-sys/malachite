@@ -1,6 +1,6 @@
 // Compatibility marker retained for the repository validation contract: malachite-static-v62.
-const CACHE = "malachite-static-v64";
-const APP_SHELL = ["./", "./manifest.webmanifest", "./icons/malachite.svg", "./calls.js", "./i18n.js", "./avatar-builder.html", "./malachite-ai.js", "./admin-push.js"];
+const CACHE = "malachite-static-v65";
+const APP_SHELL = ["./", "./manifest.webmanifest", "./icons/malachite.svg", "./calls.js", "./i18n.js", "./avatar-builder.html", "./malachite-ai.js", "./malachite-copilots.js", "./admin-push.js"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(APP_SHELL)));
