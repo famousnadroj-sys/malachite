@@ -40,6 +40,10 @@ Deno.serve(async(req:Request)=>{
       .eq("admin_id",auth.user.id).gte("created_at",new Date(Date.now()-60000).toISOString());
     if(voiceRateError)return respond(503,{error:"audit_unavailable"},origin);
     if((count||0)>=8)return respond(429,{error:"rate_limited"},origin);
+    const {count:dailyVoiceCount,error:dailyVoiceError}=await adminClient.from("ai_manager_audit").select("id",{count:"exact",head:true})
+      .eq("admin_id",auth.user.id).eq("model","gemini-3.8-flash-lite-tts").gte("created_at",new Date(Date.now()-86400000).toISOString());
+    if(dailyVoiceError)return respond(503,{error:"audit_unavailable"},origin);
+    if((dailyVoiceCount||0)>=10)return respond(429,{error:"daily_voice_limit"},origin);
     let voiceResponse:Response;
     try{
       voiceResponse=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash-lite-tts:generateContent",{
