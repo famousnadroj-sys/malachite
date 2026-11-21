@@ -182,7 +182,6 @@ if (!performanceGuard.includes('mal-low-power') || !performanceGuard.includes('n
 
 
 const appCore = frontendScripts[0];
-const performanceGuard = fs.readFileSync('malachite-performance.js', 'utf8');
 if (!appCore.includes("if(keepWarmCache){sub();return;}")) throw new Error('Warm profile cache must avoid repeat full profile reloads.');
 if (!appCore.includes("if(tab!=='chat'&&!msgRealtimeReady)")) throw new Error('Message polling must be fallback-only when realtime is unavailable.');
 if (!appCore.includes('setInterval(poll,120000)') || !appCore.includes('setInterval(beat,120000)')) throw new Error('Background polling must use reduced intervals.');
