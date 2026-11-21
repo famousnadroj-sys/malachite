@@ -138,7 +138,7 @@ for (const item of ['malachite-copilots.js', 'Malachite Pulse', 'AutoCare', 'Mal
   if (!html.includes(item) && !copilots.includes(item)) throw new Error('Copilot module requirement missing: ' + item);
 }
 const serviceWorkerEarly = fs.readFileSync('sw.js', 'utf8');
-if (!serviceWorkerEarly.includes('./malachite-copilots.js') || !serviceWorkerEarly.includes('malachite-static-v78')) {
+if (!serviceWorkerEarly.includes('./malachite-copilots.js') || !serviceWorkerEarly.includes('malachite-static-v79')) {
   throw new Error('Copilot module must be included in the versioned PWA cache.');
 }
 
@@ -347,7 +347,7 @@ const campaignTemp = path.join(os.tmpdir(), 'malachite-campaigns.js');
 fs.writeFileSync(campaignTemp, campaignModule);
 const campaignCheck = spawnSync(process.execPath, ['--check', campaignTemp], { encoding: 'utf8' });
 if (campaignCheck.status !== 0) { process.stderr.write(campaignCheck.stderr || campaignCheck.stdout); process.exit(campaignCheck.status || 1); }
-for (const item of ['malachite-campaigns.js', 'malachite-static-v78']) {
+for (const item of ['malachite-campaigns.js', 'malachite-static-v79']) {
   if (!html.includes(item) && !sw.includes(item)) throw new Error('Campaign module release requirement missing: ' + item);
 }
 for (const item of ['campagnes', 'malachite-campaigns', 'SPONSORISÉ', 'malSaveCampaign', 'loadPublicCampaigns']) {
@@ -366,7 +366,7 @@ if (performanceCheck.status !== 0) { process.stderr.write(performanceCheck.stder
 for (const item of ['malachite-performance.js', 'img.loading', 'img.decoding']) {
   if (!performanceModule.includes(item) && !html.includes(item)) throw new Error('Mobile performance requirement missing: ' + item);
 }
-if (!sw.includes('./malachite-campaigns.js') || !sw.includes('./malachite-performance.js') || !sw.includes('malachite-static-v78')) {
+if (!sw.includes('./malachite-campaigns.js') || !sw.includes('./malachite-performance.js') || !sw.includes('malachite-static-v79')) {
   throw new Error('Campaign and performance modules must be included in the v67 PWA cache.');
 }
 
@@ -427,3 +427,17 @@ const notificationHardening = fs.readFileSync('supabase/migrations/2026112111010
 for (const item of ['security invoker', 'private.publish_user_announcement', 'private.create_my_notification', 'user_notifications_related_message_idx', 'user_notifications_related_user_idx']) {
   if (!notificationHardening.includes(item)) throw new Error('Notification RPC hardening requirement missing: ' + item);
 }
+
+const notificationActionsMigration = fs.readFileSync('supabase/migrations/20261121112030_notification_action_targets_and_indexes.sql', 'utf8').toLowerCase();
+for (const item of ['action_type', 'action_id', 'private.create_my_notification', 'security definer', 'user_notifications_user_created_idx']) {
+  if (!notificationActionsMigration.includes(item)) throw new Error('Notification action-target migration requirement missing: ' + item);
+}
+for (const item of ['openLinkedMessage', 'back-to-site', 'p_related_user_id', 'photo du reçu ou capture d’écran', 'loadedAt']) {
+  if (!memberExperience.includes(item) && !html.includes(item)) throw new Error('Notification navigation or performance requirement missing: ' + item);
+}
+
+const uniqueActionRpcMigration = fs.readFileSync('supabase/migrations/20261121112701_use_unique_action_notification_rpc.sql', 'utf8').toLowerCase();
+for (const item of ['drop function if exists public.create_my_notification', 'create_my_action_notification', 'security invoker']) {
+  if (!uniqueActionRpcMigration.includes(item)) throw new Error('Unique notification RPC migration requirement missing: ' + item);
+}
+if (!memberExperience.includes("rpc('create_my_action_notification'")) throw new Error('Member notification action RPC must use its unique endpoint name.');
