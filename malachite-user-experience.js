@@ -4,7 +4,7 @@
   if (window.__malachiteMemberExperienceV1) return;
   window.__malachiteMemberExperienceV1 = true;
 
-  var inbox = { rows: [], unread: 0, tab: 'notifications', filter: 'all', drawer: null, loading: false };
+  var inbox = { rows: [], unread: 0, tab: 'notifications', filter: 'all', drawer: null, loading: false, loadedUserId: null, loadedAt: 0 };
   var offerPage = 1;
   var toastSeen = Object.create(null);
   var soundEnabled = localStorage.getItem('mal-notif-sound') !== 'off';
@@ -57,14 +57,15 @@
     updateBell();
   }
 
-  async function refreshInbox() {
+  async function refreshInbox(force) {
     var user = currentUser();
     if (!user || !window.sb || inbox.loading) return;
+    if (!force && inbox.loadedUserId === user.id && Date.now() - inbox.loadedAt < 45000) return;
     inbox.loading = true;
     try {
       var results = await Promise.all([
         window.sb.from('user_notifications')
-          .select('id,kind,category,title,body,created_at,read_at,related_message_id,related_user_id')
+          .select('id,kind,category,title,body,created_at,read_at,related_message_id,related_user_id,action_type,action_id')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(100),
@@ -76,6 +77,8 @@
       if (!currentUser() || currentUser().id !== user.id) return;
       if (results[0].error) throw results[0].error;
       inbox.rows = results[0].data || [];
+      inbox.loadedUserId = user.id;
+      inbox.loadedAt = Date.now();
       if (!results[1].error && typeof results[1].count === 'number') {
         inbox.unread = results[1].count;
       } else {
@@ -132,7 +135,7 @@
             badge: './icons/malachite.svg',
             tag: 'malachite-user-' + key,
             renotify: false,
-            data: { url: './?openNotifications=1' }
+            data: { url: './?openNotification=' + encodeURIComponent(key) }
           });
         }).catch(function () {});
       } else {
@@ -165,11 +168,20 @@
         (lower.indexOf('alerte') >= 0 || lower.indexOf('rappel') >= 0 ? 'alert' :
         (lower.indexOf('actualité') >= 0 ? 'news' : 'system'));
       var key = notificationDedupeKey(textTitle, textBody, destination, id);
+      var actionType = ['chat','rdv','adm','offres'].indexOf(String(destination || '')) >= 0 ? String(destination) : null;
+      var relatedUserId = null;
+      if (destination === 'chat' && lower.indexOf('match') >= 0 && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(id || ''))) {
+        actionType = 'match';
+        relatedUserId = String(id);
+      }
       window.sb.rpc('create_my_notification', {
         p_category: category,
         p_title: textTitle,
         p_body: textBody,
-        p_dedupe_key: key
+        p_dedupe_key: key,
+        p_action_type: actionType,
+        p_action_id: id == null ? null : String(id),
+        p_related_user_id: relatedUserId
       }).then(async function (result) {
         if (result.error) {
           originalNotify.call(window, title, body, destination, id);
@@ -177,7 +189,7 @@
         }
         if (result.data) {
           var row = await window.sb.from('user_notifications')
-            .select('id,kind,category,title,body,created_at,read_at,related_message_id,related_user_id')
+            .select('id,kind,category,title,body,created_at,read_at,related_message_id,related_user_id,action_type,action_id')
             .eq('id', result.data).maybeSingle();
           if (!row.error && row.data) announceNotification(row.data);
         }
@@ -197,32 +209,68 @@
     var row = inbox.rows.find(function (item) { return String(item.id) === String(id); });
     if (!row || row.read_at) return;
     var stamp = new Date().toISOString();
+    row.read_at = stamp;
+    inbox.unread = Math.max(0, inbox.unread - 1);
+    updateBell();
+    if (inbox.drawer) renderInbox();
     var result = await window.sb.from('user_notifications')
       .update({ read_at: stamp })
       .eq('id', row.id)
       .eq('user_id', user.id)
       .is('read_at', null);
     if (result.error) {
+      row.read_at = null;
+      inbox.unread += 1;
+      updateBell();
+      if (inbox.drawer) renderInbox();
       console.warn('Marquage notification non confirmé', result.error);
-      return;
     }
-    row.read_at = stamp;
-    inbox.unread = Math.max(0, inbox.unread - 1);
-    updateBell();
-    if (inbox.drawer) renderInbox();
   }
 
   async function openNotification(id) {
     var row = inbox.rows.find(function (item) { return String(item.id) === String(id); });
+    if (!row && currentUser() && window.sb) {
+      var fetched = await window.sb.from('user_notifications')
+        .select('id,kind,category,title,body,created_at,read_at,related_message_id,related_user_id,action_type,action_id')
+        .eq('id', id).eq('user_id', currentUser().id).maybeSingle();
+      if (!fetched.error && fetched.data) {
+        row = fetched.data;
+        inbox.rows.unshift(row);
+      }
+    }
     if (!row) return;
-    await markRead(id);
+    markRead(id);
     closeInbox();
+    if (row.category === 'payment') {
+      openInbox('payments');
+      return;
+    }
+    if (row.category === 'message' && row.related_user_id && row.related_message_id && typeof window.openLinkedMessage === 'function') {
+      window.openLinkedMessage(row.related_user_id, row.related_message_id);
+      return;
+    }
     if (row.category === 'message' && row.related_user_id && typeof window.openConv === 'function') {
       window.openConv(row.related_user_id);
       return;
     }
-    if (row.category === 'payment') {
-      openInbox('payments');
+    if (row.action_type === 'match' && row.related_user_id && typeof window.openConv === 'function') {
+      window.openConv(row.related_user_id);
+      return;
+    }
+    if (row.action_type === 'chat' && row.related_user_id && typeof window.openConv === 'function') {
+      window.openConv(row.related_user_id);
+      return;
+    }
+    if (row.action_type === 'rdv' && typeof window.go === 'function') {
+      window.go('rdv');
+      return;
+    }
+    if (row.action_type === 'offres' && typeof window.go === 'function') {
+      window.go('offres');
+      return;
+    }
+    if (row.action_type === 'adm' && isAdmin() && typeof window.go === 'function') {
+      window.go('adm');
       return;
     }
     openInbox('notifications');
@@ -293,7 +341,8 @@
       '<header class="mal-notif-panel-head"><div><small>MALACHITE · ESPACE MEMBRE</small><h2>' +
       (inbox.tab === 'notifications' ? 'Notifications' : inbox.tab === 'payments' ? 'Paiements' : 'Préférences et aide') +
       '</h2></div><button type="button" data-action="close" aria-label="Fermer">×</button></header>' +
-      tabs + '<div class="mal-notif-panel-body">' + body + '</div></section>';
+      tabs + '<div class="mal-notif-panel-body">' + body + '</div>' +
+      '<footer class="mal-notif-panel-foot"><button type="button" data-action="back-to-site">← Retour au site</button></footer></section>';
     if (inbox.tab === 'payments' && typeof window.loadMyPayments === 'function') {
       window.setTimeout(function () {
         if (inbox.drawer && inbox.tab === 'payments') window.loadMyPayments();
@@ -326,6 +375,7 @@
         var action = event.target.closest('[data-action]');
         if (action) {
           if (action.dataset.action === 'close') closeInbox();
+          if (action.dataset.action === 'back-to-site') { closeInbox(); if (typeof window.go === 'function') window.go('home'); }
           if (action.dataset.action === 'mark-all') markAllRead();
           if (action.dataset.action === 'publish') publishAnnouncement();
           return;
@@ -347,7 +397,7 @@
       inbox.drawer = backdrop;
     }
     renderInbox();
-    refreshInbox();
+    refreshInbox(false);
   }
 
   function closeInbox() {
@@ -475,6 +525,8 @@
       '.mal-notif-panel-head small{font-size:9px;letter-spacing:.15em;font-weight:800;opacity:.85}.mal-notif-panel-head h2{font:600 25px Fraunces,Georgia,serif;margin:4px 0 0}.mal-notif-panel-head button{width:38px;height:38px;border-radius:50%;background:#ffffff25;color:#fff;font-size:25px;padding:0}',
       '.mal-notif-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;padding:10px 12px;border-bottom:1px solid #f2d9e2}.mal-notif-tabs button{padding:10px 5px;border-radius:12px;background:#fff5f8;color:#80566a;font-size:12px;font-weight:750}.mal-notif-tabs button.active{background:#e6195e;color:#fff}',
       '.mal-notif-panel-body{flex:1;min-height:0;overflow:auto;padding:12px 14px calc(24px + env(safe-area-inset-bottom,0px));overscroll-behavior:contain}',
+      '.mal-notif-panel-foot{padding:10px 14px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid #f2d9e2;background:#fff}.mal-notif-panel-foot button{width:100%;padding:12px 14px;border-radius:12px;background:#fff3f7;color:#9b315e;font-weight:800;border:1px solid #f2c8d8}',
+      '.mal-notification-target-message{outline:3px solid #e6195e!important;box-shadow:0 0 0 6px #e6195e22!important;transition:outline .2s ease}',
       '.mal-notif-filters{display:flex;gap:6px;overflow:auto;padding:2px 0 9px;scrollbar-width:none}.mal-notif-filters button{white-space:nowrap;border:1px solid #f1d4df;border-radius:99px;padding:7px 10px;background:#fff;color:#765265;font-size:11px}.mal-notif-filters button.active{background:#ffe3ee;border-color:#e6195e;color:#a51349;font-weight:800}',
       '.mal-notif-toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 0 10px;color:#806574;font-size:12px}.mal-notif-toolbar button{background:none;color:#c2185b;font-size:11px;padding:5px}',
       '.mal-notification-list{display:grid;gap:8px}.mal-notification-item{width:100%;display:flex;align-items:flex-start;gap:10px;text-align:left;padding:12px;border:1px solid #f0d9e2;border-radius:15px;background:#fff;color:#3a1224}.mal-notification-item.unread{background:#fff7fa;border-color:#eeb9cc}.mal-notification-symbol{width:31px;height:31px;flex:none;border-radius:11px;background:#ffe3ee;color:#d81b60;display:grid;place-items:center;font-weight:850}.mal-notification-text{min-width:0;flex:1;display:grid;gap:4px}.mal-notification-text b{font-size:13px}.mal-notification-text span{font-size:12px;line-height:1.4;color:#725263}.mal-notification-text small{font-size:10px;color:#9b7c8a}.mal-notification-unread-dot{width:8px;height:8px;flex:none;margin-top:5px;border-radius:50%;background:#e6195e}',
@@ -551,7 +603,7 @@
         '<label>Moyen de paiement<select id="malOperator" onchange="malSetPaymentNumber()"><option value="airtel">Airtel Money</option><option value="orange">Orange Money</option></select></label>' +
         '<p class="note">Effectue le transfert au numéro affiché, puis saisis la référence exacte du SMS et joins le reçu.</p>' +
         '<label>Référence du transfert<input id="cd" maxlength="100" autocomplete="off" placeholder="Référence exacte du SMS"></label>' +
-        '<label>Justificatif (JPEG, PNG ou WebP · 5 Mo maximum)<input id="malReceipt" type="file" accept="image/jpeg,image/png,image/webp"></label>' +
+        '<label>Preuve de paiement — photo du reçu ou capture d’écran<input id="malReceipt" type="file" accept="image/jpeg,image/png,image/webp"></label><p class="note">Envoie une photo du reçu remis après le paiement, ou une capture d’écran de la confirmation reçue sur ton téléphone (JPEG, PNG ou WebP · 5 Mo maximum).</p>' +
         '<button class="b1 big" id="malSubmitPayment" type="button" onclick="pay()">Soumettre ma demande</button>' +
         '<div class="note" id="pm" aria-live="polite">Activation après vérification du paiement.</div></div>' +
         '<section id="malPaymentHistory"><h3>Suivi de mes demandes</h3><p class="note">Chargement…</p></section></div>';
@@ -590,7 +642,7 @@
   if (typeof oldSub === 'function') {
     window.sub = function () {
       var result = oldSub.apply(this, arguments);
-      window.setTimeout(refreshInbox, 150);
+      window.setTimeout(function () { refreshInbox(false); if (pendingNotificationId || pendingNotificationsPanel) processNotificationDeepLink(); }, 0);
       return result;
     };
   }
@@ -615,7 +667,20 @@
   ensureBell();
   enhancePortraits();
   if (currentUser()) refreshInbox();
-  if (new URLSearchParams(window.location.search).has('openNotifications')) {
-    window.setTimeout(function () { if (currentUser()) openInbox('notifications'); }, 900);
+  var pendingNotificationId = new URLSearchParams(window.location.search).get('openNotification');
+  var pendingNotificationsPanel = new URLSearchParams(window.location.search).has('openNotifications');
+  async function processNotificationDeepLink() {
+    if (!currentUser()) return;
+    if (pendingNotificationId) {
+      await refreshInbox(true);
+      await openNotification(pendingNotificationId);
+      pendingNotificationId = null;
+      try { var clean = new URL(window.location.href); clean.searchParams.delete('openNotification'); window.history.replaceState({}, '', clean.pathname + clean.search + clean.hash); } catch (_) {}
+    } else if (pendingNotificationsPanel) {
+      openInbox('notifications');
+      pendingNotificationsPanel = false;
+    }
   }
+  window.malProcessNotificationDeepLink = processNotificationDeepLink;
+  if (currentUser()) window.setTimeout(processNotificationDeepLink, 250);
 })();
