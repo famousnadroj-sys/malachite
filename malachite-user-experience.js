@@ -603,7 +603,7 @@
         '<label>Moyen de paiement<select id="malOperator" onchange="malSetPaymentNumber()"><option value="airtel">Airtel Money</option><option value="orange">Orange Money</option></select></label>' +
         '<p class="note">Effectue le transfert au numéro affiché, puis saisis la référence exacte du SMS et joins le reçu.</p>' +
         '<label>Référence du transfert<input id="cd" maxlength="100" autocomplete="off" placeholder="Référence exacte du SMS"></label>' +
-        '<label>Preuve de paiement — photo du reçu ou capture d’écran<input id="malReceipt" type="file" accept="image/jpeg,image/png,image/webp"></label><p class="note">Envoie une photo du reçu remis après le paiement, ou une capture d’écran de la confirmation reçue sur ton téléphone (JPEG, PNG ou WebP · 5 Mo maximum).</p>' +
+        '<label>Preuve de paiement — photo ou capture du message de confirmation<input id="malReceipt" type="file" accept="image/jpeg,image/png,image/webp"></label><p class="note">Après avoir effectué le paiement, envoyez-nous une photo du message de confirmation reçu par SMS ou une capture d’écran de ce message. Veillez à ce que le message et les informations du paiement soient bien lisibles. C’est tout : envoyez simplement cette image (JPEG, PNG ou WebP · 5 Mo maximum).</p>' +
         '<button class="b1 big" id="malSubmitPayment" type="button" onclick="pay()">Soumettre ma demande</button>' +
         '<div class="note" id="pm" aria-live="polite">Activation après vérification du paiement.</div></div>' +
         '<section id="malPaymentHistory"><h3>Suivi de mes demandes</h3><p class="note">Chargement…</p></section></div>';
