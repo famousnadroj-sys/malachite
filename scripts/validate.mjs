@@ -147,7 +147,7 @@ for (const item of ['malachite-copilots.js', 'Malachite Pulse', 'AutoCare', 'Mal
   if (!frontend.includes(item) && !copilots.includes(item)) throw new Error('Copilot module requirement missing: ' + item);
 }
 const serviceWorkerEarly = fs.readFileSync('sw.js', 'utf8');
-if (!serviceWorkerEarly.includes('./malachite-copilots.js') || !serviceWorkerEarly.includes('malachite-static-v87')) {
+if (!serviceWorkerEarly.includes('./malachite-copilots.js') || !serviceWorkerEarly.includes('malachite-static-v88')) {
   throw new Error('Copilot module must be included in the versioned PWA cache.');
 }
 
@@ -401,7 +401,7 @@ for (const item of ['malachite-performance.js', 'img.loading', 'img.decoding']) 
   if (!performanceModule.includes(item) && !frontend.includes(item)) throw new Error('Mobile performance requirement missing: ' + item);
 }
 if (!sw.includes('./malachite-campaigns.js') || !sw.includes('./malachite-performance.js') || !sw.includes('malachite-static-v87')) {
-  throw new Error('Campaign and performance modules must be included in the v67 PWA cache.');
+  throw new Error('Campaign, performance and payment AI modules must be included in the updated PWA cache.');
 }
 
 const aiManagerModule = fs.readFileSync('malachite-ai.js', 'utf8');
@@ -413,7 +413,7 @@ for (const item of ['malAiLoadOperations', 'action:"operations"', 'Historique de
   if (!aiManagerModule.includes(item)) throw new Error('AI Manager operations center requirement missing: ' + item);
 }
 const aiFunction = fs.readFileSync('supabase/functions/malachite-ai-manager/index.ts', 'utf8');
-for (const item of ['getOperations', 'body.action === "operations"', '"avis_site"', '"blocages"', '"demandes_support"', 'malachite_ai_manager_is_admin']) {
+for (const item of ['getOperations', 'body.action === "operations"', 'body.action === "analyze_payment_receipt"', 'analyzePaymentReceipt', 'payment-receipts').download(path)', 'reference_match', 'manual_confirmation_required: true', '"avis_site"', '"blocages"', '"demandes_support"', 'malachite_ai_manager_is_admin']) {
   if (!aiFunction.includes(item)) throw new Error('AI Manager secure operations endpoint missing: ' + item);
 }
 if (aiFunction.includes('from("messages")') || aiFunction.includes('from("prives")')) {
@@ -421,6 +421,11 @@ if (aiFunction.includes('from("messages")') || aiFunction.includes('from("prives
 }
 if (!sw.includes('malachite-static-v62')) throw new Error('AI Manager operations release must bump the static cache version.');
 
+for (const item of ['malAiAnalyzePayment', 'malAiAutoAnalyzePayments', 'malAiPaymentReview', 'L’IA lit l’image, elle ne vérifie pas l’encaissement']) {
+  if (!fs.readFileSync('malachite-avatar-ui.js', 'utf8').includes(item) && !fs.readFileSync('malachite-chat-ui.js', 'utf8').includes(item)) {
+    throw new Error('Malakit AI receipt-reading UI requirement missing: ' + item);
+  }
+}
 const aiWorker = fs.readFileSync('supabase/functions/malachite-ai-worker/index.ts', 'utf8');
 if (!aiWorker.includes('CONFIGURED_MODEL.startsWith("gemini-2.5-") ? "gemini-3.5-flash-lite"') || !aiWorker.includes('(CONFIGURED_MODEL || "gemini-3.5-flash-lite")')) {
   throw new Error('AI worker must use the verified Gemini model fallback.');
