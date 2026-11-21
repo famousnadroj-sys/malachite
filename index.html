@@ -657,8 +657,12 @@ body.mal-chat-mode .recbar{position:fixed!important;left:0!important;right:0!imp
 (function(){
   "use strict";
   var recovered=false, timer=null;
+  function startupIsStuck(){
+    var root=document.getElementById("v");
+    return !!(root&&root.querySelector(".mal-startup, .mal-startup-screen"));
+  }
   function showRecovery(){
-    if(recovered)return;
+    if(recovered||!startupIsStuck())return;
     recovered=true;
     var root=document.getElementById("v");
     if(!root)return;
@@ -679,8 +683,7 @@ body.mal-chat-mode .recbar{position:fixed!important;left:0!important;right:0!imp
     }
   },true);
   window.addEventListener("unhandledrejection",function(){
-    if(document.readyState!=="loading")showRecovery();
-    else window.addEventListener("DOMContentLoaded",showRecovery,{once:true});
+    if(startupIsStuck())showRecovery();
   });
   timer=window.setTimeout(function(){
     var root=document.getElementById("v");
