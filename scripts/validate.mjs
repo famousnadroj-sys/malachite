@@ -181,6 +181,12 @@ if (!performanceGuard.includes('mal-low-power') || !performanceGuard.includes('n
 }
 
 
+if (!frontend.includes('async function resolveProfilePhotosBatch(profiles)') ||
+    !frontend.includes('Signature groupée des photos de profil') ||
+    !frontend.includes('await Promise.all([othersPhotos,loadRdv(),loadAns(),loadMyAvis()])') ||
+    !frontend.includes("if(tab==='home'||tab==='search')draw(true);")) {
+  throw new Error('Discovery must render before the grouped profile-photo signing finishes.');
+}
 const appCore = frontendScripts[0];
 if (!appCore.includes("if(keepWarmCache){sub();return;}")) throw new Error('Warm profile cache must avoid repeat full profile reloads.');
 if (!appCore.includes("if(tab!=='chat'&&!msgRealtimeReady)")) throw new Error('Message polling must be fallback-only when realtime is unavailable.');
