@@ -138,7 +138,7 @@ for (const item of ['malachite-copilots.js', 'Malachite Pulse', 'AutoCare', 'Mal
   if (!html.includes(item) && !copilots.includes(item)) throw new Error('Copilot module requirement missing: ' + item);
 }
 const serviceWorkerEarly = fs.readFileSync('sw.js', 'utf8');
-if (!serviceWorkerEarly.includes('./malachite-copilots.js') || !serviceWorkerEarly.includes('malachite-static-v71')) {
+if (!serviceWorkerEarly.includes('./malachite-copilots.js') || !serviceWorkerEarly.includes('malachite-static-v72')) {
   throw new Error('Copilot module must be included in the versioned PWA cache.');
 }
 
@@ -230,7 +230,7 @@ if (!migrations.includes('avatar=case when p_profile ?') || !migrations.includes
 if (html.includes('Ajoute une photo de profil avant d’enregistrer.')) throw new Error('Profile creation must allow a saved avatar instead of requiring a photo.');
 if (!html.includes('cache.expiresAt=now+3500000')) throw new Error('Signed media URL cache must refresh its expiry after renewal.');
 if (!html.includes("Signature des médias de la conversation ('+bucket+')")) throw new Error('Media URL resolution must isolate failures by storage bucket.');
-if (!sw.match(/malachite-static-v[0-9]+/) || !sw.includes('./calls.js')) throw new Error('Service worker must cache a versioned app shell including the call client.');
+if (!sw.match(/malachite-static-v[0-9]+/) || !sw.includes('./calls.js') || !sw.includes('./malachite-ad-studio.js')) throw new Error('Service worker must cache a versioned app shell including the call client.');
 if (!html.includes("status==='SUBSCRIBED'")) throw new Error('Realtime recovery must immediately resync the active conversation after reconnect.');
 if (!html.includes("timer=setInterval(function(){if(tab==='chat'&&!document.hidden&&!msgRealtimeReady)loadChat()},20000)")) throw new Error('Fallback chat sync must pause while hidden and run only when Realtime is unavailable.');
 if (!html.includes("sb.channel('malachite-online-v1'")) throw new Error('Realtime online presence channel is missing.');
