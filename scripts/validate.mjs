@@ -138,7 +138,7 @@ for (const item of ['malachite-copilots.js', 'Malachite Pulse', 'AutoCare', 'Mal
   if (!html.includes(item) && !copilots.includes(item)) throw new Error('Copilot module requirement missing: ' + item);
 }
 const serviceWorkerEarly = fs.readFileSync('sw.js', 'utf8');
-if (!serviceWorkerEarly.includes('./malachite-copilots.js') || !serviceWorkerEarly.includes('malachite-static-v78')) {
+if (!serviceWorkerEarly.includes('./malachite-copilots.js') || !serviceWorkerEarly.includes('malachite-static-v79')) {
   throw new Error('Copilot module must be included in the versioned PWA cache.');
 }
 
