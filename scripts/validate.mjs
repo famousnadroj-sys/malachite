@@ -146,7 +146,7 @@ for (const item of ['malachite-copilots.js', 'Malachite Pulse', 'AutoCare', 'Mal
   if (!html.includes(item) && !copilots.includes(item)) throw new Error('Copilot module requirement missing: ' + item);
 }
 const serviceWorkerEarly = fs.readFileSync('sw.js', 'utf8');
-if (!serviceWorkerEarly.includes('./malachite-copilots.js') || !serviceWorkerEarly.includes('malachite-static-v81')) {
+if (!serviceWorkerEarly.includes('./malachite-copilots.js') || !serviceWorkerEarly.includes('malachite-static-v82')) {
   throw new Error('Copilot module must be included in the versioned PWA cache.');
 }
 
@@ -184,6 +184,7 @@ if (swCheck.status !== 0) {
 }
 if (!sw.includes('./malachite-ai.js') || !sw.includes('malachite-static-v62')) throw new Error('AI Manager module must be cached and static cache version bumped.');
 if (!sw.includes('storage') || !sw.includes('Authorization')) throw new Error('Service worker must bypass Supabase private APIs.');
+if (!html.includes("if(f.size>50*1024*1024){setChatUploadStatus('Vidéo trop lourde : 50 Mo maximum par vidéo.');clear();return}") || !html.includes('chunkSize:6*1024*1024') || !html.includes('async function uploadChatAsset')) throw new Error('Chat video upload must support 50 MB files through resumable TUS uploads.');
 if (!html.includes("navigator.serviceWorker.addEventListener('controllerchange'") ||
     !html.includes("id='malSwUpdateNotice'") ||
     !html.includes("window.location.reload()")) {
@@ -355,7 +356,7 @@ const campaignTemp = path.join(os.tmpdir(), 'malachite-campaigns.js');
 fs.writeFileSync(campaignTemp, campaignModule);
 const campaignCheck = spawnSync(process.execPath, ['--check', campaignTemp], { encoding: 'utf8' });
 if (campaignCheck.status !== 0) { process.stderr.write(campaignCheck.stderr || campaignCheck.stdout); process.exit(campaignCheck.status || 1); }
-for (const item of ['malachite-campaigns.js', 'malachite-static-v81']) {
+for (const item of ['malachite-campaigns.js', 'malachite-static-v82']) {
   if (!html.includes(item) && !sw.includes(item)) throw new Error('Campaign module release requirement missing: ' + item);
 }
 for (const item of ['campagnes', 'malachite-campaigns', 'SPONSORISÉ', 'malSaveCampaign', 'loadPublicCampaigns']) {
@@ -374,7 +375,7 @@ if (performanceCheck.status !== 0) { process.stderr.write(performanceCheck.stder
 for (const item of ['malachite-performance.js', 'img.loading', 'img.decoding']) {
   if (!performanceModule.includes(item) && !html.includes(item)) throw new Error('Mobile performance requirement missing: ' + item);
 }
-if (!sw.includes('./malachite-campaigns.js') || !sw.includes('./malachite-performance.js') || !sw.includes('malachite-static-v81')) {
+if (!sw.includes('./malachite-campaigns.js') || !sw.includes('./malachite-performance.js') || !sw.includes('malachite-static-v82')) {
   throw new Error('Campaign and performance modules must be included in the v67 PWA cache.');
 }
 
