@@ -852,7 +852,8 @@ async function ensureSignupProfile(user,metadata){
 }
 async function load(){
  var uid=me&&me.id;if(!uid)return;var seq=++loadSeq;
- mine=null;profileDraft={};ph=[];phUrls=[];priv={};privLoadFailed=false;
+ var keepWarmCache=loadedUid===uid&&profs.length>0&&Date.now()-profilesLoadedAt<300000;
+ if(!keepWarmCache){mine=null;profileDraft={};ph=[];phUrls=[];priv={};privLoadFailed=false;}
  var results=await Promise.all([
   sb.from('profiles').select('id,username,prenom,age,genre,commune,quartier,profession,bio,interets,photos,created_at,prompts,derniere_vue,avatar,profile_private'),
   sb.from('prives').select('nom_complet,adresse,telephone,prefs').eq('id',uid).maybeSingle()
@@ -1511,6 +1512,47 @@ var TH=[['Rose bonbon','linear-gradient(180deg,#FFF5F9,#FFD9E8)','#7A5566'],['La
 try{cth=+localStorage.getItem('cth')||0}catch(e){}
 function setTh(i){cth=i;try{localStorage.setItem('cth',i)}catch(e){}thOpen=false;draw(true)}
 function openConv(id){if(!id||!me)return;if(id===me.id){msg='Conversation invalide : ton propre compte ne peut pas être destinataire.';return}closeTypingChannel();open=id;tab='chat';startTypingChannel(id);chatCursor=null;chatCursorId=0;chatBeforeId=0;chatHasOlder=false;chatCursorFor=null;chatInitialLoading=true;blockedCurrent=false;blockedCheckedFor=null;msgs=[];lastSig='';replyDraft=null;msg='';clearInterval(timer);persistMalView();draw(true);loadChat();timer=setInterval(function(){if(tab==='chat'&&open&&!document.hidden&&!msgRealtimeReady)loadChat()},15000)}
+async function openLinkedMessage(userId,messageId){
+ if(!me||!userId||!messageId)return;
+ var target=String(userId),targetMessage=Number(messageId);
+ if(!Number.isSafeInteger(targetMessage)||targetMessage<1){openConv(target);return}
+ openConv(target);
+ for(var attempt=0;attempt<80;attempt++){
+  if(open!==target||tab!=='chat')return;
+  if(!chatLoadBusyKeys[target]&&chatCursorFor===target)break;
+  await new Promise(function(resolve){setTimeout(resolve,40)});
+ }
+ if(open!==target||tab!=='chat')return;
+ try{
+  var result=await sb.from('messages').select('id,de,a,texte,created_at,media_type,media_url')
+   .or('and(de.eq.'+me.id+',a.eq.'+target+'),and(de.eq.'+target+',a.eq.'+me.id+')')
+   .lte('id',targetMessage).order('id',{ascending:false}).limit(60);
+  if(result.error)throw result.error;
+  var rows=(result.data||[]);
+  if(!rows.some(function(row){return Number(row.id)===targetMessage})){
+   var exact=await sb.from('messages').select('id,de,a,texte,created_at,media_type,media_url').eq('id',targetMessage).maybeSingle();
+   if(exact.error||!exact.data||!((exact.data.de===me.id&&exact.data.a===target)||(exact.data.de===target&&exact.data.a===me.id))){
+    console.warn('Message lié introuvable ou inaccessible',exact.error||'not found');return;
+   }
+   rows.push(exact.data);rows.sort(function(a,b){return Number(a.id)-Number(b.id)});
+  }else rows.reverse();
+  if(open!==target||tab!=='chat')return;
+  msgs=rows;chatCursorFor=target;
+  chatCursorId=rows.reduce(function(max,row){return Math.max(max,Number(row.id)||0)},0);
+  chatBeforeId=rows.length?(Number(rows[0].id)||0):0;
+  chatHasOlder=rows.length===60;chatInitialLoading=false;lastSig='';
+  await resolveMessagesMedia(rows);
+  if(open!==target||tab!=='chat')return;
+  draw(true);
+  if(typeof loadReceiptsForRows==='function')loadReceiptsForRows(rows).catch(function(error){console.warn('Accusés du message ciblé',error)});
+  requestAnimationFrame(function(){
+   var node=document.querySelector('[data-message-id="'+targetMessage+'"]');
+   if(node){node.scrollIntoView({behavior:'smooth',block:'center'});node.classList.add('mal-notification-target-message');setTimeout(function(){node.classList.remove('mal-notification-target-message')},2400)}
+  });
+ }catch(error){console.warn('Ouverture du message depuis une notification',error)}
+}
+window.openLinkedMessage=openLinkedMessage;
+
 function closeConv(){closeTypingChannel();open=null;chatCursor=null;chatCursorId=0;chatBeforeId=0;chatHasOlder=false;chatCursorFor=null;chatInitialLoading=false;msgs=[];lastSig='';go('chat')}
 function goTab(k){if(k=='chat'){open=null;chatCursor=null;chatCursorId=0;chatBeforeId=0;chatHasOlder=false;chatCursorFor=null;chatInitialLoading=false;msgs=[];lastSig=''}go(k)}
 function online(p){if(!p||!p.id)return false;if(presenceReady)return !!onlineIds[p.id];return !!(p.derniere_vue&&Date.now()-new Date(p.derniere_vue)<120000)}
@@ -1803,13 +1845,13 @@ function malStartupView(){return '<section class="mal-startup-screen" aria-label
 async function malRetrySession(){malStartupMessage='Vérification de ta session…';draw();try{var r=await sb.auth.getSession();if(r.error)throw r.error;me=r.data&&r.data.session?r.data.session.user:null;if(!me){malStartupPending=false;malStartupMessage='';malAuthBooted=true;draw();return}restoreMalView();await load();malStartupPending=false;malStartupMessage='';malAuthBooted=true;if(tab==='chat')await loadChat();draw(true)}catch(e){malStartupPending=true;malStartupMessage='Connexion non vérifiée. Vérifie Internet puis réessaie.';draw()}}
 function draw(keep){if(malStartupPending){document.body.classList.remove('mal-chat-mode');var root=$('v'),nav=$('nav');if(root)root.innerHTML=malStartupView();if(nav)nav.innerHTML='';return}var oldMsgs=$('msgs'),nearBottom=!oldMsgs||oldMsgs.scrollHeight-oldMsgs.scrollTop-oldMsgs.clientHeight<140,oldTop=oldMsgs?oldMsgs.scrollTop:0;document.body.classList.toggle('mal-chat-mode',!!(me&&tab==='chat'&&open));var y=scrollY,tv=$('mi')?$('mi').value:'';$('v').innerHTML=!me?authView():((tab==='chat'&&open)?'':banner())+{home:home,search:search,chat:chat,rdv:rdv,offres:offres,me:moi,adm:admin}[tab]();if(me&&tab=='search'){fqr();res()}if(tv&&$('mi'))$('mi').value=tv;if(me&&tab=='home')bindDrag();if(tab=='chat'&&open&&$('msgs'))$('msgs').scrollTop=nearBottom?$('msgs').scrollHeight:oldTop;$('nav').innerHTML=me?[['home','💘','Découvrir'],['search','🔍','Recherche'],['chat','💬','Messages'],['rdv','📅','RDV'],['offres','⭐','Offres'],['me','👤','Moi']].concat(me.email==ADM?[['adm','🛠','Admin']]:[]).map(function(x){return '<button data-k="'+x[0]+'" class="'+(tab==x[0]?'on':'')+'" onclick="goTab(\''+x[0]+'\')"><span>'+ico(x[0])+bdg(x[0])+'</span>'+x[2]+'</button>'}).join(''):'';if(!(tab=='chat'&&open))scrollTo(0,keep?y:0)}
 function go(t){if(t!=='chat')closeTypingChannel();document.querySelectorAll('.sheetbg,.viewer,.lbx').forEach(function(e){e.remove()});tab=t;msg='';lastSig='';clearInterval(timer);if(t=='chat'){loadChat();timer=setInterval(function(){if(tab==='chat'&&!document.hidden&&!msgRealtimeReady)loadChat()},20000);if(open)return}else if(t=='home'||t=='search'){load().then(draw)}else if(t=='rdv'){loadRdv().then(draw)}else if(t=='adm'){loadAdm()}draw();if(t==='me'&&mine&&me){var uid=me.id,target=mine;resolveProfilePhotos(target).then(function(){if(me&&me.id===uid&&tab==='me'){ph=(target.photos||[]).slice();phUrls=(target.photoUrls||[]).slice();draw(true)}}).catch(function(e){console.warn('Actualisation des photos du profil',e)})}}
-sb.auth.onAuthStateChange(function(e,s){if(e==='INITIAL_SESSION')return;var previousId=me&&me.id,nextUser=s?s.user:null;if(previousId&&(!nextUser||previousId!==nextUser.id)){stopPresence();closeTypingChannel()}me=nextUser;if(!me){if(e==='SIGNED_OUT'||!s){malStartupPending=false;malAuthBooted=true;open=null;msgs=[];chatCursor=null;chatCursorId=0;chatCursorFor=null;lastSig='';loadedUid=null;draw()}return}var identityChanged=previousId!==me.id;if(e==='SIGNED_IN'&&identityChanged){malStartupPending=false;malAuthBooted=true;restoreMalView();load().then(async function(){try{await malAttachPendingSignupAvatar()}catch(e){console.warn('Pending signup avatar could not be attached',e)}if(tab==='chat')loadChat();else draw(true);if(fresh)fresh=false}).catch(function(error){console.warn('Malachite sign-in profile load failed',error);draw(true)});return}if(identityChanged||e==='USER_UPDATED'){load().then(function(){if(tab==='chat')loadChat();else draw(true)})}});
+sb.auth.onAuthStateChange(function(e,s){if(e==='INITIAL_SESSION')return;var previousId=me&&me.id,nextUser=s?s.user:null;if(previousId&&(!nextUser||previousId!==nextUser.id)){stopPresence();closeTypingChannel()}me=nextUser;if(!me){if(e==='SIGNED_OUT'||!s){malStartupPending=false;malAuthBooted=true;open=null;msgs=[];chatCursor=null;chatCursorId=0;chatCursorFor=null;lastSig='';draw()}return}var identityChanged=previousId!==me.id;if(e==='SIGNED_IN'&&identityChanged){malStartupPending=false;malAuthBooted=true;restoreMalView();if(loadedUid===me.id&&profs.length&&Date.now()-profilesLoadedAt<300000)draw(true);load().then(async function(){try{await malAttachPendingSignupAvatar()}catch(e){console.warn('Pending signup avatar could not be attached',e)}if(tab==='chat')loadChat();else draw(true);if(fresh)fresh=false}).catch(function(error){console.warn('Malachite sign-in profile load failed',error);draw(true)});return}if(identityChanged||e==='USER_UPDATED'){load().then(function(){if(tab==='chat')loadChat();else draw(true)})}});
 var malResumeBusy=false,malResumeAt=0;
-async function malResumeSession(){if(malResumeBusy||!malAuthBooted||Date.now()-malResumeAt<1500)return;malResumeBusy=true;malResumeAt=Date.now();try{var r=await sb.auth.getSession();if(r.error)throw r.error;me=r.data&&r.data.session?r.data.session.user:null;if(me){restoreMalView();await load();if(tab==='chat'&&open)await loadChat()}else{open=null;msgs=[];loadedUid=null}draw(true)}catch(e){console.warn('Malachite session refresh failed',e);draw(true)}finally{malResumeBusy=false}}
+async function malResumeSession(){if(malResumeBusy||!malAuthBooted||Date.now()-malResumeAt<1500)return;malResumeBusy=true;malResumeAt=Date.now();try{var r=await sb.auth.getSession();if(r.error)throw r.error;var next=r.data&&r.data.session?r.data.session.user:null;var sameWarmUser=!!(next&&me&&next.id===me.id&&loadedUid===next.id&&profs.length&&Date.now()-profilesLoadedAt<60000);me=next;if(me){restoreMalView();if(sameWarmUser){draw(true);if(tab==='chat'&&open)loadChat();return}await load();if(tab==='chat'&&open)await loadChat()}else{open=null;msgs=[]}draw(true)}catch(e){console.warn('Malachite session refresh failed',e);draw(true)}finally{malResumeBusy=false}}
 document.addEventListener('visibilitychange',function(){if(!document.hidden)malResumeSession()});
 window.addEventListener('pageshow',function(e){if(e.persisted)malResumeSession()});
 draw(); // Le logo reste seul à l’écran pendant une courte transition.
-Promise.all([sb.auth.getSession(),new Promise(function(resolve){setTimeout(resolve,1400)})]).then(function(results){var r=results[0];if(r.error)throw r.error;me=r.data&&r.data.session?r.data.session.user:null;malStartupPending=false;malStartupMessage='';malAuthBooted=true;if(me){restoreMalView();draw(true);load().then(async function(){try{await malAttachPendingSignupAvatar()}catch(e){console.warn('Pending signup avatar could not be attached',e)}if(tab==='chat')loadChat();draw(true);if(fresh)fresh=false}).catch(function(error){console.warn('Malachite profile load failed',error);draw(true)})}else draw()}).catch(function(error){console.warn('Malachite session restore failed',error);malStartupPending=false;malStartupMessage='';malAuthBooted=true;draw()});
+sb.auth.getSession().then(function(r){if(r.error)throw r.error;me=r.data&&r.data.session?r.data.session.user:null;malStartupPending=false;malStartupMessage='';malAuthBooted=true;if(me){restoreMalView();draw(true);load().then(async function(){try{await malAttachPendingSignupAvatar()}catch(e){console.warn('Pending signup avatar could not be attached',e)}if(tab==='chat')loadChat();draw(true);if(fresh)fresh=false}).catch(function(error){console.warn('Malachite profile load failed',error);draw(true)})}else draw()}).catch(function(error){console.warn('Malachite session restore failed',error);malStartupPending=false;malStartupMessage='';malAuthBooted=true;draw()});
 </script>
 <style>
 #malachite-mascot{position:fixed;right:14px;bottom:84px;z-index:9998;border:0;background:transparent;padding:0;cursor:pointer;filter:drop-shadow(0 5px 12px #9b426055)}
