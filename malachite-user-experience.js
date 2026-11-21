@@ -50,7 +50,7 @@
       button.id = 'malUserMenuTrigger';
       button.type = 'button';
       button.className = 'mal-user-menu-trigger';
-      button.innerHTML = '<span class="mal-user-menu-icon" aria-hidden="true">☰</span><span class="mal-user-menu-label">Menu</span><span class="mal-notif-badge" hidden>0</span>';
+      button.innerHTML = '<span class="mal-user-menu-icon" aria-hidden="true">🔔</span><span class="mal-user-menu-label">Menu</span><span class="mal-notif-badge" hidden>0</span>';
       button.addEventListener('click', function () { openInbox('notifications'); });
       header.appendChild(button);
     }
@@ -140,6 +140,51 @@
       }
     }
     if (inbox.drawer) renderInbox();
+  }
+
+  function notificationDedupeKey(title, body, destination, id) {
+    var source = String(destination || 'system') + '|' + String(id || '') + '|' + String(title || '') + '|' + String(body || '').replace(/[0-9]+/g, '#');
+    var a = 2166136261, b = 2246822519;
+    for (var i = 0; i < source.length; i++) {
+      var code = source.charCodeAt(i);
+      a = Math.imul(a ^ code, 16777619);
+      b = Math.imul(b + code, 3266489917);
+    }
+    return 'toast:' + (a >>> 0).toString(36) + (b >>> 0).toString(36);
+  }
+
+  var originalNotify = window.notify;
+  if (typeof originalNotify === 'function') {
+    window.notify = function (title, body, destination, id) {
+      var user = currentUser();
+      if (!user || !window.sb) return originalNotify.apply(this, arguments);
+      var textTitle = String(title || 'Information Malachite').slice(0, 90);
+      var textBody = String(body || 'Ouvre ton menu pour consulter cette information.').slice(0, 500);
+      var lower = textTitle.toLowerCase();
+      var category = lower.indexOf('publicit') >= 0 || lower.indexOf('promotion') >= 0 ? 'promotion' :
+        (lower.indexOf('alerte') >= 0 || lower.indexOf('rappel') >= 0 ? 'alert' :
+        (lower.indexOf('actualité') >= 0 ? 'news' : 'system'));
+      var key = notificationDedupeKey(textTitle, textBody, destination, id);
+      window.sb.rpc('create_my_notification', {
+        p_category: category,
+        p_title: textTitle,
+        p_body: textBody,
+        p_dedupe_key: key
+      }).then(async function (result) {
+        if (result.error) {
+          originalNotify.call(window, title, body, destination, id);
+          return;
+        }
+        if (result.data) {
+          var row = await window.sb.from('user_notifications')
+            .select('id,kind,category,title,body,created_at,read_at,related_message_id,related_user_id')
+            .eq('id', result.data).maybeSingle();
+          if (!row.error && row.data) announceNotification(row.data);
+        }
+      }).catch(function () {
+        originalNotify.call(window, title, body, destination, id);
+      });
+    };
   }
 
   window.malAnnounceUserNotification = announceNotification;
@@ -421,7 +466,7 @@
     var style = document.createElement('style');
     style.id = 'mal-member-experience-style';
     style.textContent = [
-      '.mal-user-menu-trigger{position:absolute;right:16px;top:14px;z-index:30;display:flex;align-items:center;gap:7px;padding:9px 12px;border:1px solid #ffffff75;border-radius:999px;background:#ffffff20;color:#fff;font-size:12px;font-weight:750;backdrop-filter:blur(10px)}',
+      'header{position:relative}.mal-user-menu-trigger{position:absolute;right:16px;top:14px;z-index:30;display:flex;align-items:center;gap:7px;padding:9px 12px;border:1px solid #ffffff75;border-radius:999px;background:#ffffff20;color:#fff;font-size:12px;font-weight:750;backdrop-filter:blur(10px)}',
       '.mal-user-menu-icon{font-size:16px;line-height:1}.mal-notif-badge{min-width:19px;height:19px;padding:0 5px;border-radius:99px;background:#fff;color:#d81b60;font-size:11px;font-weight:850;display:inline-flex;align-items:center;justify-content:center}.mal-notif-badge[hidden]{display:none}',
       '.mal-notif-backdrop{position:fixed;inset:0;z-index:100000;background:#17091480;display:flex;justify-content:flex-end;align-items:stretch;padding:0}',
       '.mal-notif-panel{width:min(100%,470px);height:100%;background:#fff;color:#3a1224;display:flex;flex-direction:column;box-shadow:-12px 0 40px #260b1830;animation:malPanelIn .22s ease-out}',
