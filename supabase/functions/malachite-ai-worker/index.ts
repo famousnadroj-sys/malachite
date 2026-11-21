@@ -118,6 +118,42 @@ async function synchronizeReviewQueue(admin: any) {
   }
 }
 
+
+async function prepareReviewTasks(admin: any) {
+  const { data: tasks, error } = await admin.from("malachite_ai_review_queue")
+    .select("id,task_type,record_id,title,risk_level,status,details")
+    .eq("status","awaiting_human").limit(100);
+  if (error) throw new Error("review_queue_read_failed");
+  let prepared = 0;
+  for (const task of tasks || []) {
+    const current = task.details && typeof task.details === "object" ? task.details : {};
+    if (current.automation && current.automation.prepared_at) continue;
+    let recommendation = "Vérification manuelle requise avant toute décision.";
+    let draft: string | null = null;
+    if (task.task_type === "payment_review") {
+      recommendation = "Comparer la référence et le montant avec la confirmation officielle de l’opérateur. Ne pas activer Premium sur la seule base d’une capture.";
+    } else if (task.task_type === "report_review") {
+      recommendation = "Examiner le signalement et les éléments disponibles dans l’interface de modération. Ne pas sanctionner automatiquement.";
+    } else if (task.task_type === "support_review") {
+      const { data: ticket, error: ticketError } = await admin.from("demandes_support")
+        .select("categorie").eq("id", Number(task.record_id)).maybeSingle();
+      if (ticketError) throw new Error("support_ticket_read_failed");
+      const category = String(ticket?.categorie || "").toLowerCase();
+      if (category.includes("compte")) draft = "Bonjour, merci d’avoir contacté le support Malachite. Nous examinons votre demande concernant votre compte et reviendrons vers vous dès que possible.";
+      else if (category.includes("paiement") || category.includes("premium")) draft = "Bonjour, merci pour votre message. Nous vérifions les informations de votre paiement ou abonnement. Merci de ne pas partager votre PIN, mot de passe ni code OTP.";
+      else draft = "Bonjour, merci d’avoir contacté le support Malachite. Votre demande a bien été prise en compte et sera examinée par notre équipe.";
+      recommendation = "Brouillon préparé automatiquement. Relire et envoyer manuellement depuis le support; aucune réponse n’a été envoyée au membre.";
+    }
+    const automation = { prepared_at: new Date().toISOString(), recommendation, response_draft: draft, executed_by: "malachite-ai-worker", execution: "draft_only" };
+    const { error: updateError } = await admin.from("malachite_ai_review_queue")
+      .update({ details: { ...current, automation }, updated_at: new Date().toISOString() })
+      .eq("id", task.id).eq("status","awaiting_human");
+    if (updateError) throw new Error("review_task_prepare_failed");
+    prepared++;
+  }
+  return prepared;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
 
@@ -162,6 +198,7 @@ Deno.serve(async (req: Request) => {
     const metrics = await collectMetrics(admin);
     await synchronizeAlerts(admin, metrics);
     await synchronizeReviewQueue(admin);
+    const preparedTasks = await prepareReviewTasks(admin);
     let summary: string | null = null;
     let model: string | null = null;
     let status: "success" | "partial" = "success";
