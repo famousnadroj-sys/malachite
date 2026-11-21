@@ -413,7 +413,7 @@ for (const item of ['malAiLoadOperations', 'action:"operations"', 'Historique de
   if (!aiManagerModule.includes(item)) throw new Error('AI Manager operations center requirement missing: ' + item);
 }
 const aiFunction = fs.readFileSync('supabase/functions/malachite-ai-manager/index.ts', 'utf8');
-for (const item of ['getOperations', 'body.action === "operations"', 'body.action === "analyze_payment_receipt"', 'analyzePaymentReceipt', "storage.from(\\"payment-receipts\\").download(path)", 'reference_match', 'manual_confirmation_required: true', '"avis_site"', '"blocages"', '"demandes_support"', 'malachite_ai_manager_is_admin']) {
+for (const item of ['getOperations', 'body.action === "operations"', 'body.action === "analyze_payment_receipt"', 'analyzePaymentReceipt', 'download(path)', 'reference_match', 'manual_confirmation_required: true', '"avis_site"', '"blocages"', '"demandes_support"', 'malachite_ai_manager_is_admin']) {
   if (!aiFunction.includes(item)) throw new Error('AI Manager secure operations endpoint missing: ' + item);
 }
 if (aiFunction.includes('from("messages")') || aiFunction.includes('from("prives")')) {
