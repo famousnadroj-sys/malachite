@@ -1,5 +1,5 @@
-const CACHE = "malachite-static-v62";
-const APP_SHELL = ["./", "./manifest.webmanifest", "./icons/malachite.svg", "./calls.js", "./i18n.js", "./avatar-builder.html", "./malachite-ai.js"];
+const CACHE = "malachite-static-v63";
+const APP_SHELL = ["./", "./manifest.webmanifest", "./icons/malachite.svg", "./calls.js", "./i18n.js", "./avatar-builder.html", "./malachite-ai.js", "./admin-push.js"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(APP_SHELL)));
@@ -19,10 +19,8 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
-  // Never cache authenticated, database, storage, or Edge Function traffic.
   if (/\/(auth|rest|storage|functions)\/v1\//.test(url.pathname)) return;
   if (request.headers.has("Authorization")) return;
-
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request).then((response) => {
@@ -35,19 +33,22 @@ self.addEventListener("fetch", (event) => {
     );
     return;
   }
-
   const staticPaths = APP_SHELL.map((path) => new URL(path, self.registration.scope).pathname);
-  if (staticPaths.includes(url.pathname)) {
-    event.respondWith(caches.match(request).then((cached) => cached || fetch(request)));
-  }
+  if (staticPaths.includes(url.pathname)) event.respondWith(caches.match(request).then((cached) => cached || fetch(request)));
 });
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const destination = event.notification.data && event.notification.data.url || "./";
+  if (event.action === "dismiss") return;
+  const destination = new URL((event.notification.data && event.notification.data.url) || "./", self.registration.scope).href;
   event.waitUntil(
-    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
-      if (clients.length) return clients[0].focus();
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(async (clients) => {
+      for (const client of clients) {
+        if (client.url.startsWith(self.registration.scope)) {
+          try { await client.navigate(destination); } catch (_) {}
+          return client.focus();
+        }
+      }
       return self.clients.openWindow(destination);
     })
   );
@@ -58,11 +59,13 @@ self.addEventListener("push", (event) => {
   try { data = event.data.json(); } catch (_) {}
   event.waitUntil(
     self.registration.showNotification(data.title || "Malachite", {
-      body: data.body || "",
+      body: data.body || "Un nouveau paiement attend ta vérification.",
       icon: "./icons/malachite.svg",
       badge: "./icons/malachite.svg",
       tag: data.tag || "malachite",
-      data: { url: data.url || "./" },
+      renotify: true,
+      data: { url: data.url || "./", payment_id: data.payment_id || null },
+      actions: [{ action: "open", title: "Voir les paiements" }, { action: "dismiss", title: "Plus tard" }],
       vibrate: [100, 50, 100]
     })
   );
