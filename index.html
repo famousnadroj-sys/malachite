@@ -656,45 +656,59 @@ body.mal-chat-mode .recbar{position:fixed!important;left:0!important;right:0!imp
 <script id="malachite-stability-guard">
 (function(){
   "use strict";
-  var recovered=false, timer=null;
+  var recovered=false,timer=null;
   function startupIsStuck(){
     var root=document.getElementById("v");
     return !!(root&&root.querySelector(".mal-startup, .mal-startup-screen"));
   }
-  function showRecovery(){
+  function showRecovery(message){
     if(recovered||!startupIsStuck())return;
     recovered=true;
     var root=document.getElementById("v");
     if(!root)return;
     var panel=document.createElement("section");
     panel.setAttribute("role","alert");
-    panel.style.cssText="max-width:520px;margin:12vh auto;padding:26px 20px;text-align:center;font:15px/1.55 system-ui;color:#3A1224;background:#fff;border:1px solid #F3CCDA;border-radius:20px;box-shadow:0 12px 34px rgba(58,18,36,.10)";
-    var title=document.createElement("h2");title.textContent="MALACHITE rencontre un problème de chargement";title.style.margin="0 0 10px";
-    var message=document.createElement("p");message.textContent="La page n’a pas pu démarrer correctement. Ta session et tes données enregistrées ne sont pas supprimées. Vérifie ta connexion puis réessaie.";message.style.color="#7A5566";
+    panel.style.cssText="max-width:520px;margin:12vh auto;padding:26px 20px;text-align:center;font:15px/1.55 system-ui;color:#3A1224;background:#fff;border:1px solid #F3CCDA;border-radius:20px";
+    var title=document.createElement("h2");title.textContent="MALACHITE ne démarre pas";title.style.margin="0 0 10px";
+    var text=document.createElement("p");text.textContent=message||"Le démarrage est bloqué. Vérifie ta connexion puis réessaie.";text.style.color="#7A5566";
     var retry=document.createElement("button");retry.type="button";retry.textContent="Réessayer";retry.style.cssText="background:#E6195E;color:white;border:0;border-radius:12px;padding:13px 22px;font:700 15px system-ui";
     retry.addEventListener("click",function(){window.location.reload()});
-    root.replaceChildren(title,message,retry);
+    root.replaceChildren(title,text,retry);
     var nav=document.getElementById("nav");if(nav)nav.replaceChildren();
   }
-  window.addEventListener("error",function(event){
-    if(event&&((event.message&&event.message!=="Script error.")||(event.target&&event.target.tagName==="SCRIPT"))){
-      if(document.readyState!=="loading")showRecovery();
-      else window.addEventListener("DOMContentLoaded",showRecovery,{once:true});
-    }
-  },true);
-  window.addEventListener("unhandledrejection",function(){
-    if(startupIsStuck())showRecovery();
-  });
-  timer=window.setTimeout(function(){
-    var root=document.getElementById("v");
-    if(root&&root.querySelector(".mal-startup, .mal-startup-screen"))showRecovery();
-  },18000);
-  window.addEventListener("pageshow",function(){if(timer)clearTimeout(timer)});
+  window.malShowStartupRecovery=showRecovery;
+  timer=window.setTimeout(function(){if(startupIsStuck())showRecovery("Le démarrage prend trop de temps. Vérifie Internet puis appuie sur Réessayer.");},22000);
+  window.addEventListener("pageshow",function(){if(!startupIsStuck()&&timer)clearTimeout(timer)});
 })();
 </script>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js" defer></script>
-<script src="./app-core.js" defer></script>
+<script id="malachite-dependency-loader">
+(function(){
+  "use strict";
+  var coreStarted=false,attemptStarted=false;
+  var cdns=[
+    "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js",
+    "https://unpkg.com/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"
+  ];
+  function startCore(){
+    if(coreStarted)return;coreStarted=true;
+    var core=document.createElement("script");core.src="./app-core.js";
+    core.onerror=function(){if(window.malShowStartupRecovery)window.malShowStartupRecovery("Le fichier principal de MALACHITE n’a pas pu être chargé. Réessaie après avoir vérifié ta connexion.");};
+    document.head.appendChild(core);
+  }
+  function loadLibrary(index){
+    if(attemptStarted)return;attemptStarted=true;
+    var script=document.createElement("script"),finished=false;
+    function fallback(){if(finished)return;finished=true;script.onload=script.onerror=null;if(index+1<cdns.length){attemptStarted=false;loadLibrary(index+1)}else if(window.malShowStartupRecovery){window.malShowStartupRecovery("La bibliothèque de connexion n’a pas pu être téléchargée depuis les serveurs disponibles. Vérifie Internet puis réessaie.");}}
+    script.src=cdns[index];
+    script.onload=function(){if(finished)return;finished=true;if(window.supabase&&typeof window.supabase.createClient==="function")startCore();else fallback();};
+    script.onerror=fallback;
+    document.head.appendChild(script);
+    window.setTimeout(fallback,8500);
+  }
+  loadLibrary(0);
+})();
+</script>
 <style>
 #malachite-mascot{position:fixed;right:14px;bottom:84px;z-index:9998;border:0;background:transparent;padding:0;cursor:pointer;filter:drop-shadow(0 5px 12px #9b426055)}
 #malachite-mascot .mface{width:58px;height:58px;border-radius:50%;background:linear-gradient(145deg,#fff,#ffe1ed);border:3px solid #ec6b9e;display:grid;place-items:center;font-size:30px;position:relative;animation:malFloat 2.8s ease-in-out infinite}
