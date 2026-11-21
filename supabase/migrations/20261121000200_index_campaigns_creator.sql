@@ -1,0 +1,1 @@
+create index if not exists campagnes_cree_par_idx on public.campagnes (cree_par);
