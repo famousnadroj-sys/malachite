@@ -436,7 +436,7 @@ for (const item of ['openLinkedMessage', 'back-to-site', 'p_related_user_id', 'p
   if (!memberExperience.includes(item) && !html.includes(item)) throw new Error('Notification navigation or performance requirement missing: ' + item);
 }
 
-const uniqueActionRpcMigration = fs.readFileSync('supabase/migrations/20261121112700_use_unique_action_notification_rpc.sql', 'utf8').toLowerCase();
+const uniqueActionRpcMigration = fs.readFileSync('supabase/migrations/20261121112701_use_unique_action_notification_rpc.sql', 'utf8').toLowerCase();
 for (const item of ['drop function if exists public.create_my_notification', 'create_my_action_notification', 'security invoker']) {
   if (!uniqueActionRpcMigration.includes(item)) throw new Error('Unique notification RPC migration requirement missing: ' + item);
 }
