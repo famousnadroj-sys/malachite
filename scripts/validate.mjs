@@ -187,6 +187,10 @@ if (!frontend.includes('async function resolveProfilePhotosBatch(profiles)') ||
     !frontend.includes("if(tab==='home'||tab==='search')draw(true);")) {
   throw new Error('Discovery must render before the grouped profile-photo signing finishes.');
 }
+if (frontend.includes("if(t==='me'&&mine&&me){var uid=me.id,target=mine;resolveProfilePhotos(target)") ||
+    !frontend.includes("Les photos personnelles sont déjà résolues une seule fois par load()")) {
+  throw new Error('Moi tab must not start a duplicate profile-photo signing request.');
+}
 const appCore = frontendScripts[0];
 if (!appCore.includes("if(keepWarmCache){sub();return;}")) throw new Error('Warm profile cache must avoid repeat full profile reloads.');
 if (!appCore.includes("if(tab!=='chat'&&!msgRealtimeReady)")) throw new Error('Message polling must be fallback-only when realtime is unavailable.');
