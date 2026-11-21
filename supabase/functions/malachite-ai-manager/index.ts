@@ -84,9 +84,9 @@ Deno.serve(async (req: Request) => {
   const token = authorization.match(/^Bearer\s+(.+)$/i)?.[1];
   if (!token) return json(401, { error: "authentication_required" }, origin);
 
-  let body: { message?: unknown; action?: unknown; history?: unknown };
+  let body: { message?: unknown; action?: unknown; history?: unknown; task_id?: unknown; decision?: unknown };
   try { body = await req.json(); } catch { return json(400, { error: "invalid_json" }, origin); }
-  const action = body.action === "dashboard" ? "dashboard" : body.action === "operations" ? "operations" : "chat";
+  const action = body.action === "dashboard" ? "dashboard" : body.action === "operations" ? "operations" : body.action === "review_task" ? "review_task" : "chat";
   const message = typeof body.message === "string" ? body.message.trim() : "";
   if (action === "chat" && (message.length < 2 || message.length > 2000)) {
     return json(400, { error: "invalid_message" }, origin);
@@ -115,6 +115,24 @@ Deno.serve(async (req: Request) => {
   if (action === "operations") {
     try { return json(200, { operations: await getOperations(adminClient) }, origin); }
     catch { return json(503, { error: "operations_unavailable" }, origin); }
+  }
+  if (action === "review_task") {
+    const taskId = typeof body.task_id === "number" && Number.isSafeInteger(body.task_id) && body.task_id > 0 ? body.task_id : 0;
+    const decision = body.decision === "approve" ? "approve" : body.decision === "reject" ? "reject" : "";
+    if (!taskId || !decision) return json(400, { error: "invalid_task_decision" }, origin);
+    const { data: task, error: taskError } = await adminClient.from("malachite_ai_review_queue")
+      .select("id,task_type,status").eq("id", taskId).maybeSingle();
+    if (taskError) return json(503, { error: "task_lookup_failed" }, origin);
+    if (!task || task.status !== "awaiting_human") return json(409, { error: "task_not_reviewable" }, origin);
+    if (decision === "approve" && task.task_type !== "support_review") {
+      return json(409, { error: "approval_not_supported_for_task_type" }, origin);
+    }
+    const nextStatus = decision === "approve" ? "approved" : "rejected";
+    const { error: updateError } = await adminClient.from("malachite_ai_review_queue")
+      .update({ status: nextStatus, updated_at: new Date().toISOString() })
+      .eq("id", taskId).eq("status", "awaiting_human");
+    if (updateError) return json(503, { error: "task_update_failed" }, origin);
+    return json(200, { ok: true, task_id: taskId, status: nextStatus }, origin);
   }
   if (!API_KEY) return json(503, { error: "ai_provider_not_configured", metrics }, origin);
 
