@@ -417,3 +417,8 @@ const inboxMigration = fs.readFileSync('supabase/migrations/20261121110000_user_
 for (const item of ['message_received', 'publish_user_announcement', 'private.notify_new_member_message', 'related_message_id']) {
   if (!inboxMigration.includes(item)) throw new Error('Durable notification migration requirement missing: ' + item);
 }
+
+const legacyNoticeMigration = fs.readFileSync('supabase/migrations/20261121111500_persist_app_toast_notifications.sql', 'utf8');
+for (const item of ['create_my_notification', 'announcement_key', 'auth.uid()', 'grant execute']) {
+  if (!legacyNoticeMigration.includes(item)) throw new Error('Persisted in-app notice RPC requirement missing: ' + item);
+}
