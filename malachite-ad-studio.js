@@ -61,6 +61,12 @@
   if(!window.MediaRecorder||!HTMLCanvasElement.prototype.captureStream){alert("La création vidéo n’est pas prise en charge par ce navigateur. Utilise Chrome récent sur Android.");return}
   var title=val("malCampaignTitle"),desc=val("malCampaignDescription");if(!title||!desc){alert("Génère ou écris le titre et la description avant de créer la vidéo.");return}
   var duration=Math.max(10,Math.min(20,Number(val("malCampaignDuration"))||15));
+  if(adVoiceBlob){
+   var checkUrl=URL.createObjectURL(adVoiceBlob),checkAudio=new Audio(checkUrl);
+   await new Promise(function(resolve){checkAudio.onloadedmetadata=resolve;checkAudio.onerror=resolve;checkAudio.src=checkUrl;setTimeout(resolve,2500)});
+   var voiceDuration=checkAudio.duration;URL.revokeObjectURL(checkUrl);
+   if(isFinite(voiceDuration)&&voiceDuration>duration+0.6){alert("Ta narration dure "+Math.ceil(voiceDuration)+" secondes. Raccourcis-la ou choisis une vidéo plus longue.");return}
+  }
   var canvas=document.createElement("canvas");canvas.width=720;canvas.height=1280;var ctx=canvas.getContext("2d");
   var photoFile=document.getElementById("malCampaignSourceImage").files[0],photo=null;
   if(photoFile){try{photo=await createImageBitmap(photoFile)}catch(e){alert("Image source illisible.");return}}
