@@ -1,5 +1,5 @@
 // Compatibility marker retained for the repository validation contract: malachite-static-v62.
-const CACHE = "malachite-static-v91";
+const CACHE = "malachite-static-v92";
 const APP_SHELL = ["./", "./manifest.webmanifest", "./icons/malachite.svg", "./calls.js", "./i18n.js", "./avatar-builder.html", "./malachite-ai.js", "./malachite-copilots.js", "./malachite-campaigns.js", "./malachite-performance.js", "./malachite-ad-studio.js", "./admin-push.js", "./malachite-user-experience.js?v=20261122-gallery-v3", "./app-core.js", "./malachite-avatar-ui.js", "./malachite-chat-ui.js", "./malachite-avatar-helper.js", "./malachite-living-engine.js", "./malachite-premium-profiles.js"];
 
 self.addEventListener("install", (event) => {
@@ -12,6 +12,8 @@ self.addEventListener("install", (event) => {
       } catch (_) {}
     }));
   }));
+  // Activate the new app shell immediately instead of waiting for every old tab to close.
+  await self.skipWaiting();
 });
 
 self.addEventListener("message", (event) => {
