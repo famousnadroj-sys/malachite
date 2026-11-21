@@ -75,6 +75,53 @@ async function resolveProfilePhotos(p){
   if(cachedAvatar&&cachedAvatar.expiresAt>now+30000)p.avatar.imageUrl=cachedAvatar.url;
  }
 }
+async function resolveProfilePhotosBatch(profiles){
+ var now=Date.now(),groups=Object.create(null),jobs=[];
+ (profiles||[]).forEach(function(p){
+  if(!p)return;
+  var photos=Array.isArray(p.photos)?p.photos:[],resolved=new Array(photos.length),avatarPath=p.avatar&&p.avatar.type==='humanforge-3d'&&p.avatar.imagePath?String(p.avatar.imagePath):'';
+  function add(bucket,path,slot){
+   if(!path)return;
+   var key=bucket+'|'+path,cached=profilePhotoSignedCache[key];
+   if(cached&&cached.expiresAt>now+30000){if(slot==='avatar')p.avatar.imageUrl=cached.url;else resolved[slot]=cached.url;return}
+   if(!groups[bucket])groups[bucket]=Object.create(null);
+   if(!groups[bucket][path])groups[bucket][path]=[];
+   groups[bucket][path].push({profile:p,slot:slot,resolved:resolved});
+  }
+  photos.forEach(function(raw,index){
+   if(!raw)return;
+   var str=String(raw),bucket=str.indexOf('/storage/v1/object/public/photos/')>=0?'photos':'profile-photos';
+   if(str.indexOf('/storage/v1/object/public/profile-photos/')>=0)bucket='profile-photos';
+   var path=storagePath(bucket,raw);
+   if(/^https?:\\/\\//i.test(str)&&str.indexOf('/storage/v1/object/')<0){resolved[index]=str;return}
+   add(bucket,path,index);
+  });
+  if(avatarPath)add('profile-photos',avatarPath,'avatar');
+  jobs.push({profile:p,resolved:resolved,avatarPath:avatarPath});
+ });
+ await Promise.all(Object.keys(groups).map(async function(bucket){
+  var paths=Object.keys(groups[bucket]);if(!paths.length)return;
+  try{
+   var result=await sb.storage.from(bucket).createSignedUrls(paths,3600);
+   if(result.error)throw result.error;
+   (result.data||[]).forEach(function(item,index){
+    var path=item.path||paths[index],url=item.signedUrl||'';
+    if(!url)return;
+    profilePhotoSignedCache[bucket+'|'+path]={url:url,expiresAt:now+3500000};
+    (groups[bucket][path]||[]).forEach(function(job){
+     if(job.slot==='avatar')job.profile.avatar.imageUrl=url;else job.resolved[job.slot]=url;
+    });
+   });
+  }catch(error){console.warn('Signature groupée des photos de profil ('+bucket+')',error)}
+ }));
+ jobs.forEach(function(job){
+  job.profile.photoUrls=job.resolved.filter(Boolean);
+  if(job.avatarPath&&!job.profile.avatar.imageUrl){
+   var cached=profilePhotoSignedCache['profile-photos|'+job.avatarPath];
+   if(cached&&cached.expiresAt>now+30000)job.profile.avatar.imageUrl=cached.url;
+  }
+ });
+}
 function messageMediaLocation(m){
  var raw=String(m.media_url||''),bucket='chat-media',path=raw;
  if(raw.indexOf('/storage/v1/object/public/photos/')>=0){bucket='photos';path=storagePath(bucket,raw)}
@@ -259,8 +306,8 @@ async function load(){
   if(seq!==loadSeq||!me||me.id!==uid)return;
   blocked=tasks[0].error?[]:(tasks[0].data||[]);blockedProfiles=tasks[1].error?[]:(tasks[1].data||[]);
   st={};(tasks[2].data||[]).forEach(function(x){st[x.user_id]=x});NUM='';ORANGE='';(tasks[3].data||[]).forEach(function(x){if(x.cle==='airtel')NUM=x.valeur||'';if(x.cle==='orange')ORANGE=x.valeur||''});
-  await othersPhotos;
-  await Promise.all([loadRdv(),loadAns(),loadMyAvis()]);
+  if(tab==='home'||tab==='search')draw(true);
+  await Promise.all([othersPhotos,loadRdv(),loadAns(),loadMyAvis()]);
   if(seq!==loadSeq||!me||me.id!==uid)return;
   if(tab==='home'||tab==='search')draw(true);
  })();
