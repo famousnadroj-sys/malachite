@@ -180,6 +180,12 @@ if (!performanceGuard.includes('mal-low-power') || !performanceGuard.includes('n
   throw new Error('Low-power devices must use the lightweight visual mode.');
 }
 
+
+if (!appCore.includes("if(keepWarmCache){sub();return;}")) throw new Error('Warm profile cache must avoid repeat full profile reloads.');
+if (!appCore.includes("if(tab!=='chat'&&!msgRealtimeReady)")) throw new Error('Message polling must be fallback-only when realtime is unavailable.');
+if (!appCore.includes('setInterval(poll,120000)') || !appCore.includes('setInterval(beat,120000)')) throw new Error('Background polling must use reduced intervals.');
+if (!performanceGuard.includes('html.mal-low-power *{animation:none!important')) throw new Error('Low-power devices must disable costly visual effects.');
+
 const sw = fs.readFileSync('sw.js', 'utf8');
 const swTemp = path.join(os.tmpdir(), 'malachite-sw.js');
 fs.writeFileSync(swTemp, sw);
