@@ -332,7 +332,8 @@ for (const item of ['malachite-campaigns.js', 'malachite-static-v66']) {
 for (const item of ['campagnes', 'malachite-campaigns', 'SPONSORISÉ', 'malSaveCampaign', 'loadPublicCampaigns']) {
   if (!campaignModule.includes(item) && !html.includes(item)) throw new Error('Campaign feature requirement missing: ' + item);
 }
-if (!html.includes('Confirmer reçu') || html.includes('Valider ces '+adm.length') || html.includes('trtBatch()')) {
+const latestPaymentAdmin = html.slice(html.lastIndexOf('function admin0(){'), html.indexOf('function malShowLegal', html.lastIndexOf('function admin0(){')));
+if (!latestPaymentAdmin.includes('Confirmer reçu') || latestPaymentAdmin.includes('trtBatch()') || latestPaymentAdmin.includes('Valider ce lot')) {
   throw new Error('Payment review must remain individual and simple.');
 }
 
