@@ -466,49 +466,73 @@
   }
 
   function enhancePortraits() {
-    var urls = [
-      'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=360&h=440&fit=crop&crop=faces',
-      'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=360&h=440&fit=crop&crop=faces',
-      'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=360&h=440&fit=crop&crop=faces',
-      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=360&h=440&fit=crop&crop=faces'
+    // Galerie éditoriale MALACHITE : rencontres, complicité, amitié et famille.
+    // Ces photos illustrent l'esprit du site ; elles ne représentent pas de faux membres.
+    var visuals = [
+      {
+        url: 'https://images.pexels.com/photos/32103487/pexels-photo-32103487/free-photo-of-happy-african-couple-enjoying-time-together-outdoors.jpeg?auto=compress&dpr=1&h=750&w=1260',
+        alt: 'Couple africain partageant un moment complice autour de son téléphone',
+        title: 'Rencontres',
+        subtitle: 'Les belles histoires commencent ici'
+      },
+      {
+        url: 'https://images.unsplash.com/photo-1655720355810-fcdfd7a742b5?auto=format&fit=crop&w=900&q=85',
+        alt: 'Deux personnes africaines échangeant un moment de conversation et de complicité',
+        title: 'Complicité',
+        subtitle: 'Apprendre à se connaître'
+      },
+      {
+        url: 'https://images.unsplash.com/photo-1758272133803-1cbb513689ca?auto=format&fit=crop&w=900&q=85',
+        alt: 'Groupe de jeunes adultes amis réunis pour un selfie',
+        title: 'Amitié',
+        subtitle: 'Créer de nouvelles connexions'
+      },
+      {
+        url: 'https://images.pexels.com/photos/9706082/pexels-photo-9706082.jpeg?auto=compress&cs=tinysrgb&w=900',
+        alt: 'Famille africaine réunie dans des vêtements traditionnels colorés',
+        title: 'Famille',
+        subtitle: 'Les liens qui comptent'
+      }
     ];
-    var strip = document.querySelector('.mal-discover-photo-strip');
-    if (strip && !strip.dataset.malUxExpanded) {
-      strip.dataset.malUxExpanded = '1';
-      urls.forEach(function (url, index) {
+
+    function fillVisualStrip(container, items) {
+      if (!container || container.dataset.malUxExpanded) return;
+      container.querySelectorAll('img.mal-portrait-motion').forEach(function (oldImage) {
+        oldImage.remove();
+      });
+      items.forEach(function (item, index) {
+        var figure = document.createElement('figure');
+        figure.className = 'mal-social-visual mal-portrait-motion';
+        figure.setAttribute('aria-label', item.title + ' : ' + item.subtitle);
+        figure.style.animationDelay = (index * 0.09) + 's';
+
         var img = document.createElement('img');
-        img.src = url;
-        img.alt = 'Portrait de membre, photo d’illustration';
+        img.src = item.url;
+        img.alt = item.alt;
         img.loading = 'lazy';
         img.decoding = 'async';
-        img.className = 'mal-portrait-motion';
-        img.style.animationDelay = (index * 0.7) + 's';
-        strip.appendChild(img);
+        img.referrerPolicy = 'no-referrer';
+        img.addEventListener('error', function () {
+          figure.classList.add('is-unavailable');
+          img.remove();
+        });
+
+        var caption = document.createElement('figcaption');
+        var title = document.createElement('b');
+        var subtitle = document.createElement('span');
+        title.textContent = item.title;
+        subtitle.textContent = item.subtitle;
+        caption.appendChild(title);
+        caption.appendChild(subtitle);
+        figure.appendChild(img);
+        figure.appendChild(caption);
+        container.appendChild(figure);
       });
-      strip.querySelectorAll('img').forEach(function (img, index) {
-        img.classList.add('mal-portrait-motion');
-        img.style.animationDelay = (index * 0.7) + 's';
-      });
+      container.dataset.malUxExpanded = '1';
     }
-    var signup = document.querySelector('.mal-signup-photos');
-    if (signup && !signup.dataset.malUxExpanded) {
-      signup.dataset.malUxExpanded = '1';
-      urls.slice(0, 2).forEach(function (url, index) {
-        var img = document.createElement('img');
-        img.src = url;
-        img.alt = 'Portrait de personne, photo d’illustration';
-        img.loading = 'lazy';
-        img.decoding = 'async';
-        img.className = 'mal-portrait-motion';
-        img.style.animationDelay = (index * 0.8) + 's';
-        signup.appendChild(img);
-      });
-      signup.classList.add('mal-signup-photos-expanded');
-      signup.querySelectorAll('img').forEach(function (img, index) {
-        img.classList.add('mal-portrait-motion');
-        img.style.animationDelay = (index * 0.8) + 's';
-      });
-    }
+
+    fillVisualStrip(document.querySelector('.mal-discover-photo-strip'), visuals);
+    fillVisualStrip(document.querySelector('.mal-signup-photos'), visuals.slice(0, 2));
   }
 
   function injectStyles() {
@@ -535,6 +559,7 @@
       '.mal-notification-settings,.mal-announcement-composer{display:grid;gap:12px;padding:14px;border:1px solid #f0d9e2;border-radius:16px;margin-bottom:12px}.mal-notification-settings h3,.mal-announcement-composer h3{font-size:15px;margin:0}.mal-notification-settings label{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:600}.mal-notification-settings input{width:18px;height:18px;accent-color:#e6195e}.mal-announcement-composer label{display:grid;gap:5px;font-size:12px;font-weight:700}.mal-announcement-composer input,.mal-announcement-composer textarea,.mal-announcement-composer select{width:100%;border:1px solid #ecd2dc;border-radius:11px;padding:11px;background:#fff;color:#3a1224}.mal-announcement-publish{background:#e6195e;color:#fff;border-radius:12px;padding:12px;font-weight:800}',
       '.mal-user-notice-toast{position:fixed;z-index:100001;left:12px;right:12px;bottom:calc(76px + env(safe-area-inset-bottom,0px));display:flex;align-items:center;gap:10px;text-align:left;padding:13px;border:1px solid #edbfd0;border-radius:16px;background:#fff;color:#3a1224;box-shadow:0 12px 35px #3b0d2025;animation:malPanelIn .2s ease-out}.mal-user-notice-icon{color:#e6195e}.mal-user-notice-copy{flex:1;min-width:0;display:grid;gap:3px}.mal-user-notice-copy b{font-size:13px}.mal-user-notice-copy small{font-size:11px;color:#79576a;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.mal-user-notice-action{color:#c2185b;font-size:12px;font-weight:800}',
       '.mal-offer-wizard{display:grid;gap:12px}.mal-offer-intro{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.mal-offer-intro h2{margin:4px 0;font-size:21px}.mal-offer-intro p{font-size:12px;color:#805f70;margin:0}.mal-offer-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.mal-offer-steps button{border-radius:10px;padding:9px 5px;background:#fff3f7;color:#82566b;font-size:11px;font-weight:750}.mal-offer-steps button.active{background:#e6195e;color:#fff}.mal-offer-grid{display:grid;gap:9px}.mal-offer-card{border:1px solid #f0d4df;border-radius:16px;padding:13px;background:#fff}.mal-offer-card.featured{border:2px solid #e6195e;background:linear-gradient(140deg,#fff,#fff5f8)}.mal-offer-card h3{display:flex;justify-content:space-between;gap:8px;margin:0;font-size:15px}.mal-offer-card p{margin:5px 0 0;font-size:12px;color:#78586a;line-height:1.4}.mal-offer-card .price{white-space:nowrap;color:#c2185b;font-weight:850}.mal-offer-next{width:100%;background:#e6195e;color:#fff;padding:13px;border-radius:13px;font-weight:800}.mal-offer-back{background:#fff0f5;color:#9f2453;padding:10px 14px;border-radius:12px}.mal-offer-table{width:100%;border-collapse:collapse;font-size:12px}.mal-offer-table th,.mal-offer-table td{padding:9px 6px;border-bottom:1px solid #f2dce4;text-align:left}.mal-offer-table th{color:#87596f;font-size:11px}.mal-offer-table td:last-child{text-align:center;font-weight:800}.mal-offer-table .yes{color:#15945d}.mal-offer-table .no{color:#b7a4ad}.mal-offer-pay{display:grid;gap:11px}.mal-offer-pay h3{margin:0;font-size:15px}.mal-offer-pay .note{font-size:11px}.mal-offer-pay .wall{margin:0}',
+      '.mal-social-visual{position:relative;isolation:isolate;overflow:hidden;flex:none;margin:0;border:1px solid #F3C6D8;border-radius:18px;background:linear-gradient(135deg,#FFE3EE,#fff);box-shadow:0 10px 24px rgba(126,30,68,.14);animation:malSocialEnter .65s cubic-bezier(.2,.8,.2,1) both}.mal-discover-photo-strip .mal-social-visual{flex:0 0 min(68%,245px);height:138px;scroll-snap-align:start}.mal-signup-photos .mal-social-visual{width:108px;height:132px;border-radius:24px}.mal-social-visual img{display:block;width:100%!important;height:100%!important;object-fit:cover;object-position:center;animation:malSocialDrift 15s ease-in-out infinite alternate;will-change:transform}.mal-social-visual figcaption{position:absolute;inset:auto 0 0;z-index:2;display:grid;gap:2px;padding:22px 11px 10px;color:#fff;background:linear-gradient(180deg,transparent,rgba(43,12,27,.78));text-shadow:0 1px 5px rgba(0,0,0,.35)}.mal-social-visual figcaption b{font-size:13px;line-height:1.15}.mal-social-visual figcaption span{font-size:10px;line-height:1.25;opacity:.94}.mal-social-visual.is-unavailable{background:linear-gradient(135deg,#FCE4ED,#fff)}@keyframes malSocialEnter{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:none}}@keyframes malSocialDrift{from{transform:scale(1)}to{transform:scale(1.075) translateY(-2px)}}@media(hover:hover){.mal-social-visual{transition:transform .35s,box-shadow .35s}.mal-social-visual:hover{transform:translateY(-5px);box-shadow:0 16px 32px rgba(126,30,68,.2)}}@media(prefers-reduced-motion:reduce){.mal-social-visual,.mal-social-visual img{animation:none!important;transition:none!important}}',
       '.mal-discover-photo-strip img.mal-portrait-motion,.mal-signup-photos img.mal-portrait-motion{animation:malPortraitDrift 13s ease-in-out infinite alternate;will-change:transform}.mal-discover-photo-strip img.mal-portrait-motion:nth-child(2n){animation-duration:16s}.mal-discover-photo-strip img.mal-portrait-motion:nth-child(3n){animation-delay:-4s}@keyframes malPortraitDrift{from{transform:scale(1) translateY(0)}to{transform:scale(1.08) translateY(-3px)}}.mal-signup-photos-expanded{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}.mal-signup-photos-expanded img{width:100%;height:82px;object-fit:cover;border-radius:12px}',
       'body.mal-chat-mode main#v{height:var(--mal-chat-vh,100dvh)!important;max-height:var(--mal-chat-vh,100dvh)!important;padding-bottom:0!important;min-height:0!important}',
       'body.mal-chat-mode .chat{flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important}',
