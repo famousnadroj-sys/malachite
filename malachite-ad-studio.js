@@ -19,13 +19,68 @@
   '<div class="card"><h3>2. Prévisualisation et publication</h3><div id="malAdPreview" class="mal-ad-preview"><span class="mal-ad-kicker">MALACHITE · CAMPAGNE SPONSORISÉE</span><div><h3 id="malAdPreviewTitle">Ta publicité apparaîtra ici</h3><p id="malAdPreviewBody">Génère ton texte pour voir le rendu.</p></div><strong id="malAdPreviewCTA">DÉCOUVRIR</strong><i class="mal-ad-glow"></i></div>'+
   '<label>Titre<input id="malCampaignTitle" maxlength="90" placeholder="Titre publicitaire"></label><label>Description<textarea id="malCampaignDescription" maxlength="500" rows="3" placeholder="Description"></textarea></label>'+
   '<label>Lien de destination (facultatif)<input id="malCampaignLink" type="url" maxlength="500" placeholder="https://..."></label>'+
-  '<label>Image / photo facultative pour l’affiche<input id="malCampaignSourceImage" type="file" accept="image/jpeg,image/png,image/webp"></label>'+
+  '<label>Format de campagne<select id="malCampaignMediaType"><option value="video">Vidéo publicitaire courte avec son</option><option value="animated">Affiche animée</option><option value="notice">Communiqué simple</option><option value="image">Image fixe</option></select></label><div class="g2"><label>Durée vidéo<select id="malCampaignDuration"><option value="10">10 secondes</option><option value="15" selected>15 secondes</option><option value="20">20 secondes</option></select></label><label>Voix off facultative<input id="malCampaignVoice" type="text" maxlength="100" placeholder="Enregistre ta propre voix ci-dessous" disabled></label></div><label>Photo ou image du produit (facultatif)<input id="malCampaignSourceImage" type="file" accept="image/jpeg,image/png,image/webp"></label><div class="mal-ad-actions"><button type="button" onclick="malRecordAdVoice()">🎙️ Enregistrer ma voix</button><button type="button" onclick="malStopAdVoice()">Arrêter la voix</button></div><p class="mal-ad-note" id="malAdVoiceStatus">La voix enregistrée sera intégrée à la vidéo. Sans voix, une ambiance sonore synthétique douce sera ajoutée.</p>'+
   '<label>Statut<select id="malCampaignStatus"><option value="brouillon">Enregistrer en brouillon</option><option value="active">Publier dans Découvrir</option><option value="pause">En pause</option></select></label>'+
   '<div class="mal-ad-actions"><button type="button" onclick="malCreateAdPoster()">Créer l’affiche</button><button class="b1" type="button" onclick="malPublishAd()">Enregistrer / publier</button></div>'+
-  '<input id="malCampaignImage" type="file" accept="image/jpeg,image/png,image/webp" hidden><input id="malCampaignEditId" type="hidden">'+
-  '<p class="mal-ad-note">Le visuel est composé directement dans le navigateur. L’aperçu public aura des animations légères. L’export vidéo MP4 n’est pas encore inclus.</p></div>'+
+  '<input id="malCampaignImage" type="file" accept="image/jpeg,image/png,image/webp" hidden><input id="malCampaignVideo" type="file" accept="video/webm" hidden><input id="malCampaignEditId" type="hidden"><video id="malAdVideoPreview" controls playsinline muted style="display:none;width:100%;border-radius:16px;margin-top:12px"></video>'+
+  '<p class="mal-ad-note">La vidéo est générée sur cet appareil au format WebM (10, 15 ou 20 secondes), avec une ambiance sonore et ta voix si tu l’enregistres. Les voix humaines réalistes générées par IA nécessitent un fournisseur vocal externe.</p></div>'+
   '<h3>Campagnes enregistrées ('+rows.length+')</h3><div class="list">'+(rows.length?rows.map(function(x){return '<article class="card"><b>'+esc(x.titre)+'</b><p class="note">'+esc(x.description)+'</p><span class="chip">'+esc(x.statut)+'</span><div class="acts"><button onclick="malEditCampaign(\''+x.id+'\')">Modifier</button>'+(x.statut==="active"?'<button onclick="malSetCampaignStatus(\''+x.id+'\',\'pause\')">Pause</button>':'<button class="b1" onclick="malSetCampaignStatus(\''+x.id+'\',\'active\')">Publier</button>')+'<button class="err" onclick="malDeleteCampaign(\''+x.id+'\')">Supprimer</button></div></article>'}).join(""):'<p class="note">Aucune campagne.</p>')+'</div></section>';
  };
+
+ var adVoiceBlob=null,adVoiceRecorder=null,adVoiceParts=[];
+ window.malRecordAdVoice=async function(){
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.MediaRecorder){alert("L’enregistrement vocal n’est pas pris en charge par ce navigateur.");return}
+  try{var stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+   adVoiceParts=[];adVoiceRecorder=new MediaRecorder(stream);
+   adVoiceRecorder.ondataavailable=function(e){if(e.data&&e.data.size)adVoiceParts.push(e.data)};
+   adVoiceRecorder.onstop=function(){adVoiceBlob=new Blob(adVoiceParts,{type:adVoiceRecorder.mimeType||"audio/webm"});stream.getTracks().forEach(function(t){t.stop()});var n=document.getElementById("malAdVoiceStatus");if(n)n.textContent="Voix enregistrée. Elle sera intégrée à la vidéo.";};
+   adVoiceRecorder.start();var n=document.getElementById("malAdVoiceStatus");if(n)n.textContent="Enregistrement en cours… Parle clairement, puis appuie sur Arrêter.";
+  }catch(e){alert("Microphone indisponible : "+(e.message||"autorisation refusée"))}
+ };
+ window.malStopAdVoice=function(){if(adVoiceRecorder&&adVoiceRecorder.state!=="inactive")adVoiceRecorder.stop()};
+ window.malCreateAdVideo=async function(){
+  if(!window.MediaRecorder||!HTMLCanvasElement.prototype.captureStream){alert("La création vidéo n’est pas prise en charge par ce navigateur. Utilise Chrome récent sur Android.");return}
+  var title=val("malCampaignTitle"),desc=val("malCampaignDescription");if(!title||!desc){alert("Génère ou écris le titre et la description avant de créer la vidéo.");return}
+  var duration=Math.max(10,Math.min(20,Number(val("malCampaignDuration"))||15));
+  var canvas=document.createElement("canvas");canvas.width=720;canvas.height=1280;var ctx=canvas.getContext("2d");
+  var photoFile=document.getElementById("malCampaignSourceImage").files[0],photo=null;
+  if(photoFile){try{photo=await createImageBitmap(photoFile)}catch(e){alert("Image source illisible.");return}}
+  var stream=canvas.captureStream(24),audioCtx=null,audioDest=null,voiceEl=null,voiceUrl=null,oscillators=[];
+  try{
+   audioCtx=new (window.AudioContext||window.webkitAudioContext)();await audioCtx.resume();audioDest=audioCtx.createMediaStreamDestination();
+   var master=audioCtx.createGain();master.gain.value=.075;master.connect(audioDest);
+   [261.63,329.63,392,523.25].forEach(function(freq,i){var osc=audioCtx.createOscillator(),gain=audioCtx.createGain();osc.type="sine";osc.frequency.value=freq;gain.gain.value=i===0?.22:.08;osc.connect(gain);gain.connect(master);osc.start();oscillators.push(osc)});
+   if(adVoiceBlob){voiceUrl=URL.createObjectURL(adVoiceBlob);voiceEl=new Audio(voiceUrl);voiceEl.preload="auto";var voiceSource=audioCtx.createMediaElementSource(voiceEl);var voiceGain=audioCtx.createGain();voiceGain.gain.value=1.15;voiceSource.connect(voiceGain);voiceGain.connect(audioDest)}
+   audioDest.stream.getAudioTracks().forEach(function(t){stream.addTrack(t)});
+   var mime=MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus")?"video/webm;codecs=vp9,opus":MediaRecorder.isTypeSupported("video/webm;codecs=vp8,opus")?"video/webm;codecs=vp8,opus":"video/webm";
+   var recorder=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:1800000,audioBitsPerSecond:96000}),chunks=[];
+   recorder.ondataavailable=function(e){if(e.data&&e.data.size)chunks.push(e.data)};
+   var start=performance.now(),end=start+duration*1000;
+   function wrap(text,max,font){ctx.font=font;var words=text.split(/\s+/),lines=[],line="";words.forEach(function(w){var test=line?line+" "+w:w;if(ctx.measureText(test).width>max&&line){lines.push(line);line=w}else line=test});if(line)lines.push(line);return lines}
+   function draw(now){
+    var elapsed=Math.min(duration,(now-start)/1000),progress=elapsed/duration;
+    var grad=ctx.createLinearGradient(0,0,720,1280);grad.addColorStop(0,"#171d45");grad.addColorStop(.52,"#74345e");grad.addColorStop(1,"#e38d67");ctx.fillStyle=grad;ctx.fillRect(0,0,720,1280);
+    var pulse=(Math.sin(elapsed*1.4)+1)/2;ctx.fillStyle="rgba(255,255,255,"+(.05+pulse*.09)+")";ctx.beginPath();ctx.arc(610+Math.sin(elapsed*.7)*35,220,145+pulse*25,0,Math.PI*2);ctx.fill();
+    if(photo){ctx.save();ctx.globalAlpha=.78;var scale=Math.max(420/photo.width,390/photo.height);ctx.drawImage(photo,360-photo.width*scale/2,380-photo.height*scale/2,photo.width*scale,photo.height*scale);ctx.restore()}
+    ctx.fillStyle="#ffffff";ctx.font="bold 21px Arial";ctx.fillText("MALACHITE  ·  SPONSORISÉ",48,90);
+    var reveal=Math.min(1,Math.max(0,(progress-.08)/.24));ctx.globalAlpha=reveal;ctx.fillStyle="#fff";var titleLines=wrap(title,620,"bold 54px Arial");ctx.font="bold 54px Arial";var y=720+(1-reveal)*28;titleLines.slice(0,3).forEach(function(line){ctx.fillText(line,48,y);y+=65});
+    ctx.globalAlpha=Math.min(1,Math.max(0,(progress-.28)/.22));ctx.font="27px Arial";var descLines=wrap(desc,610,"27px Arial");descLines.slice(0,4).forEach(function(line,i){ctx.fillText(line,50,y+24+i*38)});
+    ctx.globalAlpha=1;ctx.fillStyle="#fff";ctx.beginPath();ctx.roundRect(48,1120,350,82,41);ctx.fill();ctx.fillStyle="#512343";ctx.font="bold 25px Arial";ctx.fillText((generated&&generated.cta||"EN SAVOIR PLUS").toUpperCase().slice(0,24),78,1172);
+    ctx.fillStyle="rgba(255,255,255,.5)";ctx.fillRect(48,1232,624,5);ctx.fillStyle="#fff";ctx.fillRect(48,1232,624*progress,5);
+    if(now<end)requestAnimationFrame(draw);
+   }
+   var preview=document.getElementById("malAdVideoPreview");if(preview){preview.style.display="block";preview.removeAttribute("src");preview.load()}
+   recorder.start(250);if(voiceEl){try{await voiceEl.play()}catch(e){}}
+   await new Promise(function(resolve){function frame(t){draw(t);if(t<end)requestAnimationFrame(frame);else resolve()}requestAnimationFrame(frame);setTimeout(resolve,duration*1000+350)});
+   await new Promise(function(resolve){recorder.onstop=resolve;recorder.stop()});
+   var blob=new Blob(chunks,{type:"video/webm"});if(blob.size>18*1024*1024){alert("La vidéo dépasse la limite de 18 Mo. Réduis la durée ou la photo.");return}
+   var file=new File([blob],"malachite-ad-"+Date.now()+".webm",{type:"video/webm"}),input=document.getElementById("malCampaignVideo"),dt=new DataTransfer();dt.items.add(file);input.files=dt.files;
+   if(preview){var u=URL.createObjectURL(blob);preview.src=u;preview.muted=true;preview.currentTime=0;preview.play().catch(function(){})}
+   if(typeof window.toast==="function")window.toast("Vidéo créée avec piste sonore. Vérifie-la avant publication.");else alert("Vidéo créée.");
+  }catch(e){alert("Création vidéo impossible : "+(e.message||"erreur inconnue"))}
+  finally{oscillators.forEach(function(o){try{o.stop()}catch(e){}});if(audioCtx)audioCtx.close().catch(function(){});if(voiceUrl)URL.revokeObjectURL(voiceUrl);stream.getTracks().forEach(function(t){t.stop()})}
+ };
+
  window.malGenerateAdCopy=async function(){
   if(working)return;
   var business=val("malCampaignBusiness"),offer=val("malCampaignOffer");
@@ -62,6 +117,6 @@
  window.malPublishAd=async function(){
   var image=document.getElementById("malCampaignImage");if(!image||!image.files.length){await window.malCreateAdPoster();if(!image.files.length)return}
   if(!val("malCampaignTitle")||!val("malCampaignDescription")){alert("Le titre et la description sont obligatoires.");return}
-  await window.malSaveCampaign();
+  if(val("malCampaignMediaType")==="video" && (!document.getElementById("malCampaignVideo").files.length)){await window.malCreateAdVideo();if(!document.getElementById("malCampaignVideo").files.length)return;} await window.malSaveCampaign();
  };
 })();
