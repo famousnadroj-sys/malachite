@@ -254,8 +254,8 @@ if (!html.includes("var payload={offre:data.offer,code:data.code,operateur:data.
     !html.includes("sb.from('paiements').insert(payload)")) {
   throw new Error('Payment submission must preserve offer, reference, operator and private receipt path.');
 }
-if (!html.includes("function aiManagerPreview()") || !html.includes("prototype non activé") || !html.includes("Aucune décision automatique")) {
-  throw new Error('AI Manager must remain explicitly marked as inactive until server-side integration is tested.');
+if (!html.includes("function aiManagerPreview()") || !html.includes("moteur IA Malachite existant") || !html.includes("actions sensibles restent sous ton contrôle")) {
+  throw new Error('AI copilots must describe the existing engine and preserve human approval for sensitive actions.');
 }
 if (html.includes("Premium — 3 $")) {
   throw new Error('Legacy Premium price of 3 USD remains anywhere in the frontend.');
