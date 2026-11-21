@@ -413,17 +413,17 @@ for (const item of ['malAnnounceUserNotification', 'publish_user_announcement', 
 if (!html.includes('malachite-user-experience.js') || !sw.includes('./malachite-user-experience.js')) {
   throw new Error('Member experience module must be loaded and cached by the PWA.');
 }
-const inboxMigration = fs.readFileSync('supabase/migrations/20261121110000_user_notification_inbox.sql', 'utf8');
+const inboxMigration = fs.readFileSync('supabase/migrations/20261121105751_user_notification_inbox.sql', 'utf8');
 for (const item of ['message_received', 'publish_user_announcement', 'private.notify_new_member_message', 'related_message_id']) {
   if (!inboxMigration.includes(item)) throw new Error('Durable notification migration requirement missing: ' + item);
 }
 
-const legacyNoticeMigration = fs.readFileSync('supabase/migrations/20261121111500_persist_app_toast_notifications.sql', 'utf8');
+const legacyNoticeMigration = fs.readFileSync('supabase/migrations/20261121110009_persist_app_toast_notifications.sql', 'utf8');
 for (const item of ['create_my_notification', 'announcement_key', 'auth.uid()', 'grant execute']) {
   if (!legacyNoticeMigration.includes(item)) throw new Error('Persisted in-app notice RPC requirement missing: ' + item);
 }
 
-const notificationHardening = fs.readFileSync('supabase/migrations/20261121113000_harden_notification_rpc_and_indexes.sql', 'utf8').toLowerCase();
+const notificationHardening = fs.readFileSync('supabase/migrations/20261121110106_harden_notification_rpc_and_indexes.sql', 'utf8').toLowerCase();
 for (const item of ['security invoker', 'private.publish_user_announcement', 'private.create_my_notification', 'user_notifications_related_message_idx', 'user_notifications_related_user_idx']) {
   if (!notificationHardening.includes(item)) throw new Error('Notification RPC hardening requirement missing: ' + item);
 }
