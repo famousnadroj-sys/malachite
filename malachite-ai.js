@@ -17,12 +17,12 @@
     if (!box) return;
     box.innerHTML = history.length ? history.map(function (m) {
       return '<div class="mal-ai-msg '+(m.role === "user" ? "user" : "assistant")+'"><small>'+(m.role === "user" ? "VOUS" : "MALACHITE AI")+'</small><div>'+esc(m.text)+'</div></div>';
-    }).join("") : '<div class="mal-ai-empty"><b>Bonjour, je suis ton copilote Malachite.</b><p>Je peux consulter les indicateurs et exécuter certaines commandes administrateur sur instruction : résoudre un ticket, enregistrer un brouillon de réponse, examiner un signalement, suspendre ou réactiver un membre. Paiements, messages envoyés et changements de code restent protégés.</p></div>';
+    }).join("") : '<div class="mal-ai-empty"><b>Bonjour, je suis ton copilote Malachite.</b><p>Je surveille les indicateurs et dossiers via le worker planifié. Je peux consulter les paiements en attente, examiner un paiement, rejeter un paiement en attente sur ordre explicite, traiter le support et examiner les signalements. La confirmation d’encaissement Airtel/Orange exige encore une intégration officielle.</p></div>';
     box.scrollTop = box.scrollHeight;
   }
   window.aiManagerPreview = function () {
     return '<section class="mal-ai-shell">'+
-      '<div class="mal-ai-head"><div class="mal-ai-orb">✦</div><div class="mal-ai-heading"><b>Malachite AI Manager</b><small>TON COPILOTE DE GESTION · ADMINISTRATEUR</small></div><button class="mal-ai-refresh" type="button" onclick="malAiLoadDashboard(true)" title="Actualiser les indicateurs">↻</button></div>'+
+      '<div class="mal-ai-head"><div class="mal-ai-orb">✦</div><div class="mal-ai-heading"><b>Malachite AI Manager</b><small>SUPERVISION OPÉRATIONNELLE · ADMINISTRATEUR</small></div><button class="mal-ai-refresh" type="button" onclick="malAiLoadDashboard(true)" title="Actualiser les indicateurs">↻</button></div>'+
       '<div class="mal-ai-status" id="malAiState"><i></i><span>Connexion sécurisée · chargement des indicateurs…</span></div>'+
       '<div class="mal-ai-section-title"><b>Vue d’ensemble</b><small id="malAiUpdated">Indicateurs agrégés</small></div>'+
       '<div class="mal-ai-metrics" id="malAiMetrics"><div class="mal-ai-skeleton"></div><div class="mal-ai-skeleton"></div><div class="mal-ai-skeleton"></div><div class="mal-ai-skeleton"></div></div>'+
@@ -32,7 +32,7 @@
       '<div class="mal-ai-section-title"><b>Conseils automatiques</b><small>Basés sur les chiffres réels</small></div><div id="malAiInsights" class="mal-ai-insights">Chargement des priorités…</div><div class="mal-ai-section-title"><b>Actions rapides</b><small>Surveillance automatique et alertes</small></div>'+
       '<div class="mal-ai-quick">'+
       '<button type="button" onclick="malAiQuickPrompt(\'Prépare mon briefing quotidien à partir des indicateurs actuels. Donne-moi les trois priorités et les risques à surveiller.\')">☀️ Briefing du jour</button>'+
-      '<button type="button" onclick="malAiQuickPrompt(\'Analyse les paiements en attente à partir des chiffres agrégés et propose une procédure de vérification fiable.\')">💳 Paiements</button>'+
+      '<button type="button" onclick="malAiQuickPrompt(\'Liste les paiements en attente\')">💳 Paiements</button>'+
       '<button type="button" onclick="malAiQuickPrompt(\'Aide-moi à prioriser les signalements et les demandes de support sans prendre de décision à ma place.\')">🛡️ Sécurité & support</button>'+
       '<button type="button" onclick="malAiQuickPrompt(\'Propose cinq améliorations concrètes pour augmenter la qualité des profils, la confiance et la rétention des membres.\')">📈 Croissance</button>'+
       '</div>'+
@@ -40,7 +40,7 @@
       '<div id="malAiMessages" class="mal-ai-messages" aria-live="polite"></div>'+
       '<label class="mal-ai-input-label">Ton message<textarea id="malAiPrompt" rows="3" maxlength="2000" placeholder="Ex. Fais le point sur les risques et les priorités de Malachite…"></textarea></label>'+
       '<button id="malAiSend" class="mal-ai-send" type="button" onclick="malAiSendMessage()"><span>Envoyer à Malachite AI</span><b>↗</b></button>'+
-      '<p class="mal-ai-footnote">🔒 Accès administrateur. Commandes directes : « résous le ticket support 12 », « réponds au ticket support 12 : [texte] » (brouillon non envoyé), « examine le signalement 4 », « suspends le membre [UUID] pour [motif] », « réactive le membre [UUID] ». Les paiements et l’envoi de messages restent désactivés.</p>'+
+      '<p class="mal-ai-footnote">🔒 Accès administrateur. Commandes : « liste les paiements en attente », « examine paiement 123 », « rejette paiement 123 motif ... » (uniquement en attente), « résous le ticket support 12 », « réponds au ticket support 12 : [texte] » (brouillon non envoyé), « examine le signalement 4 », « suspends le membre [UUID] pour [motif] », « réactive le membre [UUID] ». Aucun paiement ne peut être marqué encaissé sans confirmation officielle Airtel/Orange.</p>'+
       '</section>';
   };
   window.malAiLoadDashboard = async function (force) {
@@ -154,7 +154,7 @@
       }
       function item(title,sub,tag){return '<div class="mal-ai-op-item"><b>'+esc(title)+'</b><span>'+esc(sub||"")+'</span>'+(tag?'<span class="mal-ai-op-tag">'+esc(tag)+'</span>':"")+'</div>'}
       root.innerHTML=
-        group("Paiements à contrôler",o.payments||[],function(x){return item("#"+x.id+" · "+x.offre,"Statut : "+x.statut+" · "+(x.operateur||"opérateur non précisé")+" · "+new Date(x.created_at).toLocaleString("fr-FR"),x.admin_reason||"Contrôle manuel requis")})+
+        group("Historique des paiements",o.payments||[],function(x){return item("#"+x.id+" · "+x.offre,"Statut : "+x.statut+" · "+(x.operateur||"opérateur non précisé")+" · "+new Date(x.created_at).toLocaleString("fr-FR"),x.admin_reason||"")})+
         group("Signalements",o.reports||[],function(x){return item("Signalement #"+x.id,x.motif+" · "+new Date(x.created_at).toLocaleString("fr-FR"),x.statut)})+
         group("Comptes suspendus",o.suspensions||[],function(x){return item("Compte "+String(x.user_id).slice(0,8)+"…",x.motif+" · depuis "+new Date(x.depuis).toLocaleDateString("fr-FR"),"Suspendu")})+
         group("Blocages entre membres",o.blocks||[],function(x){return item(String(x.user_id).slice(0,8)+"… a bloqué "+String(x.cible).slice(0,8)+"…",new Date(x.created_at).toLocaleString("fr-FR"),"Blocage utilisateur")})+
