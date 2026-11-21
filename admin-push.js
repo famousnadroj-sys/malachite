@@ -39,9 +39,21 @@ window.malRefreshAdminPushStatus=async function(){
   var result=await window.sb.functions.invoke("malachite-admin-push",{body:{action:"status"}});
   if(!result.error&&result.data&&result.data.ok){
    var count=result.data.registered_devices||0;
-   setStatus(count+" appareil(s) connecté(s) aux alertes push. Pour ajouter cet appareil, appuie sur « Activer les alertes ici ».");
+   setStatus(count+" appareil(s) connecté(s) aux alertes push.");
+   var list=document.getElementById("malPushDevices");
+   if(list){list.innerHTML=(result.data.devices||[]).map(function(d){var label=String(d.device_label||"Appareil").replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]});return '<div class="plan"><b>'+label+'</b><div class="note">Dernière activité : '+new Date(d.last_seen_at).toLocaleString('fr-FR')+'</div><button onclick="malRemoveAdminPushDevice(\''+d.id+'\')">Retirer cet appareil</button></div>'}).join('')||'<p class="note">Aucun appareil enregistré.</p>';}
+
   }
  }catch(error){console.warn("État des alertes push indisponible",error);}
+};
+window.malRemoveAdminPushDevice=async function(id){
+ if(!window.me||!window.ADM||window.me.email!==window.ADM)return;
+ if(!confirm("Retirer cet appareil des notifications Malachite ?"))return;
+ try{
+  var result=await window.sb.functions.invoke("malachite-admin-push",{body:{action:"unsubscribe",subscription_id:id}});
+  if(result.error||!result.data||!result.data.ok)throw new Error("Suppression impossible");
+  await window.malRefreshAdminPushStatus();
+ }catch(error){alert("Impossible de retirer cet appareil. Réessaie.");}
 };
 window.malDisableAdminPush=async function(){
  if(!window.me||!window.ADM||window.me.email!==window.ADM){alert("Connexion administrateur requise.");return;}
