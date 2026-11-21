@@ -624,7 +624,24 @@ body.mal-chat-mode .chat .m{max-width:min(84%,520px)}
 @media(max-width:430px){.mal-payment-filters{grid-template-columns:1fr 1fr}.mal-payment-filters>button{grid-column:1/-1}.mal-admin-tabs button,.mal-settings-tabs button{font-size:10px!important;padding:8px 3px!important}}
 @media(prefers-reduced-motion:reduce){.mal-payment-card,.mal-admin-tabs button{transition:none!important}}
 </style>
-</head>
+<style id="mal-chat-bars-repair-v1">
+/* Restore the conversation toolbars and keep the composer above the mobile navigation. */
+html:has(body.mal-chat-mode),body.mal-chat-mode{height:100%;overflow:hidden!important}
+body.mal-chat-mode>header{display:none!important}
+body.mal-chat-mode>nav{display:flex!important;position:fixed!important;left:12px!important;right:12px!important;bottom:calc(8px + env(safe-area-inset-bottom,0px))!important;z-index:100!important;height:58px!important;margin:0!important;padding:4px!important;visibility:visible!important;opacity:1!important}
+body.mal-chat-mode main#v{height:100dvh!important;min-height:0!important;max-height:100dvh!important;width:100%!important;max-width:none!important;margin:0!important;padding:env(safe-area-inset-top,0px) 0 0!important;display:flex!important;flex-direction:column!important;overflow:hidden!important}
+body.mal-chat-mode .chtop{position:relative!important;top:auto!important;z-index:30!important;display:block!important;flex:0 0 auto!important;min-height:54px!important;visibility:visible!important;opacity:1!important;background:#fff!important;border-bottom:1px solid var(--line)!important}
+body.mal-chat-mode #msgs.chat{display:grid!important;flex:1 1 auto!important;min-height:0!important;max-height:none!important;overflow-y:auto!important;overscroll-behavior:contain!important;visibility:visible!important;opacity:1!important;padding:12px 10px calc(190px + env(safe-area-inset-bottom,0px))!important}
+body.mal-chat-mode .sendbar{position:fixed!important;left:0!important;right:0!important;bottom:calc(76px + env(safe-area-inset-bottom,0px))!important;z-index:120!important;display:block!important;visibility:visible!important;opacity:1!important;transform:none!important;max-height:45dvh!important;overflow-y:auto!important;background:#fff!important;border-top:1px solid var(--line)!important;padding:8px 10px!important;box-shadow:0 -6px 20px rgba(80,20,45,.12)!important}
+body.mal-chat-mode .sendbar .chat-composer{display:flex!important;visibility:visible!important;opacity:1!important;align-items:center!important;gap:6px!important;width:100%!important;max-width:900px!important;margin:0 auto!important}
+body.mal-chat-mode .sendbar .chat-composer #mi{display:block!important;visibility:visible!important;opacity:1!important;min-width:0!important;flex:1 1 auto!important;height:42px!important}
+body.mal-chat-mode .sendbar .chat-composer .chat-tool,body.mal-chat-mode .sendbar .chat-composer .chat-send{display:inline-flex!important;visibility:visible!important;opacity:1!important;align-items:center!important;justify-content:center!important;flex:0 0 38px!important;width:38px!important;height:38px!important;min-width:38px!important;padding:0!important;border-radius:50%!important}
+body.mal-chat-mode .sendbar .chat-attach-menu,body.mal-chat-mode .sendbar .chat-emoji-panel{max-height:28dvh!important;overflow:auto!important}
+body.mal-chat-mode .recbar{position:fixed!important;left:0!important;right:0!important;bottom:calc(76px + env(safe-area-inset-bottom,0px))!important;z-index:130!important;display:flex!important;visibility:visible!important;opacity:1!important}
+@media(min-width:760px){body.mal-chat-mode>nav{left:calc(50% - 360px)!important;right:calc(50% - 360px)!important}body.mal-chat-mode .sendbar{padding-left:max(12px,calc((100vw - 900px)/2))!important;padding-right:max(12px,calc((100vw - 900px)/2))!important}}
+@media(max-width:420px){body.mal-chat-mode .sendbar{padding-left:6px!important;padding-right:6px!important}body.mal-chat-mode .sendbar .chat-composer{gap:4px!important}body.mal-chat-mode .sendbar .chat-composer .chat-tool,body.mal-chat-mode .sendbar .chat-composer .chat-send{flex-basis:34px!important;width:34px!important;height:36px!important;min-width:34px!important}}
+@media(prefers-reduced-motion:reduce){body.mal-chat-mode #msgs.chat{scroll-behavior:auto!important}}
+</style></head>
 <body>
 <header><div class="lg0"><svg class="logo" viewBox="0 0 40 40" width="30" height="30" aria-hidden="true"><path d="M20 35C8 26 4 19 4 13.5 4 9 7.5 6 11.5 6c3.5 0 6.5 2 8.5 5 2-3 5-5 8.5-5C32.5 6 36 9 36 13.5 36 19 32 26 20 35z" fill="url(#lg)"/><path d="M11.5 6 20 11 28.5 6M4 13.5h32M4 13.5 20 35 36 13.5M13 13.5 20 11 27 13.5 20 35z" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width=".9" stroke-linejoin="round"/><path d="M33 1v6M30 4h6" stroke="#C9A227" stroke-width="1.1" stroke-linecap="round"/></svg><div class="brand">Malachite</div></div><div class="tag2">Lubumbashi</div></header>
 <aside id="malInstallBanner" style="display:flex;align-items:center;gap:10px;justify-content:space-between;padding:10px 14px;margin:10px 12px;border:1px solid #F3CCDA;border-radius:14px;background:#FFF5F8;color:#3A1224">
