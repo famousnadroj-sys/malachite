@@ -1,0 +1,67 @@
+/* Malachite AI Ad Studio — copy generation + locally rendered animated campaign artwork. */
+(function(){
+ "use strict";
+ if(window.__malAdStudioLoaded)return;window.__malAdStudioLoaded=true;
+ var generated=null,working=false;
+ function esc(v){return String(v==null?"":v).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+ function val(id){var n=document.getElementById(id);return n?n.value.trim():""}
+ function set(id,v){var n=document.getElementById(id);if(n)n.value=v||""}
+ function style(){return '<style>.mal-ad-studio{display:grid;gap:12px}.mal-ad-preview{position:relative;overflow:hidden;min-height:310px;border-radius:24px;background:linear-gradient(135deg,#24102f,#9b2459 55%,#f3a35d);color:#fff;padding:28px;display:flex;flex-direction:column;justify-content:space-between;isolation:isolate}.mal-ad-preview:before,.mal-ad-preview:after{content:"";position:absolute;border:1px solid #ffffff55;border-radius:50%;width:240px;height:240px;right:-70px;top:-75px;animation:malAdOrbit 9s linear infinite;z-index:-1}.mal-ad-preview:after{width:170px;height:170px;right:40px;top:110px;animation-direction:reverse}.mal-ad-preview>*{position:relative}.mal-ad-kicker{font-size:10px;letter-spacing:.2em;font-weight:900;opacity:.85}.mal-ad-preview h3{font:600 clamp(28px,7vw,42px)/1.05 Fraunces,Georgia,serif;margin:18px 0 10px;max-width:460px}.mal-ad-preview p{font-size:14px;max-width:420px;line-height:1.5}.mal-ad-preview strong{align-self:flex-start;padding:10px 16px;border-radius:99px;background:#fff;color:#56203e;font-size:12px}.mal-ad-preview .mal-ad-glow{position:absolute;width:180px;height:180px;border-radius:50%;background:#ffb5d755;filter:blur(20px);right:-25px;bottom:30px;animation:malAdPulse 4s ease-in-out infinite;z-index:-1}@keyframes malAdOrbit{to{transform:rotate(360deg)}}@keyframes malAdPulse{50%{transform:scale(1.35);opacity:.5}}@media(prefers-reduced-motion:reduce){.mal-ad-preview:before,.mal-ad-preview:after,.mal-ad-glow{animation:none!important}}.mal-ad-note{font-size:12px;color:#806775}.mal-ad-actions{display:flex;gap:8px;flex-wrap:wrap}.mal-ad-actions button{flex:1;min-width:135px}</style>'}
+ window.campaignsAdmin=function(){
+  var rows=Array.isArray(window.malCampaignRows)?window.malCampaignRows:[];
+  return style()+'<section class="mal-ad-studio"><h2>✦ Studio publicitaire IA</h2><p class="note">Décris ton offre. Malachite AI prépare le texte, puis crée une affiche visuelle animée à publier dans Découvrir.</p>'+
+  '<div class="card"><label>Entreprise, marque ou produit<input id="malCampaignBusiness" maxlength="120" placeholder="Ex. Boutique Élégance"></label>'+
+  '<label>Offre à promouvoir<textarea id="malCampaignOffer" rows="3" maxlength="300" placeholder="Ex. Nouvelle collection de chaussures, livraison disponible…"></textarea></label>'+
+  '<div class="g2"><label>Prix (facultatif)<input id="malCampaignPrice" maxlength="60" placeholder="Ex. 25 000 CDF"></label><label>Public visé<input id="malCampaignAudience" maxlength="120" placeholder="Ex. Femmes et hommes à Lubumbashi"></label></div>'+
+  '<div class="g2"><label>Ville / zone<input id="malCampaignLocation" maxlength="120" value="Lubumbashi"></label><label>Style<select id="malCampaignTone"><option value="Élégant et premium">Élégant et premium</option><option value="Moderne et dynamique">Moderne et dynamique</option><option value="Minimaliste et professionnel">Minimaliste et professionnel</option><option value="Chaleureux et convivial">Chaleureux et convivial</option><option value="Urgence commerciale sans exagération">Offre promotionnelle</option></select></label></div>'+
+  '<label>Appel à l’action<input id="malCampaignCTA" maxlength="80" placeholder="Ex. Commander maintenant (facultatif)"></label>'+
+  '<button class="b1" id="malAdGenerate" type="button" onclick="malGenerateAdCopy()">✦ Générer ma publicité avec l’IA</button><p class="mal-ad-note">Le moteur IA utilise la clé Gemini côté serveur. Ta clé ne sera jamais exposée dans le navigateur.</p></div>'+
+  '<div class="card"><h3>2. Prévisualisation et publication</h3><div id="malAdPreview" class="mal-ad-preview"><span class="mal-ad-kicker">MALACHITE · CAMPAGNE SPONSORISÉE</span><div><h3 id="malAdPreviewTitle">Ta publicité apparaîtra ici</h3><p id="malAdPreviewBody">Génère ton texte pour voir le rendu.</p></div><strong id="malAdPreviewCTA">DÉCOUVRIR</strong><i class="mal-ad-glow"></i></div>'+
+  '<label>Titre<input id="malCampaignTitle" maxlength="90" placeholder="Titre publicitaire"></label><label>Description<textarea id="malCampaignDescription" maxlength="500" rows="3" placeholder="Description"></textarea></label>'+
+  '<label>Lien de destination (facultatif)<input id="malCampaignLink" type="url" maxlength="500" placeholder="https://..."></label>'+
+  '<label>Image / photo facultative pour l’affiche<input id="malCampaignSourceImage" type="file" accept="image/jpeg,image/png,image/webp"></label>'+
+  '<label>Statut<select id="malCampaignStatus"><option value="brouillon">Enregistrer en brouillon</option><option value="active">Publier dans Découvrir</option><option value="pause">En pause</option></select></label>'+
+  '<div class="mal-ad-actions"><button type="button" onclick="malCreateAdPoster()">Créer l’affiche</button><button class="b1" type="button" onclick="malPublishAd()">Enregistrer / publier</button></div>'+
+  '<input id="malCampaignImage" type="file" accept="image/jpeg,image/png,image/webp" hidden><input id="malCampaignEditId" type="hidden">'+
+  '<p class="mal-ad-note">Le visuel est composé directement dans le navigateur. L’aperçu public aura des animations légères. L’export vidéo MP4 n’est pas encore inclus.</p></div>'+
+  '<h3>Campagnes enregistrées ('+rows.length+')</h3><div class="list">'+(rows.length?rows.map(function(x){return '<article class="card"><b>'+esc(x.titre)+'</b><p class="note">'+esc(x.description)+'</p><span class="chip">'+esc(x.statut)+'</span><div class="acts"><button onclick="malEditCampaign(\''+x.id+'\')">Modifier</button>'+(x.statut==="active"?'<button onclick="malSetCampaignStatus(\''+x.id+'\',\'pause\')">Pause</button>':'<button class="b1" onclick="malSetCampaignStatus(\''+x.id+'\',\'active\')">Publier</button>')+'<button class="err" onclick="malDeleteCampaign(\''+x.id+'\')">Supprimer</button></div></article>'}).join(""):'<p class="note">Aucune campagne.</p>')+'</div></section>';
+ };
+ window.malGenerateAdCopy=async function(){
+  if(working)return;
+  var business=val("malCampaignBusiness"),offer=val("malCampaignOffer");
+  if(business.length<2||offer.length<3){alert("Indique le nom de l’entreprise et décris l’offre.");return}
+  if(!window.sb||!sb.functions){alert("Connexion au service IA indisponible.");return}
+  working=true;var b=document.getElementById("malAdGenerate");if(b){b.disabled=true;b.textContent="L’IA prépare ta publicité…"}
+  try{
+   var r=await sb.functions.invoke("malachite-ad-creative",{body:{business:business,offer:offer,price:val("malCampaignPrice"),audience:val("malCampaignAudience"),location:val("malCampaignLocation"),tone:val("malCampaignTone"),cta:val("malCampaignCTA")}});
+   if(r.error||!r.data||!r.data.creative)throw new Error(r.data&&r.data.error==="ai_provider_not_configured"?"La clé Gemini n’est pas configurée dans Supabase.":"Le service IA n’a pas répondu. Réessaie.");
+   generated=r.data.creative;set("malCampaignTitle",generated.title);set("malCampaignDescription",[generated.subtitle,generated.description].filter(Boolean).join(" — "));
+   var t=document.getElementById("malAdPreviewTitle"),p=document.getElementById("malAdPreviewBody"),c=document.getElementById("malAdPreviewCTA");
+   if(t)t.textContent=generated.title;if(p)p.textContent=generated.subtitle+" "+generated.description;if(c)c.textContent=generated.cta.toUpperCase();
+   if(typeof window.toast==="function")window.toast("Texte publicitaire généré. Vérifie-le avant publication.");
+  }catch(e){alert(e.message||"Génération impossible")}finally{working=false;if(b){b.disabled=false;b.textContent="✦ Générer ma publicité avec l’IA"}}
+ };
+ window.malCreateAdPoster=async function(){
+  var title=val("malCampaignTitle"),desc=val("malCampaignDescription"),cta=generated&&generated.cta||"EN SAVOIR PLUS";
+  if(!title||!desc){alert("Génère d’abord le texte ou remplis le titre et la description.");return}
+  var canvas=document.createElement("canvas");canvas.width=1080;canvas.height=1350;var ctx=canvas.getContext("2d");
+  var g=ctx.createLinearGradient(0,0,1080,1350);g.addColorStop(0,"#28132f");g.addColorStop(.55,"#a62b62");g.addColorStop(1,"#ef9a68");ctx.fillStyle=g;ctx.fillRect(0,0,1080,1350);
+  var photo=document.getElementById("malCampaignSourceImage").files[0];
+  if(photo){try{var img=await createImageBitmap(photo);var scale=Math.max(1080/img.width,1350/img.height);ctx.globalAlpha=.28;ctx.drawImage(img,(1080-img.width*scale)/2,(1350-img.height*scale)/2,img.width*scale,img.height*scale);ctx.globalAlpha=1}catch(_){}}
+  ctx.fillStyle="rgba(255,255,255,.15)";ctx.beginPath();ctx.arc(920,170,260,0,Math.PI*2);ctx.fill();ctx.fillStyle="#fff";ctx.font="bold 30px Arial";ctx.fillText("MALACHITE  ·  SPONSORISÉ",80,110);
+  function lines(text,max){var words=text.split(/\s+/),out=[],line="";ctx.font="bold 76px Arial";words.forEach(function(w){var test=line?line+" "+w:w;if(ctx.measureText(test).width>max&&line){out.push(line);line=w}else line=test});if(line)out.push(line);return out}
+  ctx.font="bold 76px Arial";var ls=lines(title,900);var y=510;ls.slice(0,3).forEach(function(line){ctx.fillText(line,80,y);y+=94});
+  ctx.font="36px Arial";var words=desc.split(/\s+/),line="",dy=y+35;words.forEach(function(w){var test=line?line+" "+w:w;if(ctx.measureText(test).width>900&&line){ctx.fillText(line,82,dy);dy+=52;line=w}else line=test});if(line)ctx.fillText(line,82,dy);
+  ctx.fillStyle="#fff";ctx.beginPath();ctx.roundRect(80,1120,500,105,52);ctx.fill();ctx.fillStyle="#57203f";ctx.font="bold 34px Arial";ctx.fillText(cta.toUpperCase().slice(0,24),125,1185);
+  var blob=await new Promise(function(resolve){canvas.toBlob(resolve,"image/jpeg",.9)});if(!blob){alert("Impossible de créer l’affiche sur cet appareil.");return}
+  var file=new File([blob],"malachite-ad.jpg",{type:"image/jpeg"}),input=document.getElementById("malCampaignImage");
+  try{var dt=new DataTransfer();dt.items.add(file);input.files=dt.files}catch(_){alert("Ton navigateur ne permet pas d’attacher automatiquement l’affiche. Réessaie avec Chrome récent.");return}
+  var preview=document.getElementById("malAdPreview");if(preview){var url=URL.createObjectURL(blob);preview.style.backgroundImage="url("+url+")";preview.style.backgroundSize="cover";preview.style.backgroundPosition="center"}
+  if(typeof window.toast==="function")window.toast("Affiche créée. Tu peux maintenant publier.");else alert("Affiche créée.");
+ };
+ window.malPublishAd=async function(){
+  var image=document.getElementById("malCampaignImage");if(!image||!image.files.length){await window.malCreateAdPoster();if(!image.files.length)return}
+  if(!val("malCampaignTitle")||!val("malCampaignDescription")){alert("Le titre et la description sont obligatoires.");return}
+  await window.malSaveCampaign();
+ };
+})();
