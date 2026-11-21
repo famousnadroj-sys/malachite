@@ -496,14 +496,16 @@
     ];
 
     function fillVisualStrip(container, items) {
-      if (!container) return;
-      // Remplace le bandeau d'anciennes vignettes : pas de doublons ni d'images aléatoires.
+      if (!container || container.dataset.malUxExpanded === '1') return;
+      // Remplace les anciennes vignettes et prépare un vrai carrousel horizontal.
       container.innerHTML = '';
+      container.setAttribute('aria-label', 'Galerie animée des rencontres et de l’amitié');
+      container.setAttribute('tabindex', '0');
       items.forEach(function (item, index) {
         var figure = document.createElement('figure');
         figure.className = 'mal-social-visual mal-portrait-motion';
         figure.setAttribute('aria-label', item.title + ' : ' + item.subtitle);
-        figure.style.animationDelay = (index * 0.09) + 's';
+        figure.style.animationDelay = (index * 0.12) + 's';
 
         var img = document.createElement('img');
         img.src = item.url;
@@ -528,6 +530,61 @@
         container.appendChild(figure);
       });
       container.dataset.malUxExpanded = '1';
+
+      // Les photos avancent seules, mais l’utilisateur garde le contrôle.
+      var paused = false;
+      var timer = window.setInterval(function () {
+        if (!container.isConnected) { window.clearInterval(timer); return; }
+        if (paused || document.hidden || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        var first = container.querySelector('.mal-social-visual');
+        if (!first) return;
+        var gap = parseFloat(getComputedStyle(container).columnGap || getComputedStyle(container).gap) || 12;
+        var step = first.getBoundingClientRect().width + gap;
+        var end = container.scrollWidth - container.clientWidth;
+        var next = container.scrollLeft + step;
+        container.scrollTo({ left: next >= end - 8 ? 0 : next, behavior: 'smooth' });
+      }, 4200);
+      container.addEventListener('mouseenter', function () { paused = true; });
+      container.addEventListener('mouseleave', function () { paused = false; });
+      container.addEventListener('focusin', function () { paused = true; });
+      container.addEventListener('focusout', function () { paused = false; });
+      container.addEventListener('touchstart', function () { paused = true; }, { passive: true });
+      container.addEventListener('touchend', function () {
+        window.setTimeout(function () { paused = false; }, 1800);
+      }, { passive: true });
+
+      // Accroche éditoriale à rotation lente, assortie aux couleurs du site.
+      var message = container.parentNode.querySelector('.mal-gallery-message');
+      if (!message) {
+        message = document.createElement('div');
+        message.className = 'mal-gallery-message';
+        message.setAttribute('aria-live', 'polite');
+        message.innerHTML = '<span class="mal-gallery-sparkle" aria-hidden="true">✦</span><span class="mal-gallery-message-text"></span>';
+        container.parentNode.insertBefore(message, container.nextSibling);
+      }
+      var phrases = [
+        'Les belles rencontres commencent parfois par un simple « Bonjour ». ',
+        'Et si une belle histoire commençait en tchattant ?',
+        'Découvrez votre partenaire, à votre rythme.',
+        'Une conversation sincère peut créer un lien précieux.'
+      ];
+      var phraseIndex = 0;
+      var phraseText = message.querySelector('.mal-gallery-message-text');
+      function showPhrase() {
+        if (!message.isConnected || !phraseText) return;
+        phraseText.classList.add('is-changing');
+        window.setTimeout(function () {
+          if (!message.isConnected || !phraseText) return;
+          phraseText.textContent = phrases[phraseIndex];
+          phraseText.classList.remove('is-changing');
+          phraseIndex = (phraseIndex + 1) % phrases.length;
+        }, 260);
+      }
+      showPhrase();
+      var phraseTimer = window.setInterval(function () {
+        if (!message.isConnected) { window.clearInterval(phraseTimer); return; }
+        if (!document.hidden && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) showPhrase();
+      }, 4800);
     }
 
     fillVisualStrip(document.querySelector('.mal-discover-photo-strip'), visuals);
@@ -560,6 +617,7 @@
       '.mal-offer-wizard{display:grid;gap:12px}.mal-offer-intro{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.mal-offer-intro h2{margin:4px 0;font-size:21px}.mal-offer-intro p{font-size:12px;color:#805f70;margin:0}.mal-offer-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.mal-offer-steps button{border-radius:10px;padding:9px 5px;background:#fff3f7;color:#82566b;font-size:11px;font-weight:750}.mal-offer-steps button.active{background:#e6195e;color:#fff}.mal-offer-grid{display:grid;gap:9px}.mal-offer-card{border:1px solid #f0d4df;border-radius:16px;padding:13px;background:#fff}.mal-offer-card.featured{border:2px solid #e6195e;background:linear-gradient(140deg,#fff,#fff5f8)}.mal-offer-card h3{display:flex;justify-content:space-between;gap:8px;margin:0;font-size:15px}.mal-offer-card p{margin:5px 0 0;font-size:12px;color:#78586a;line-height:1.4}.mal-offer-card .price{white-space:nowrap;color:#c2185b;font-weight:850}.mal-offer-next{width:100%;background:#e6195e;color:#fff;padding:13px;border-radius:13px;font-weight:800}.mal-offer-back{background:#fff0f5;color:#9f2453;padding:10px 14px;border-radius:12px}.mal-offer-table{width:100%;border-collapse:collapse;font-size:12px}.mal-offer-table th,.mal-offer-table td{padding:9px 6px;border-bottom:1px solid #f2dce4;text-align:left}.mal-offer-table th{color:#87596f;font-size:11px}.mal-offer-table td:last-child{text-align:center;font-weight:800}.mal-offer-table .yes{color:#15945d}.mal-offer-table .no{color:#b7a4ad}.mal-offer-pay{display:grid;gap:11px}.mal-offer-pay h3{margin:0;font-size:15px}.mal-offer-pay .note{font-size:11px}.mal-offer-pay .wall{margin:0}',
       '.mal-social-visual{position:relative;isolation:isolate;overflow:hidden;flex:none;margin:0;border:1px solid #F3C6D8;border-radius:18px;background:linear-gradient(135deg,#FFE3EE,#fff);box-shadow:0 10px 24px rgba(126,30,68,.14);animation:malSocialEnter .65s cubic-bezier(.2,.8,.2,1) both}.mal-discover-photo-strip .mal-social-visual{flex:0 0 min(68%,245px);height:138px;scroll-snap-align:start}.mal-signup-photos .mal-social-visual{width:108px;height:132px;border-radius:24px}.mal-social-visual img{display:block;width:100%!important;height:100%!important;object-fit:cover;object-position:center;animation:malSocialDrift 15s ease-in-out infinite alternate;will-change:transform}.mal-social-visual figcaption{position:absolute;inset:auto 0 0;z-index:2;display:grid;gap:2px;padding:22px 11px 10px;color:#fff;background:linear-gradient(180deg,transparent,rgba(43,12,27,.78));text-shadow:0 1px 5px rgba(0,0,0,.35)}.mal-social-visual figcaption b{font-size:13px;line-height:1.15}.mal-social-visual figcaption span{font-size:10px;line-height:1.25;opacity:.94}.mal-social-visual.is-unavailable{background:linear-gradient(135deg,#FCE4ED,#fff)}@keyframes malSocialEnter{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:none}}@keyframes malSocialDrift{from{transform:scale(1)}to{transform:scale(1.075) translateY(-2px)}}@media(hover:hover){.mal-social-visual{transition:transform .35s,box-shadow .35s}.mal-social-visual:hover{transform:translateY(-5px);box-shadow:0 16px 32px rgba(126,30,68,.2)}}@media(prefers-reduced-motion:reduce){.mal-social-visual,.mal-social-visual img{animation:none!important;transition:none!important}}',
       '.mal-discover-photo-strip img.mal-portrait-motion,.mal-signup-photos img.mal-portrait-motion{animation:malPortraitDrift 13s ease-in-out infinite alternate;will-change:transform}.mal-discover-photo-strip img.mal-portrait-motion:nth-child(2n){animation-duration:16s}.mal-discover-photo-strip img.mal-portrait-motion:nth-child(3n){animation-delay:-4s}@keyframes malPortraitDrift{from{transform:scale(1) translateY(0)}to{transform:scale(1.08) translateY(-3px)}}.mal-signup-photos-expanded{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}.mal-signup-photos-expanded img{width:100%;height:82px;object-fit:cover;border-radius:12px}',
+      '.mal-discover-photo-strip{display:flex!important;gap:12px!important;overflow-x:auto!important;overflow-y:hidden!important;padding:7px 3px 15px!important;scroll-snap-type:x mandatory;scroll-behavior:smooth;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}.mal-discover-photo-strip::-webkit-scrollbar{display:none}.mal-discover-photo-strip .mal-social-visual{flex:0 0 min(76vw,285px)!important;height:190px!important;scroll-snap-align:start}.mal-discover-photo-strip .mal-social-visual img{height:100%!important}.mal-gallery-message{display:flex;align-items:center;justify-content:center;gap:9px;min-height:44px;margin:0 2px 9px;padding:10px 14px;border:1px solid #f5d4e0;border-radius:14px;background:linear-gradient(110deg,#fff7fa,#fff);color:#9e315b;text-align:center;font:600 13px/1.45 Georgia,serif;box-shadow:0 5px 16px rgba(126,30,68,.06)}.mal-gallery-sparkle{color:#e6195e;font-size:16px;animation:malSparkle 2.6s ease-in-out infinite}.mal-gallery-message-text{opacity:1;transform:translateY(0);transition:opacity .26s ease,transform .26s ease}.mal-gallery-message-text.is-changing{opacity:0;transform:translateY(5px)}@keyframes malSparkle{0%,100%{transform:scale(1) rotate(0);opacity:.75}50%{transform:scale(1.2) rotate(12deg);opacity:1}}@media(min-width:700px){.mal-discover-photo-strip .mal-social-visual{flex-basis:245px;height:210px!important}}@media(prefers-reduced-motion:reduce){.mal-discover-photo-strip{scroll-behavior:auto}.mal-gallery-sparkle{animation:none!important}.mal-gallery-message-text{transition:none!important}}',
       'body.mal-chat-mode main#v{height:var(--mal-chat-vh,100dvh)!important;max-height:var(--mal-chat-vh,100dvh)!important;padding-bottom:0!important;min-height:0!important}',
       'body.mal-chat-mode .chat{flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important}',
       'body.mal-chat-mode .sendbar{position:relative!important;bottom:auto!important;left:auto!important;right:auto!important;flex:0 0 auto!important;margin-top:0!important;padding:8px 8px calc(8px + env(safe-area-inset-bottom,0px))!important;z-index:20!important}',
