@@ -66,7 +66,6 @@ async function getMetrics(adminClient: any) {
   };
 }
 
-
 function normalizePaymentReference(value: unknown) {
   return String(value || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
@@ -242,7 +241,6 @@ Deno.serve(async (req: Request) => {
     try { return json(200, { operations: await getOperations(adminClient) }, origin); }
     catch { return json(503, { error: "operations_unavailable" }, origin); }
   }
-
   if (action === "analyze_payment_receipt") {
     const paymentId = typeof body.payment_id === "number" && Number.isSafeInteger(body.payment_id) && body.payment_id > 0 ? body.payment_id : 0;
     if (!paymentId) return json(400, { error: "invalid_payment_id" }, origin);
@@ -272,6 +270,102 @@ Deno.serve(async (req: Request) => {
     if (updateError) return json(503, { error: "task_update_failed" }, origin);
     return json(200, { ok: true, task_id: taskId, status: nextStatus }, origin);
   }
+
+  // Explicit, authenticated allowlisted admin commands.
+  const command = message, adminId = auth.user.id;
+  const listPendingPayments = command.match(/^(?:liste|affiche|montre)\s+(?:les\s+)?paiements?\s+en\s+attente$/i);
+  const inspectPayment = command.match(/^(?:examine|consulte|v[eé]rifie\s+le)\s+(?:le\s+)?paiement\s+#?(\d+)$/i);
+  const rejectPayment = command.match(/^(?:rejette|refuse)\s+(?:le\s+)?paiement\s+#?(\d+)\s+(?:pour|motif)\s+(.{3,300})$/i);
+  const supportReply = command.match(/^(?:r[eé]ponds?|r[eé]pondre)\s+(?:au\s+)?ticket\s+(?:support\s*)?#?(\d+)\s*[:：-]\s*(.{3,1500})$/i);
+  const closeSupport = command.match(/^(?:r[eé]sous?|ferme|cl[oô]ture|cl[oô]turer)\s+(?:le\s+)?ticket\s+(?:support\s*)?#?(\d+)$/i);
+  const reviewReport = command.match(/^(?:examine|marque)\s+(?:le\s+)?signalement\s+#?(\d+)(?:\s+(?:comme\s+)?(?:examin[eé]|trait[eé]))?$/i);
+  const suspendMember = command.match(/^suspend(?:s|re)?\s+(?:le\s+)?membre\s+([0-9a-f-]{36})\s+(?:pour|motif)\s+(.{3,300})$/i);
+  const unsuspendMember = command.match(/^(?:r[eé]active|l[eè]ve\s+la\s+suspension\s+de)\s+(?:le\s+)?membre\s+([0-9a-f-]{36})$/i);
+  if (listPendingPayments || inspectPayment || rejectPayment || supportReply || closeSupport || reviewReport || suspendMember || unsuspendMember) {
+    let actionResult: Record<string, unknown>;
+    if (listPendingPayments) {
+      const { data, error } = await adminClient.from("paiements")
+        .select("id,offre,statut,created_at,operateur,admin_reason")
+        .eq("statut", "attente").order("created_at", { ascending: true }).limit(50);
+      if (error) return json(503, { error: "pending_payments_lookup_failed" }, origin);
+      actionResult = { ok: true, action: "pending_payments_listed", count: (data || []).length, payments: data || [], note: "Liste des paiements en attente; aucune confirmation financière effectuée." };
+    } else if (inspectPayment) {
+      const id = Number(inspectPayment[1]);
+      if (!Number.isSafeInteger(id) || id <= 0) return json(400, { error: "invalid_payment_id" }, origin);
+      // The number members receive is the payment code, not necessarily the internal row id.
+      // Prefer exact payment-code lookup; fall back to the internal id for administrator diagnostics.
+      const byCode = await adminClient.from("paiements")
+        .select("id,code,offre,statut,created_at,operateur,admin_reason,reviewed_at")
+        .eq("code", String(id)).maybeSingle();
+      if (byCode.error) return json(503, { error: "payment_lookup_failed" }, origin);
+      let data = byCode.data;
+      if (!data) {
+        const byId = await adminClient.from("paiements")
+          .select("id,code,offre,statut,created_at,operateur,admin_reason,reviewed_at")
+          .eq("id", id).maybeSingle();
+        if (byId.error) return json(503, { error: "payment_lookup_failed" }, origin);
+        data = byId.data;
+      }
+      if (!data) return json(404, { error: "payment_not_found" }, origin);
+      actionResult = {
+        ok: true,
+        action: "payment_inspected",
+        payment: data,
+        note: data.statut === "attente"
+          ? "Paiement enregistré en attente. Aucune confirmation financière fournisseur n'a encore été vérifiée."
+          : data.statut === "valide"
+            ? "Paiement déjà marqué valide dans le registre Malachite. Ce statut ne prouve pas à lui seul une confirmation fournisseur."
+            : data.statut === "rejete"
+              ? "Paiement déjà rejeté dans le registre Malachite."
+              : "Paiement retrouvé dans l'historique avec son statut actuel."
+      };
+    } else if (rejectPayment) {
+      const id = Number(rejectPayment[1]), reason = rejectPayment[2].trim();
+      if (!Number.isSafeInteger(id) || id <= 0) return json(400, { error: "invalid_payment_id" }, origin);
+      const { data, error } = await adminClient.from("paiements")
+        .update({ statut: "rejete", admin_reason: reason, reviewed_at: new Date().toISOString() })
+        .eq("id", id).eq("statut", "attente").select("id,statut").maybeSingle();
+      if (error) return json(503, { error: "payment_rejection_failed" }, origin);
+      if (!data) return json(409, { error: "payment_not_pending_or_not_found" }, origin);
+      actionResult = { ok: true, action: "payment_rejected", payment_id: id, reason, note: "Paiement rejeté; notification système déclenchée si configurée." };
+    } else if (supportReply) {
+      const id = Number(supportReply[1]);
+      const { data, error } = await adminClient.from("demandes_support").update({ reponse_admin: supportReply[2].trim(), statut: "en_cours", traite_par: adminId, traite_le: new Date().toISOString() }).eq("id", id).in("statut", ["nouveau", "en_cours"]).select("id").maybeSingle();
+      if (error) return json(503, { error: "support_update_failed" }, origin);
+      if (!data) return json(404, { error: "support_ticket_not_open" }, origin);
+      actionResult = { ok: true, action: "support_reply_saved_as_draft", ticket_id: id, note: "Brouillon enregistré, aucun message envoyé au membre." };
+    } else if (closeSupport) {
+      const id = Number(closeSupport[1]);
+      const { data, error } = await adminClient.from("demandes_support").update({ statut: "resolu", traite_par: adminId, traite_le: new Date().toISOString() }).eq("id", id).in("statut", ["nouveau", "en_cours"]).select("id").maybeSingle();
+      if (error) return json(503, { error: "support_close_failed" }, origin);
+      if (!data) return json(404, { error: "support_ticket_not_open" }, origin);
+      actionResult = { ok: true, action: "support_ticket_resolved", ticket_id: id };
+    } else if (reviewReport) {
+      const id = Number(reviewReport[1]);
+      const { data, error } = await adminClient.from("signalements").update({ statut: "examine", traite_par: adminId, traite_le: new Date().toISOString(), note_admin: "Examiné par Malachite AI Manager sur instruction de l’administrateur." }).eq("id", id).eq("statut", "nouveau").select("id").maybeSingle();
+      if (error) return json(503, { error: "report_review_failed" }, origin);
+      if (!data) return json(404, { error: "new_report_not_found" }, origin);
+      actionResult = { ok: true, action: "report_marked_reviewed", report_id: id, note: "Aucune sanction appliquée." };
+    } else if (suspendMember) {
+      const memberId = suspendMember[1].toLowerCase(), reason = suspendMember[2].trim();
+      const { data: profile, error: profileError } = await adminClient.from("profiles").select("id").eq("id", memberId).maybeSingle();
+      if (profileError) return json(503, { error: "member_lookup_failed" }, origin);
+      if (!profile) return json(404, { error: "member_not_found" }, origin);
+      const { error } = await adminClient.from("suspensions").upsert({ user_id: memberId, depuis: new Date().toISOString(), motif: reason, par: adminId }, { onConflict: "user_id" });
+      if (error) return json(503, { error: "member_suspend_failed" }, origin);
+      actionResult = { ok: true, action: "member_suspended", member_id: memberId, reason };
+    } else {
+      if (!unsuspendMember) return json(400, { error: "invalid_admin_command" }, origin);
+      const memberId = unsuspendMember[1].toLowerCase();
+      const { error } = await adminClient.from("suspensions").delete().eq("user_id", memberId);
+      if (error) return json(503, { error: "member_unsuspend_failed" }, origin);
+      actionResult = { ok: true, action: "member_unsuspended", member_id: memberId };
+    }
+    const { error: auditError } = await adminClient.from("ai_manager_audit").insert({ admin_id: adminId, model: "admin_command", status: "success", input_chars: message.length, output_chars: JSON.stringify(actionResult).length });
+    if (auditError) return json(503, { error: "audit_write_failed_after_action", action_result: actionResult }, origin);
+    return json(200, { reply: "Action exécutée et journalisée. " + String(actionResult.note || actionResult.action), action_result: actionResult, metrics }, origin);
+  }
+
   if (!API_KEY) return json(503, { error: "ai_provider_not_configured", metrics }, origin);
 
   const cutoff = new Date(Date.now() - 60_000).toISOString();
@@ -286,9 +380,10 @@ Deno.serve(async (req: Request) => {
     "Réponds en français, de façon concise, professionnelle, élégante et orientée décisions.",
     "Voici les seuls indicateurs opérationnels fournis par le serveur, en données agrégées et sans identifiants personnels : " + JSON.stringify(metrics),
     "Utilise exclusivement ces chiffres comme faits. Si une donnée manque, dis-le. N'invente jamais de tendance, revenu, incident ou activité.",
-    "Tu peux préparer des briefings, expliquer les priorités, proposer des procédures de vérification des paiements, classer les risques de signalements, aider au support, suggérer des améliorations produit et préparer des plans de croissance.",
-    "Tu n'as aucun accès aux messages privés, aux pièces justificatives, aux profils individuels ni à des outils d'action. Ne prétends jamais avoir modifié le site, traité un paiement, contacté un membre ou suspendu un compte.",
-    "Toute sanction, décision financière, réponse officielle, modification de compte ou action irréversible doit être examinée et validée manuellement par l'administrateur.",
+    "Quand l’administrateur demande une action prise en charge, indique exactement la commande à formuler si nécessaire et ne prétends à une exécution que si le serveur renvoie action_result.ok=true. Pour les paiements, exige une vérification réelle du fournisseur; pour les signalements, tu peux marquer examiné mais jamais sanctionner sans ordre explicite.",
+    "Tu es le gestionnaire opérationnel connecté de Malachite. Le worker planifié surveille périodiquement les indicateurs, synchronise les alertes et prépare une file de tâches/brouillons. Tu peux lister les paiements en attente (commande : liste les paiements en attente), consulter un paiement par ID (examine paiement 123), rejeter un paiement en attente avec motif (rejette paiement 123 motif ...), enregistrer un brouillon de réponse, résoudre un ticket, examiner un signalement, suspendre/réactiver un membre sur instruction explicite. Ne prétends jamais qu'une tâche est exécutée sans action_result.ok=true.", 
+    "Tu ne peux pas vérifier un encaissement Airtel Money/Orange Money sans API/webhook officiel ni confirmer automatiquement un paiement. N'approuve jamais un paiement et n'active jamais Premium sur un reçu/capture ou une affirmation utilisateur. Ne lis pas les messages privés, n'envoie pas de message externe et ne modifie pas le code du site depuis cette interface.",
+    "Les commandes support, examen de signalement et suspension/réactivation sont exécutables uniquement sur instruction explicite de l’administrateur. Les décisions financières, l’envoi de messages aux membres, les suppressions définitives et les changements de code restent non exécutables par ce moteur.",
     "Ne demande jamais de mots de passe, codes OTP, PIN, clés API ou données personnelles sensibles. Signale les limites et donne des étapes concrètes."
   ].join(" ");
 
