@@ -355,6 +355,7 @@ Deno.serve(async (req: Request) => {
       if (error) return json(503, { error: "member_suspend_failed" }, origin);
       actionResult = { ok: true, action: "member_suspended", member_id: memberId, reason };
     } else {
+      if (!unsuspendMember) return json(400, { error: "invalid_admin_command" }, origin);
       const memberId = unsuspendMember[1].toLowerCase();
       const { error } = await adminClient.from("suspensions").delete().eq("user_id", memberId);
       if (error) return json(503, { error: "member_unsuspend_failed" }, origin);
