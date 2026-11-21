@@ -314,7 +314,7 @@ const aiTemp = path.join(os.tmpdir(), 'malachite-ai-manager.js');
 fs.writeFileSync(aiTemp, aiManagerModule);
 const aiCheck = spawnSync(process.execPath, ['--check', aiTemp], { encoding: 'utf8' });
 if (aiCheck.status !== 0) { process.stderr.write(aiCheck.stderr || aiCheck.stdout); process.exit(aiCheck.status || 1); }
-for (const item of ['malAiLoadOperations', 'action:"operations"', 'Paiements à contrôler', 'Signalements', 'Comptes suspendus', 'Blocages entre membres', 'Avis et commentaires', 'Demandes de support']) {
+for (const item of ['malAiLoadOperations', 'action:"operations"', 'Historique des paiements', 'Signalements', 'Comptes suspendus', 'Blocages entre membres', 'Avis et commentaires', 'Demandes de support']) {
   if (!aiManagerModule.includes(item)) throw new Error('AI Manager operations center requirement missing: ' + item);
 }
 const aiFunction = fs.readFileSync('supabase/functions/malachite-ai-manager/index.ts', 'utf8');
