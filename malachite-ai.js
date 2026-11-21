@@ -17,7 +17,7 @@
     if (!box) return;
     box.innerHTML = history.length ? history.map(function (m) {
       return '<div class="mal-ai-msg '+(m.role === "user" ? "user" : "assistant")+'"><small>'+(m.role === "user" ? "VOUS" : "MALACHITE AI")+'</small><div>'+esc(m.text)+'</div></div>';
-    }).join("") : '<div class="mal-ai-empty"><b>Bonjour, je suis ton copilote Malachite.</b><p>Je peux analyser les indicateurs agrégés, préparer un briefing, prioriser les paiements et signalements, et proposer des améliorations. Les décisions sensibles restent sous ton contrôle.</p></div>';
+    }).join("") : '<div class="mal-ai-empty"><b>Bonjour, je suis ton copilote Malachite.</b><p>Je peux consulter les indicateurs et exécuter certaines commandes administrateur sur instruction : résoudre un ticket, enregistrer un brouillon de réponse, examiner un signalement, suspendre ou réactiver un membre. Paiements, messages envoyés et changements de code restent protégés.</p></div>';
     box.scrollTop = box.scrollHeight;
   }
   window.aiManagerPreview = function () {
@@ -40,7 +40,7 @@
       '<div id="malAiMessages" class="mal-ai-messages" aria-live="polite"></div>'+
       '<label class="mal-ai-input-label">Ton message<textarea id="malAiPrompt" rows="3" maxlength="2000" placeholder="Ex. Fais le point sur les risques et les priorités de Malachite…"></textarea></label>'+
       '<button id="malAiSend" class="mal-ai-send" type="button" onclick="malAiSendMessage()"><span>Envoyer à Malachite AI</span><b>↗</b></button>'+
-      '<p class="mal-ai-footnote">🔒 Accès réservé à l’administrateur. L’assistant reçoit uniquement ton message et des chiffres agrégés. Il ne lit jamais les messages privés. Il détecte et suit automatiquement les alertes opérationnelles. Les paiements, sanctions et changements sensibles restent protégés par validation humaine.</p>'+
+      '<p class="mal-ai-footnote">🔒 Accès administrateur. Commandes directes : « résous le ticket support 12 », « réponds au ticket support 12 : [texte] » (brouillon non envoyé), « examine le signalement 4 », « suspends le membre [UUID] pour [motif] », « réactive le membre [UUID] ». Les paiements et l’envoi de messages restent désactivés.</p>'+
       '</section>';
   };
   window.malAiLoadDashboard = async function (force) {
