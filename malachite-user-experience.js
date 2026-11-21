@@ -174,7 +174,7 @@
         actionType = 'match';
         relatedUserId = String(id);
       }
-      window.sb.rpc('create_my_notification', {
+      window.sb.rpc('create_my_action_notification', {
         p_category: category,
         p_title: textTitle,
         p_body: textBody,
