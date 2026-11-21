@@ -226,7 +226,6 @@ Deno.serve(async (req: Request) => {
     const executedSupportDrafts = await executeApprovedSupportDrafts(admin);
     const preparedTasks = await prepareReviewTasks(admin);
     const metricsWithQueue = { ...metrics, review_tasks_prepared: preparedTasks, support_drafts_executed: executedSupportDrafts };
-    const metricsWithQueue = { ...metrics, review_tasks_prepared: preparedTasks };
     let summary: string | null = null;
     let model: string | null = null;
     let status: "success" | "partial" = "success";
