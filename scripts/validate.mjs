@@ -158,6 +158,10 @@ if (adStudioCheck.status !== 0) { process.stderr.write(adStudioCheck.stderr || a
 for (const item of ['MediaRecorder', 'captureStream(24)', 'malCreateAdVideo', 'malRecordAdVoice', 'malGenerateAdVoiceAI', 'gemini-3.8-flash-lite-tts', 'malCampaignDuration', 'video/webm']) {
   if (!adStudio.includes(item)) throw new Error('Short video ad studio capability missing: ' + item);
 }
+const adCreativeFunction = fs.readFileSync('supabase/functions/malachite-ad-creative/index.ts', 'utf8');
+for (const item of ['auth.getUser(token)', 'malachite_ai_manager_is_admin', 'gemini-3.8-flash-lite-tts', 'responseModalities:["AUDIO"]', 'audio_base64']) {
+  if (!adCreativeFunction.includes(item)) throw new Error('Secure AI ad voice endpoint requirement missing: ' + item);
+}
 const campaignMedia = fs.readFileSync('malachite-campaigns.js', 'utf8');
 for (const item of ['video_path', 'media_type', 'malachite-campaign-media', 'playsinline controls']) {
   if (!campaignMedia.includes(item)) throw new Error('Sponsored video publishing requirement missing: ' + item);
