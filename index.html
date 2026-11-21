@@ -1452,7 +1452,7 @@ function initSW(){
 }
 initSW();
 function askNotif(){if(!('Notification' in window)){alert('Ton navigateur ne gère pas les notifications.');return}Notification.requestPermission().then(function(){draw(true)})}
-function rdvEvents(){var cur={},now=Date.now();rdvs.forEach(function(x){cur[x.id]=x.statut});if(rseen)rdvs.forEach(function(x){if(rseen[x.id]===undefined&&x.a==me.id)notify('📅 Invitation à un rendez-vous',((prof(x.de)||{}).prenom||'Quelqu’un')+' · '+x.lieu,'rdv');else if(rseen[x.id]==='attente'&&x.statut=='confirme'&&x.de==me.id)notify('✅ Rendez-vous confirmé',((prof(x.a)||{}).prenom||'Ton match')+' a confirmé','rdv')});rseen=cur;rdvs.forEach(function(x){var t=new Date(x.quand)-now;if(x.statut=='confirme'&&t>0&&t<3*36e5&&!notified['r'+x.id]){notified['r'+x.id]=1;notify('🔔 Rappel : rendez-vous bientôt','Dans '+Math.round(t/6e4)+' min · '+x.lieu,'rdv')}})}
+function rdvEvents(){var cur={},now=Date.now();rdvs.forEach(function(x){cur[x.id]=x.statut});if(rseen)rdvs.forEach(function(x){if(rseen[x.id]===undefined&&x.a==me.id)notify('📅 Invitation à un rendez-vous',((prof(x.de)||{}).prenom||'Quelqu’un')+' · '+x.lieu,'rdv','rdv-'+x.id);else if(rseen[x.id]==='attente'&&x.statut=='confirme'&&x.de==me.id)notify('✅ Rendez-vous confirmé',((prof(x.a)||{}).prenom||'Ton match')+' a confirmé','rdv','rdv-'+x.id)});rseen=cur;rdvs.forEach(function(x){var t=new Date(x.quand)-now;if(x.statut=='confirme'&&t>0&&t<3*36e5&&!notified['r'+x.id]){notified['r'+x.id]=1;notify('🔔 Rappel : rendez-vous bientôt','Dans '+Math.round(t/6e4)+' min · '+x.lieu,'rdv','reminder-rdv-'+x.id)}})}
 var pollBusy=false,rdvPolledAt=0;
 async function poll(){
  if(!me||document.hidden||pollBusy)return;
