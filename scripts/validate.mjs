@@ -138,7 +138,7 @@ for (const item of ['malachite-copilots.js', 'Malachite Pulse', 'AutoCare', 'Mal
   if (!html.includes(item) && !copilots.includes(item)) throw new Error('Copilot module requirement missing: ' + item);
 }
 const serviceWorkerEarly = fs.readFileSync('sw.js', 'utf8');
-if (!serviceWorkerEarly.includes('./malachite-copilots.js') || !serviceWorkerEarly.includes('malachite-static-v72')) {
+if (!serviceWorkerEarly.includes('./malachite-copilots.js') || !serviceWorkerEarly.includes('malachite-static-v73')) {
   throw new Error('Copilot module must be included in the versioned PWA cache.');
 }
 
@@ -149,6 +149,18 @@ if (!copilots.includes('mode simulation') || !copilots.includes('Finance, Guardi
 const aiManager = fs.readFileSync('malachite-ai.js', 'utf8');
 for (const item of ['malAiLoadDashboard', 'malAiInsights', 'malAiQuickPrompt', 'malachite-ai-manager', 'history.slice(-9,-1)']) {
   if (!aiManager.includes(item)) throw new Error('AI Manager dashboard capability missing: ' + item);
+}
+const adStudio = fs.readFileSync('malachite-ad-studio.js', 'utf8');
+const adStudioTemp = path.join(os.tmpdir(), 'malachite-ad-studio.js');
+fs.writeFileSync(adStudioTemp, adStudio);
+const adStudioCheck = spawnSync(process.execPath, ['--check', adStudioTemp], { encoding: 'utf8' });
+if (adStudioCheck.status !== 0) { process.stderr.write(adStudioCheck.stderr || adStudioCheck.stdout); process.exit(adStudioCheck.status || 1); }
+for (const item of ['MediaRecorder', 'captureStream(24)', 'malCreateAdVideo', 'malRecordAdVoice', 'malCampaignDuration', 'video/webm']) {
+  if (!adStudio.includes(item)) throw new Error('Short video ad studio capability missing: ' + item);
+}
+const campaignMedia = fs.readFileSync('malachite-campaigns.js', 'utf8');
+for (const item of ['video_path', 'media_type', 'malachite-campaign-media', 'playsinline controls']) {
+  if (!campaignMedia.includes(item)) throw new Error('Sponsored video publishing requirement missing: ' + item);
 }
 const sw = fs.readFileSync('sw.js', 'utf8');
 const swTemp = path.join(os.tmpdir(), 'malachite-sw.js');
