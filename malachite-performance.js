@@ -9,7 +9,7 @@
   var lowMemory = typeof navigator.deviceMemory === "number" && navigator.deviceMemory <= 4;
   var fewCores = typeof navigator.hardwareConcurrency === "number" && navigator.hardwareConcurrency <= 4;
   var saveData = !!(connection && connection.saveData);
-  if (lowMemory || saveData || (!("deviceMemory" in navigator) && fewCores)) {
+  if (lowMemory || fewCores || saveData) {
     document.documentElement.classList.add("mal-low-power");
   }
 
