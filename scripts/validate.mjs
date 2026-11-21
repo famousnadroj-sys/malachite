@@ -422,3 +422,8 @@ const legacyNoticeMigration = fs.readFileSync('supabase/migrations/2026112111150
 for (const item of ['create_my_notification', 'announcement_key', 'auth.uid()', 'grant execute']) {
   if (!legacyNoticeMigration.includes(item)) throw new Error('Persisted in-app notice RPC requirement missing: ' + item);
 }
+
+const notificationHardening = fs.readFileSync('supabase/migrations/20261121113000_harden_notification_rpc_and_indexes.sql', 'utf8').toLowerCase();
+for (const item of ['security invoker', 'private.publish_user_announcement', 'private.create_my_notification', 'user_notifications_related_message_idx', 'user_notifications_related_user_idx']) {
+  if (!notificationHardening.includes(item)) throw new Error('Notification RPC hardening requirement missing: ' + item);
+}
