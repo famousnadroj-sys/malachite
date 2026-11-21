@@ -155,7 +155,7 @@ const adStudioTemp = path.join(os.tmpdir(), 'malachite-ad-studio.js');
 fs.writeFileSync(adStudioTemp, adStudio);
 const adStudioCheck = spawnSync(process.execPath, ['--check', adStudioTemp], { encoding: 'utf8' });
 if (adStudioCheck.status !== 0) { process.stderr.write(adStudioCheck.stderr || adStudioCheck.stdout); process.exit(adStudioCheck.status || 1); }
-for (const item of ['MediaRecorder', 'captureStream(24)', 'malCreateAdVideo', 'malRecordAdVoice', 'malCampaignDuration', 'video/webm']) {
+for (const item of ['MediaRecorder', 'captureStream(24)', 'malCreateAdVideo', 'malRecordAdVoice', 'malGenerateAdVoiceAI', 'gemini-3.8-flash-lite-tts', 'malCampaignDuration', 'video/webm']) {
   if (!adStudio.includes(item)) throw new Error('Short video ad studio capability missing: ' + item);
 }
 const campaignMedia = fs.readFileSync('malachite-campaigns.js', 'utf8');
