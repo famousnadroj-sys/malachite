@@ -154,6 +154,31 @@ async function prepareReviewTasks(admin: any) {
   return prepared;
 }
 
+
+async function executeApprovedSupportDrafts(admin: any) {
+  const { data: tasks, error } = await admin.from("malachite_ai_review_queue")
+    .select("id,record_id,details").eq("task_type","support_review").eq("status","approved").limit(50);
+  if (error) throw new Error("approved_support_tasks_read_failed");
+  let completed = 0;
+  for (const task of tasks || []) {
+    const details = task.details && typeof task.details === "object" ? task.details : {};
+    const automation = details.automation && typeof details.automation === "object" ? details.automation : {};
+    const draft = typeof automation.response_draft === "string" ? automation.response_draft.trim() : "";
+    if (!draft) throw new Error("approved_support_draft_missing");
+    const { error: ticketError } = await admin.from("demandes_support")
+      .update({ reponse_admin: draft, statut: "en_cours" })
+      .eq("id", Number(task.record_id)).in("statut", ["nouveau","en_cours"]);
+    if (ticketError) throw new Error("support_draft_save_failed");
+    const { error: taskError } = await admin.from("malachite_ai_review_queue")
+      .update({ status: "completed", updated_at: new Date().toISOString(),
+        details: { ...details, automation: { ...automation, execution: "draft_saved_to_support", executed_at: new Date().toISOString(), note: "Brouillon enregistré dans le dossier support; non envoyé au membre." } } })
+      .eq("id", task.id).eq("status","approved");
+    if (taskError) throw new Error("approved_support_task_finalize_failed");
+    completed++;
+  }
+  return completed;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
 
@@ -198,7 +223,9 @@ Deno.serve(async (req: Request) => {
     const metrics = await collectMetrics(admin);
     await synchronizeAlerts(admin, metrics);
     await synchronizeReviewQueue(admin);
+    const executedSupportDrafts = await executeApprovedSupportDrafts(admin);
     const preparedTasks = await prepareReviewTasks(admin);
+    const metricsWithQueue = { ...metrics, review_tasks_prepared: preparedTasks, support_drafts_executed: executedSupportDrafts };
     const metricsWithQueue = { ...metrics, review_tasks_prepared: preparedTasks };
     let summary: string | null = null;
     let model: string | null = null;
