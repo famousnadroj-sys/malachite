@@ -241,7 +241,7 @@ if (!frontend.includes('async function resolveMessagesMedia(rows)') || !frontend
 if (!frontend.includes("filter:'a=eq.'+me.id") || !frontend.includes("filter:'de=eq.'+me.id")) throw new Error('Realtime messages must be filtered to the signed-in user.');
 if (!frontend.includes("preload=\"none\"")) throw new Error('Chat videos must not preload all media data.');
 if (!frontend.includes('async function loadOlderMessages()')) throw new Error('Chat history must load older messages incrementally.');
-if (!frontend.includes("setInterval(poll,30000)")) throw new Error('Background message polling must not overload the chat view.');
+if (!frontend.includes("setInterval(poll,120000)")) throw new Error('Background message polling must not overload the chat view.');
 if (!frontend.includes("if(tab!=='chat'){\n   var query=sb.from('messages')") || !frontend.includes('messageTask=query')) throw new Error('Realtime chat must avoid duplicate full message polling.');
 if (!frontend.includes("chatLoadBusyKeys[key]")) throw new Error('Opening another chat must not wait for a different conversation request.');
 if (!frontend.includes("appendChatRows([temp])") || !frontend.includes("pendingNode.replaceWith(holder.firstElementChild)")) throw new Error('Sending text must not redraw and interrupt media playback.');
