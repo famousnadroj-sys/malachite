@@ -174,6 +174,11 @@ const campaignMedia = fs.readFileSync('malachite-campaigns.js', 'utf8');
 for (const item of ['video_path', 'media_type', 'malachite-campaign-media', 'playsinline controls']) {
   if (!campaignMedia.includes(item)) throw new Error('Sponsored video publishing requirement missing: ' + item);
 }
+const performanceGuard = fs.readFileSync('malachite-performance.js', 'utf8');
+if (!performanceGuard.includes('mal-low-power') || !performanceGuard.includes('navigator.deviceMemory') || !performanceGuard.includes('connection.saveData')) {
+  throw new Error('Low-power devices must use the lightweight visual mode.');
+}
+
 const sw = fs.readFileSync('sw.js', 'utf8');
 const swTemp = path.join(os.tmpdir(), 'malachite-sw.js');
 fs.writeFileSync(swTemp, sw);
