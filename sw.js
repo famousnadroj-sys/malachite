@@ -1,12 +1,12 @@
-const CACHE = "malachite-static-v63";
+const CACHE = "malachite-static-v64";
 const APP_SHELL = ["./", "./manifest.webmanifest", "./icons/malachite.svg", "./calls.js", "./i18n.js", "./avatar-builder.html", "./malachite-ai.js", "./admin-push.js"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(APP_SHELL)));
-  self.skipWaiting();
+
 });
 
-self.addEventListener("activate", (event) => {
+self.addEventListener("message", (event) => {\n  if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting();\n});\n\nself.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(keys.filter((key) => key.startsWith("malachite-static-") && key !== CACHE).map((key) => caches.delete(key)))
