@@ -748,6 +748,14 @@
   injectStyles();
   ensureBell();
   enhancePortraits();
+  // Le contenu Découvrir est recréé après connexion et lors des changements d’écran.
+  // Observer ces rendus permet d’activer le carrousel même si la galerie n’existait pas au premier chargement.
+  if (document.body && typeof MutationObserver !== 'undefined') {
+    var galleryObserver = new MutationObserver(function () {
+      if (document.querySelector('.mal-discover-photo-strip:not([data-mal-ux-expanded="1"]),.mal-signup-photos:not([data-mal-ux-expanded="1"])')) enhancePortraits();
+    });
+    galleryObserver.observe(document.body, { childList: true, subtree: true });
+  }
   if (currentUser()) refreshInbox();
   var pendingNotificationId = new URLSearchParams(window.location.search).get('openNotification');
   var pendingNotificationsPanel = new URLSearchParams(window.location.search).has('openNotifications');
