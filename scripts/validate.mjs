@@ -137,7 +137,8 @@ if (copilotsCheck.status !== 0) { process.stderr.write(copilotsCheck.stderr || c
 for (const item of ['malachite-copilots.js', 'Malachite Pulse', 'AutoCare', 'Malachite Command']) {
   if (!html.includes(item) && !copilots.includes(item)) throw new Error('Copilot module requirement missing: ' + item);
 }
-if (!sw.includes('./malachite-copilots.js') || !sw.includes('malachite-static-v65')) {
+const serviceWorkerEarly = fs.readFileSync('sw.js', 'utf8');
+if (!serviceWorkerEarly.includes('./malachite-copilots.js') || !serviceWorkerEarly.includes('malachite-static-v67')) {
   throw new Error('Copilot module must be included in the versioned PWA cache.');
 }
 
