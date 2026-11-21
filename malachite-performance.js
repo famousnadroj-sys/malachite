@@ -37,7 +37,7 @@
   }
 
   var style = document.createElement("style");
-  style.textContent = ".mal-reduced-motion *,@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}";
+  style.textContent = "@media(prefers-reduced-motion:reduce){.mal-reduced-motion *,*{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}";
   document.head.appendChild(style);
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true });
   else start();
