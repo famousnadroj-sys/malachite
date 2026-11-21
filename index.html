@@ -1373,7 +1373,7 @@ function handleOwnMessageEvent(payload){
   markIncomingReceipts([row],tab==='chat'&&open===other&&document.visibilityState==='visible').catch(function(e){console.warn('Statut de réception',e)});
   allMsgs=[row].concat((allMsgs||[]).filter(function(m){return String(m.id)!==String(row.id)})).slice(0,200);
   lastMsgId=Math.max(lastMsgId,Number(row.id)||0);
-  if(!(tab==='chat'&&open===other))notify('💬 '+((prof(row.de)||{}).prenom||'Nouveau message'),row.media_type==='video'?'🎬 Vidéo':row.media_type==='audio'?'🎤 Message vocal':String(row.texte||'Nouveau message').slice(0,80),'chat',row.de);
+  // The durable inbox trigger announces this message once; avoid a second transient toast.
  }
  if(tab==='chat'){
   if(open===other&&incoming){
@@ -1470,7 +1470,7 @@ async function poll(){
   var r=tasks[0];
   if(r&&!r.error){
    var batch=r.data||[];
-   if(pollInit)batch.filter(function(m){return m.a===me.id&&m.de!==me.id}).forEach(function(m){notify('💬 '+((prof(m.de)||{}).prenom||'Nouveau message'),m.media_type==='video'?'🎬 Vidéo':m.media_type==='audio'?'🎤 Message vocal':String(m.texte||'Nouveau message').slice(0,80),'chat',m.de)});
+   // Persistent message notifications are created by the database trigger; no duplicate polling toast.
    var known=Object.create(null),merged=[];
    (batch.concat(allMsgs||[])).forEach(function(m){var key=String(m.id);if(!known[key]){known[key]=1;merged.push(m)}});
    allMsgs=merged.slice(0,200);
@@ -2704,3 +2704,4 @@ body.mal-chat-mode .msg-action-sheet{border-radius:14px 14px 0 0!important}
 <script src="malachite-performance.js" defer></script>
 
 <script src="admin-push.js" defer></script>
+<script src="./malachite-user-experience.js" defer></script>
