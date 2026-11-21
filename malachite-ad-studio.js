@@ -23,14 +23,16 @@
   '<label>Statut<select id="malCampaignStatus"><option value="brouillon">Enregistrer en brouillon</option><option value="active">Publier dans Découvrir</option><option value="pause">En pause</option></select></label>'+
   '<div class="mal-ad-actions"><button type="button" onclick="malCreateAdPoster()">Créer l’affiche</button><button class="b1" type="button" onclick="malPublishAd()">Enregistrer / publier</button></div>'+
   '<input id="malCampaignImage" type="file" accept="image/jpeg,image/png,image/webp" hidden><input id="malCampaignVideo" type="file" accept="video/webm" hidden><input id="malCampaignEditId" type="hidden"><video id="malAdVideoPreview" controls playsinline muted style="display:none;width:100%;border-radius:16px;margin-top:12px"></video>'+
-  '<p class="mal-ad-note">La vidéo est générée sur cet appareil au format WebM (10, 15 ou 20 secondes), avec une ambiance sonore et ta voix si tu l’enregistres. Les voix humaines réalistes générées par IA nécessitent un fournisseur vocal externe.</p></div>'+
+  '<p class="mal-ad-note">La vidéo est générée sur cet appareil au format WebM (10, 15 ou 20 secondes), avec une ambiance sonore et une voix IA ou ta propre voix. Les voix humaines réalistes générées par IA nécessitent un fournisseur vocal externe.</p></div>'+
   '<h3>Campagnes enregistrées ('+rows.length+')</h3><div class="list">'+(rows.length?rows.map(function(x){return '<article class="card"><b>'+esc(x.titre)+'</b><p class="note">'+esc(x.description)+'</p><span class="chip">'+esc(x.statut)+'</span><div class="acts"><button onclick="malEditCampaign(\''+x.id+'\')">Modifier</button>'+(x.statut==="active"?'<button onclick="malSetCampaignStatus(\''+x.id+'\',\'pause\')">Pause</button>':'<button class="b1" onclick="malSetCampaignStatus(\''+x.id+'\',\'active\')">Publier</button>')+'<button class="err" onclick="malDeleteCampaign(\''+x.id+'\')">Supprimer</button></div></article>'}).join(""):'<p class="note">Aucune campagne.</p>')+'</div></section>';
  };
 
  var adVoiceBlob=null,adVoiceRecorder=null,adVoiceParts=[],adVoicePreviewUrl=null;
  window.malGenerateAdVoiceAI=async function(){
   var script=val("malCampaignNarration"),voice=val("malCampaignVoice")||"Charon";
-  if(script.length<8){alert("Écris une courte narration avant de générer la voix.");return}
+  var duration=Number(val("malCampaignDuration"))||15;
+  var maxChars=duration===10?150:duration===15?220:300;
+  if(script.length<8||script.length>maxChars){alert("Pour une vidéo de "+duration+" secondes, garde une narration de "+maxChars+" caractères maximum.");return}
   if(!window.sb||!sb.functions){alert("Connexion au service IA indisponible.");return}
   var button=Array.from(document.querySelectorAll(".mal-ad-actions button")).find(function(x){return x.getAttribute("onclick")==="malGenerateAdVoiceAI()"});
   if(button){button.disabled=true;button.textContent="La voix IA est en préparation…"}
