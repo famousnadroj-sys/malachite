@@ -701,7 +701,7 @@ body.mal-chat-mode .recbar{position:fixed!important;left:0!important;right:0!imp
     var script=document.createElement("script"),finished=false;
     function fallback(){if(finished)return;finished=true;script.onload=script.onerror=null;if(index+1<cdns.length){attemptStarted=false;loadLibrary(index+1)}else if(window.malShowStartupRecovery){window.malShowStartupRecovery("La bibliothèque de connexion n’a pas pu être téléchargée depuis les serveurs disponibles. Vérifie Internet puis réessaie.");}}
     script.src=cdns[index];
-    script.onload=function(){if(finished)return;finished=true;if(window.supabase&&typeof window.supabase.createClient==="function")startCore();else fallback();};
+    script.onload=function(){if(finished)return;if(window.supabase&&typeof window.supabase.createClient==="function"){finished=true;startCore();}else fallback();};
     script.onerror=fallback;
     document.head.appendChild(script);
     window.setTimeout(fallback,8500);
