@@ -281,15 +281,14 @@
  function showUserNotification(row){
   if(!row||!row.id||seenNotificationIds[row.id])return;
   seenNotificationIds[row.id]=true;
-  notify(row.title||'Notification Malachite',row.body||'Tu as une nouvelle notification.','offres',String(row.id));
-  if(me)sb.from('user_notifications').update({read_at:new Date().toISOString()}).eq('id',row.id).eq('user_id',me.id).is('read_at',null).then(function(){});
+  if(typeof window.malAnnounceUserNotification==='function')window.malAnnounceUserNotification(row);
+  else notify(row.title||'Notification Malachite',row.body||'Tu as une nouvelle notification.','offres',String(row.id));
  }
  async function startUserNotifications(){
   if(!me)return;
   try{
    await sb.rpc('check_my_entitlement_expirations');
-   var pending=await sb.from('user_notifications').select('id,title,body').eq('user_id',me.id).is('read_at',null).order('created_at',{ascending:false}).limit(8);
-   if(!pending.error)(pending.data||[]).reverse().forEach(showUserNotification);
+   if(typeof window.malRefreshNotificationState==='function')await window.malRefreshNotificationState();
   }catch(e){console.warn('Notifications Malachite',e)}
   if(!userNotificationChannel){
    userNotificationChannel=sb.channel('mal-user-notifications-'+me.id).on('postgres_changes',{event:'INSERT',schema:'public',table:'user_notifications',filter:'user_id=eq.'+me.id},function(ev){showUserNotification(ev&&ev.new)}).subscribe(function(status){if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED')userNotificationChannel=null});
