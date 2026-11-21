@@ -50,7 +50,7 @@
   try{var stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
    adVoiceParts=[];adVoiceRecorder=new MediaRecorder(stream);
    adVoiceRecorder.ondataavailable=function(e){if(e.data&&e.data.size)adVoiceParts.push(e.data)};
-   adVoiceRecorder.onstop=function(){adVoiceBlob=new Blob(adVoiceParts,{type:adVoiceRecorder.mimeType||"audio/webm"});stream.getTracks().forEach(function(t){t.stop()});var n=document.getElementById("malAdVoiceStatus");if(n)n.textContent="Voix enregistrée. Elle sera intégrée à la vidéo.";};
+   adVoiceRecorder.onstop=function(){adVoiceBlob=new Blob(adVoiceParts,{type:adVoiceRecorder.mimeType||"audio/webm"});stream.getTracks().forEach(function(t){t.stop()});if(adVoicePreviewUrl)URL.revokeObjectURL(adVoicePreviewUrl);adVoicePreviewUrl=URL.createObjectURL(adVoiceBlob);var player=document.getElementById("malAdVoicePreview");if(player){player.src=adVoicePreviewUrl;player.style.display="block"}var n=document.getElementById("malAdVoiceStatus");if(n)n.textContent="Voix enregistrée. Elle remplacera la voix IA dans la vidéo.";};
    adVoiceRecorder.start();var n=document.getElementById("malAdVoiceStatus");if(n)n.textContent="Enregistrement en cours… Parle clairement, puis appuie sur Arrêter.";
   }catch(e){alert("Microphone indisponible : "+(e.message||"autorisation refusée"))}
  };
@@ -108,7 +108,7 @@
    if(r.error||!r.data||!r.data.creative)throw new Error(r.data&&r.data.error==="ai_provider_not_configured"?"La clé Gemini n’est pas configurée dans Supabase.":"Le service IA n’a pas répondu. Réessaie.");
    generated=r.data.creative;set("malCampaignTitle",generated.title);set("malCampaignDescription",[generated.subtitle,generated.description].filter(Boolean).join(" — "));
    var t=document.getElementById("malAdPreviewTitle"),p=document.getElementById("malAdPreviewBody"),c=document.getElementById("malAdPreviewCTA");
-   if(t)t.textContent=generated.title;if(p)p.textContent=generated.subtitle+" "+generated.description;if(c)c.textContent=generated.cta.toUpperCase();
+   if(t)t.textContent=generated.title;if(p)p.textContent=generated.subtitle+" "+generated.description;if(c)c.textContent=generated.cta.toUpperCase();var narration=document.getElementById("malCampaignNarration");if(narration)narration.value=[generated.title,generated.subtitle,generated.description,generated.cta].filter(Boolean).join(". ").slice(0,320);
    if(typeof window.toast==="function")window.toast("Texte publicitaire généré. Vérifie-le avant publication.");
   }catch(e){alert(e.message||"Génération impossible")}finally{working=false;if(b){b.disabled=false;b.textContent="✦ Générer ma publicité avec l’IA"}}
  };
