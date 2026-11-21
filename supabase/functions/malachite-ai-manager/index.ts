@@ -210,7 +210,7 @@ Deno.serve(async (req: Request) => {
   const token = authorization.match(/^Bearer\s+(.+)$/i)?.[1];
   if (!token) return json(401, { error: "authentication_required" }, origin);
 
-  let body: { message?: unknown; action?: unknown; history?: unknown; task_id?: unknown; decision?: unknown };
+  let body: { message?: unknown; action?: unknown; history?: unknown; task_id?: unknown; decision?: unknown; payment_id?: unknown };
   try { body = await req.json(); } catch { return json(400, { error: "invalid_json" }, origin); }
   const action = body.action === "dashboard" ? "dashboard" : body.action === "operations" ? "operations" : body.action === "analyze_payment_receipt" ? "analyze_payment_receipt" : body.action === "review_task" ? "review_task" : "chat";
   const message = typeof body.message === "string" ? body.message.trim() : "";
