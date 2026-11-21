@@ -493,6 +493,15 @@
     document.head.appendChild(style);
   }
 
+  window.malSetPaymentNumber = function () {
+    var selector = document.getElementById('malOperator');
+    var target = document.getElementById('malPayNumber');
+    if (!selector || !target) return;
+    var orange = selector.value === 'orange';
+    var number = orange ? (window.ORANGE || '') : (window.NUM || '');
+    target.textContent = (orange ? 'Orange Money : ' : 'Airtel Money : ') + (number || 'Numéro non configuré');
+  };
+
   window.malSetOfferPage = function (page) {
     offerPage = Math.max(1, Math.min(3, Number(page) || 1));
     if (typeof window.draw === 'function') window.draw(true);
@@ -500,6 +509,7 @@
   };
 
   function renderOffers() {
+    if (typeof window.refreshOfferPremiumStatus === 'function') window.refreshOfferPremiumStatus();
     var user = currentUser();
     var status = window.st && user && window.st[user.id] ? window.st[user.id] : {};
     var premiumActive = !!(status.premium_until && new Date(status.premium_until).getTime() > Date.now());
@@ -533,16 +543,17 @@
         '<button type="button" class="mal-offer-next" onclick="malSetOfferPage(3)">Choisir et payer →</button>';
     } else {
       var callOption = premiumActive ? '' : '<option value="Appels">Pass Appels — 1 USD / 7 jours</option>';
-      body = '<div class="mal-offer-pay"><div class="mal-offer-card"><h3>Numéros de paiement</h3>' +
-        '<p>Airtel Money : <b>' + (airtel ? esc(airtel) : 'Non configuré') + '</b></p>' +
-        '<p>Orange Money : <b>' + (orange ? esc(orange) : 'Non configuré') + '</b></p>' +
+      body = '<div class="mal-offer-pay"><div class="mal-offer-card"><h3>Numéro destinataire</h3>' +
+        '<p id="malPayNumber">Airtel Money : ' + (airtel ? esc(airtel) : 'Numéro non configuré') + '</p>' +
+        '<p class="note">Le numéro change selon le réseau choisi.</p>' +
         '</div><div class="box list"><label>Offre<select id="of"><option value="Premium">Premium — 2 USD / 30 jours</option>' + callOption +
         '<option value="Boost">Boost — 0,50 USD / 24 h</option></select></label>' +
-        '<label>Moyen de paiement<select id="malOperator" onchange="if(window.changePaymentOperator)window.changePaymentOperator()"><option value="airtel">Airtel Money</option><option value="orange">Orange Money</option></select></label>' +
+        '<label>Moyen de paiement<select id="malOperator" onchange="malSetPaymentNumber()"><option value="airtel">Airtel Money</option><option value="orange">Orange Money</option></select></label>' +
+        '<p class="note">Effectue le transfert au numéro affiché, puis saisis la référence exacte du SMS et joins le reçu.</p>' +
         '<label>Référence du transfert<input id="cd" maxlength="100" autocomplete="off" placeholder="Référence exacte du SMS"></label>' +
         '<label>Justificatif (JPEG, PNG ou WebP · 5 Mo maximum)<input id="malReceipt" type="file" accept="image/jpeg,image/png,image/webp"></label>' +
         '<button class="b1 big" id="malSubmitPayment" type="button" onclick="pay()">Soumettre ma demande</button>' +
-        '<div class="note" id="pm" aria-live="polite">Le paiement est activé après vérification manuelle.</div></div>' +
+        '<div class="note" id="pm" aria-live="polite">Activation après vérification du paiement.</div></div>' +
         '<section id="malPaymentHistory"><h3>Suivi de mes demandes</h3><p class="note">Chargement…</p></section></div>';
     }
     return '<section class="mal-offer-wizard">' + intro + steps + body +
