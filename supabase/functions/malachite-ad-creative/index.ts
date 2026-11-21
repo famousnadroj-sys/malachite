@@ -30,6 +30,34 @@ Deno.serve(async(req:Request)=>{
   if(adminError||isAdmin!==true) return respond(403,{error:"admin_only"},origin);
   const adminClient=createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}});
   let body:any; try{body=await req.json()}catch{return respond(400,{error:"invalid_json"},origin)}
+  const action=typeof body.action==="string"?body.action:"creative";
+  if(action==="voiceover"){
+    const script=typeof body.script==="string"?body.script.trim():"";
+    const voice=typeof body.voice==="string"&&["Charon","Kore","Puck","Aoede","Fenrir","Zephyr"].includes(body.voice)?body.voice:"Charon";
+    if(script.length<8||script.length>320)return respond(400,{error:"invalid_voiceover_length"},origin);
+    if(!API_KEY)return respond(503,{error:"ai_provider_not_configured"},origin);
+    const {count,error:voiceRateError}=await adminClient.from("ai_manager_audit").select("id",{count:"exact",head:true})
+      .eq("admin_id",auth.user.id).gte("created_at",new Date(Date.now()-60000).toISOString());
+    if(voiceRateError)return respond(503,{error:"audit_unavailable"},origin);
+    if((count||0)>=8)return respond(429,{error:"rate_limited"},origin);
+    let voiceResponse:Response;
+    try{
+      voiceResponse=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash-lite-tts:generateContent",{
+        method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":API_KEY},
+        body:JSON.stringify({contents:[{role:"user",parts:[{text:script}]}],generationConfig:{responseModalities:["AUDIO"],speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:voice}}}}}),
+        signal:AbortSignal.timeout(30000)
+      });
+    }catch{return respond(502,{error:"tts_provider_unreachable"},origin)}
+    let voicePayload:any;try{voicePayload=await voiceResponse.json()}catch{return respond(502,{error:"tts_invalid_response"},origin)}
+    if(!voiceResponse.ok){console.error("Ad voice provider error",voiceResponse.status,voicePayload?.error?.status||"UNKNOWN");return respond(502,{error:"tts_provider_error",provider_status:voiceResponse.status},origin)}
+    const audioPart=voicePayload?.candidates?.[0]?.content?.parts?.find((part:any)=>part.inlineData?.data);
+    if(!audioPart?.inlineData?.data)return respond(502,{error:"tts_audio_missing"},origin);
+    const audioData=audioPart.inlineData.data;
+    if(audioData.length>12000000)return respond(413,{error:"tts_audio_too_large"},origin);
+    const {error:voiceAuditError}=await adminClient.from("ai_manager_audit").insert({admin_id:auth.user.id,model:"gemini-3.8-flash-lite-tts",status:"success",input_chars:script.length,output_chars:audioData.length});
+    if(voiceAuditError)return respond(503,{error:"audit_write_failed"},origin);
+    return respond(200,{audio_base64:audioData,mime_type:audioPart.inlineData.mimeType||"audio/wav",voice:voice,model:"gemini-3.8-flash-lite-tts"},origin);
+  }
   const fields=["business","offer","price","audience","location","tone","cta"] as const;
   const input:any={};
   for(const key of fields){const value=typeof body[key]==="string"?body[key].trim():"";if(value.length>300)return respond(400,{error:"field_too_long",field:key},origin);input[key]=value;}
