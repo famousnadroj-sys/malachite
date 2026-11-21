@@ -199,6 +199,7 @@ Deno.serve(async (req: Request) => {
     await synchronizeAlerts(admin, metrics);
     await synchronizeReviewQueue(admin);
     const preparedTasks = await prepareReviewTasks(admin);
+    const metricsWithQueue = { ...metrics, review_tasks_prepared: preparedTasks };
     let summary: string | null = null;
     let model: string | null = null;
     let status: "success" | "partial" = "success";
@@ -216,7 +217,7 @@ Deno.serve(async (req: Request) => {
       const lastSummaryAt = previousSummary?.started_at ? new Date(previousSummary.started_at).getTime() : 0;
       if (Date.now() - lastSummaryAt >= 6 * 60 * 60 * 1000) {
         try {
-          summary = await generateBriefing(metrics, previousSummary?.metrics || null);
+          summary = await generateBriefing(metricsWithQueue, previousSummary?.metrics || null);
           model = MODEL;
         } catch (error) {
           status = "partial";
@@ -231,7 +232,7 @@ Deno.serve(async (req: Request) => {
     const { error: updateError } = await admin.from("ai_ops_runs").update({
       finished_at: new Date().toISOString(),
       status,
-      metrics,
+      metrics: metricsWithQueue,
       summary,
       model,
       error_code: errorCode,
@@ -242,7 +243,7 @@ Deno.serve(async (req: Request) => {
       ok: true,
       run_id: run.id,
       status,
-      metrics,
+      metrics: metricsWithQueue,
       summary,
       ai_generation_enabled: briefingEnabled && Boolean(AI_KEY),
       ai_key_configured: Boolean(AI_KEY),
