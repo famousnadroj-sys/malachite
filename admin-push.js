@@ -23,6 +23,16 @@ window.malEnableAdminPush=async function(){
   alert("Alertes Malachite activées sur cet appareil.");
  }catch(error){console.error("Activation push Malachite",error);setStatus("Activation impossible : "+(error.message||"erreur temporaire")+". Réessaie après avoir vérifié la connexion.");}
 };
+window.malRefreshAdminPushStatus=async function(){
+ if(!window.me||!window.ADM||window.me.email!==window.ADM)return;
+ try{
+  var result=await window.sb.functions.invoke("malachite-admin-push",{body:{action:"status"}});
+  if(!result.error&&result.data&&result.data.ok){
+   var count=result.data.registered_devices||0;
+   setStatus(count+" appareil(s) connecté(s) aux alertes push. Pour ajouter cet appareil, appuie sur « Activer les alertes ici ».");
+  }
+ }catch(error){console.warn("État des alertes push indisponible",error);}
+};
 window.malDisableAdminPush=async function(){
  if(!window.me||!window.ADM||window.me.email!==window.ADM){alert("Connexion administrateur requise.");return;}
  try{
