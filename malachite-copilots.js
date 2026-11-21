@@ -139,9 +139,17 @@
       }
       if (event.key === "Enter" && event.target && event.target.id === "malCommandInput") runCommand();
     });
-    var target = document.getElementById("malAiMetrics");
-    if (target && window.MutationObserver) {
-      new MutationObserver(pulse).observe(target, {childList:true, subtree:true, characterData:true});
+    if (window.MutationObserver && document.body) {
+      var observedMetrics = null;
+      new MutationObserver(function () {
+        var target = document.getElementById("malAiMetrics");
+        if (target && target !== observedMetrics) {
+          observedMetrics = target;
+          new MutationObserver(pulse).observe(target, {childList:true, subtree:true, characterData:true});
+          pulse();
+          autoCare();
+        }
+      }).observe(document.body, {childList:true, subtree:true});
     }
     if (window.PerformanceObserver) {
       try {
