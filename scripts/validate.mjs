@@ -321,6 +321,21 @@ if (!html.includes("remove([receipt.path])")) {
 }
 
 
+const campaignModule = fs.readFileSync('malachite-campaigns.js', 'utf8');
+const campaignTemp = path.join(os.tmpdir(), 'malachite-campaigns.js');
+fs.writeFileSync(campaignTemp, campaignModule);
+const campaignCheck = spawnSync(process.execPath, ['--check', campaignTemp], { encoding: 'utf8' });
+if (campaignCheck.status !== 0) { process.stderr.write(campaignCheck.stderr || campaignCheck.stdout); process.exit(campaignCheck.status || 1); }
+for (const item of ['malachite-campaigns.js', 'malachite-static-v66']) {
+  if (!html.includes(item) && !sw.includes(item)) throw new Error('Campaign module release requirement missing: ' + item);
+}
+for (const item of ['campagnes', 'malachite-campaigns', 'SPONSORISÉ', 'malSaveCampaign', 'loadPublicCampaigns']) {
+  if (!campaignModule.includes(item) && !html.includes(item)) throw new Error('Campaign feature requirement missing: ' + item);
+}
+if (!html.includes('Confirmer reçu') || html.includes('Valider ces '+adm.length') || html.includes('trtBatch()')) {
+  throw new Error('Payment review must remain individual and simple.');
+}
+
 const aiManagerModule = fs.readFileSync('malachite-ai.js', 'utf8');
 const aiTemp = path.join(os.tmpdir(), 'malachite-ai-manager.js');
 fs.writeFileSync(aiTemp, aiManagerModule);
