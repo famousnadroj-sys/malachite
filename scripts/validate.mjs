@@ -129,6 +129,18 @@ if (!html.includes("createSignedUrls(paths,3600)") || !html.includes("profilePho
 if (!html.includes('fetchpriority="high"') || !html.includes('mal-own-cover-image')) {
   throw new Error('Own profile hero/avatar images must be prioritized for immediate display.');
 }
+const copilots = fs.readFileSync('malachite-copilots.js', 'utf8');
+const copilotsTemp = path.join(os.tmpdir(), 'malachite-copilots.js');
+fs.writeFileSync(copilotsTemp, copilots);
+const copilotsCheck = spawnSync(process.execPath, ['--check', copilotsTemp], { encoding: 'utf8' });
+if (copilotsCheck.status !== 0) { process.stderr.write(copilotsCheck.stderr || copilotsCheck.stdout); process.exit(copilotsCheck.status || 1); }
+for (const item of ['malachite-copilots.js', 'Malachite Pulse', 'AutoCare', 'Malachite Command']) {
+  if (!html.includes(item) && !copilots.includes(item)) throw new Error('Copilot module requirement missing: ' + item);
+}
+if (!sw.includes('./malachite-copilots.js') || !sw.includes('malachite-static-v65')) {
+  throw new Error('Copilot module must be included in the versioned PWA cache.');
+}
+
 const aiManager = fs.readFileSync('malachite-ai.js', 'utf8');
 for (const item of ['malAiLoadDashboard', 'malAiInsights', 'malAiQuickPrompt', 'malachite-ai-manager', 'history.slice(-9,-1)']) {
   if (!aiManager.includes(item)) throw new Error('AI Manager dashboard capability missing: ' + item);
