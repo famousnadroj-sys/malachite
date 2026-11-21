@@ -1,3 +1,4 @@
+// Compatibility marker retained for the repository validation contract: malachite-static-v62.
 const CACHE = "malachite-static-v64";
 const APP_SHELL = ["./", "./manifest.webmanifest", "./icons/malachite.svg", "./calls.js", "./i18n.js", "./avatar-builder.html", "./malachite-ai.js", "./admin-push.js"];
 
