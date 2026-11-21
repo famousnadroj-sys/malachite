@@ -1,5 +1,5 @@
 // Compatibility marker retained for the repository validation contract: malachite-static-v62.
-const CACHE = "malachite-static-v82";
+const CACHE = "malachite-static-v83";
 const APP_SHELL = ["./", "./manifest.webmanifest", "./icons/malachite.svg", "./calls.js", "./i18n.js", "./avatar-builder.html", "./malachite-ai.js", "./malachite-copilots.js", "./malachite-campaigns.js", "./malachite-performance.js", "./malachite-ad-studio.js", "./admin-push.js", "./malachite-user-experience.js"];
 
 self.addEventListener("install", (event) => {
@@ -27,14 +27,19 @@ self.addEventListener("fetch", (event) => {
   if (/\/(auth|rest|storage|functions)\/v1\//.test(url.pathname)) return;
   if (request.headers.has("Authorization")) return;
   if (request.mode === "navigate") {
+    // Serve the cached app shell immediately, then refresh it in the background.
+    // This avoids making every return visit wait for a slow mobile connection.
+    const cachedPage = caches.match("./");
+    const networkPage = fetch(request).then((response) => {
+      if (response && response.ok) {
+        const copy = response.clone();
+        event.waitUntil(caches.open(CACHE).then((cache) => cache.put("./", copy)));
+      }
+      return response;
+    }).catch(() => null);
+    event.waitUntil(networkPage.then(() => undefined));
     event.respondWith(
-      fetch(request).then((response) => {
-        if (response.ok) {
-          const copy = response.clone();
-          caches.open(CACHE).then((cache) => cache.put("./", copy));
-        }
-        return response;
-      }).catch(() => caches.match("./"))
+      cachedPage.then((cached) => cached || networkPage).then((response) => response || caches.match("./"))
     );
     return;
   }
