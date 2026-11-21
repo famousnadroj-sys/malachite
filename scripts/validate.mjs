@@ -38,7 +38,7 @@ for (const item of requiredFrontend) {
 }
 if (frontend.includes("profiles').select('*')")) throw new Error('Public profile query must not select private columns.');
 if (!frontend.includes("insert({de:me.id,profil:id,motif:motif})")) throw new Error('Report must include the authenticated reporter id.');
-if ((html.match(/storage\.from\('photos'\)\.upload/g) || []).length) throw new Error('New uploads must not use the legacy public photos bucket.');
+if ((frontend.match(/storage\.from\('photos'\)\.upload/g) || []).length) throw new Error('New uploads must not use the legacy public photos bucket.');
 if (/service[_-]?role|sb_secret_/i.test(html)) throw new Error('Privileged Supabase credentials must never appear in browser code.');
 if (frontend.includes('contact_interdit')) throw new Error('Private message content must not be scanned to block contact details.');
 if (!frontend.includes('id="mal-chat-fullscreen-restore-v2"') ||
@@ -242,16 +242,16 @@ if (!frontend.includes("String(m.display_url).indexOf('blob:')===0")) throw new 
 if (frontend.includes("sb.channel('msgs').on('postgres_changes'")) throw new Error('Unfiltered global message realtime subscriptions are forbidden.');
 if (!frontend.includes("if(t=='chat'){loadChat();timer=setInterval(function(){if(tab==='chat'&&!document.hidden&&!msgRealtimeReady)loadChat()},20000);if(open)return}")) throw new Error('Chat navigation must load messages and use a conditional fallback sync.');
 if (!frontend.includes("id=\"chatSendError\"")) throw new Error('Message errors must update without rebuilding the conversation.');
-const insertChatStart = html.indexOf('async function insertChatMessage');
-const insertChatEnd = html.indexOf('async function snd()', insertChatStart);
-if (insertChatStart < 0 || insertChatEnd < 0 || html.slice(insertChatStart, insertChatEnd).includes('draw(true)')) throw new Error('Sending a message must not rebuild the chat DOM.');
+const insertChatStart = frontend.indexOf('async function insertChatMessage');
+const insertChatEnd = frontend.indexOf('async function snd()', insertChatStart);
+if (insertChatStart < 0 || insertChatEnd < 0 || frontend.slice(insertChatStart, insertChatEnd).includes('draw(true)')) throw new Error('Sending a message must not rebuild the chat DOM.');
 if (!frontend.includes("catch(error){if(localPreview)m.display_url=localPreview;throw error}")) throw new Error('Failed signing must not discard the local media preview.');
 if (!frontend.includes('function receiptMarkup(m,pending)') || !frontend.includes('function markIncomingReceipts(rows,asRead)')) throw new Error('Message delivery and read receipt UI is missing.');
 const bubbleStarts = [];
 let bubbleSearch = 0;
-while ((bubbleSearch = html.indexOf('function bub(m,i)', bubbleSearch)) !== -1) { bubbleStarts.push(bubbleSearch); bubbleSearch += 1; }
+while ((bubbleSearch = frontend.indexOf('function bub(m,i)', bubbleSearch)) !== -1) { bubbleStarts.push(bubbleSearch); bubbleSearch += 1; }
 if (bubbleStarts.length < 2) throw new Error('Expected chat bubble implementations were not found.');
-const activeBubble = html.slice(bubbleStarts[bubbleStarts.length - 1], html.indexOf('async function sendVideo', bubbleStarts[bubbleStarts.length - 1]));
+const activeBubble = frontend.slice(bubbleStarts[bubbleStarts.length - 1], frontend.indexOf('async function sendVideo', bubbleStarts[bubbleStarts.length - 1]));
 if (!activeBubble.includes('receiptMarkup(m,pending)')) throw new Error('The active chat bubble renderer must display delivery/read indicators.');
 if (!frontend.includes('body.mal-chat-mode .m .msg-status svg')) throw new Error('Message status icons must have visible chat-scoped styling.');
 if (!frontend.includes('aria-label="Envoyé"') || !frontend.includes('aria-label="Reçu"') || !frontend.includes('aria-label="Lu"') || !frontend.includes('aria-label="En attente d’envoi"')) throw new Error('All four message status states must be accessible.');
@@ -370,7 +370,7 @@ for (const item of ['malachite-campaigns.js', 'malachite-static-v84']) {
 for (const item of ['campagnes', 'malachite-campaigns', 'SPONSORISÉ', 'malSaveCampaign', 'loadPublicCampaigns']) {
   if (!campaignModule.includes(item) && !frontend.includes(item)) throw new Error('Campaign feature requirement missing: ' + item);
 }
-const latestPaymentAdmin = html.slice(html.lastIndexOf('function admin0(){'), html.indexOf('function malShowLegal', html.lastIndexOf('function admin0(){')));
+const latestPaymentAdmin = frontend.slice(frontend.lastIndexOf('function admin0(){'), frontend.indexOf('function malShowLegal', frontend.lastIndexOf('function admin0(){')));
 if (!latestPaymentAdmin.includes('Confirmer reçu') || latestPaymentAdmin.includes('trtBatch()') || latestPaymentAdmin.includes('Valider ce lot')) {
   throw new Error('Payment review must remain individual and simple.');
 }
