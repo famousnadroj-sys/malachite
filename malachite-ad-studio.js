@@ -67,7 +67,6 @@
     ctx.globalAlpha=Math.min(1,Math.max(0,(progress-.28)/.22));ctx.font="27px Arial";var descLines=wrap(desc,610,"27px Arial");descLines.slice(0,4).forEach(function(line,i){ctx.fillText(line,50,y+24+i*38)});
     ctx.globalAlpha=1;ctx.fillStyle="#fff";ctx.beginPath();ctx.roundRect(48,1120,350,82,41);ctx.fill();ctx.fillStyle="#512343";ctx.font="bold 25px Arial";ctx.fillText((generated&&generated.cta||"EN SAVOIR PLUS").toUpperCase().slice(0,24),78,1172);
     ctx.fillStyle="rgba(255,255,255,.5)";ctx.fillRect(48,1232,624,5);ctx.fillStyle="#fff";ctx.fillRect(48,1232,624*progress,5);
-    if(now<end)requestAnimationFrame(draw);
    }
    var preview=document.getElementById("malAdVideoPreview");if(preview){preview.style.display="block";preview.removeAttribute("src");preview.load()}
    recorder.start(250);if(voiceEl){try{await voiceEl.play()}catch(e){}}
