@@ -608,6 +608,11 @@ body.mal-chat-mode .chat .m{max-width:min(84%,520px)}
 </style><style id="mal-avatar-builder-v3">.mal-avatar-genders{display:flex;gap:8px;margin:12px 0}.mal-avatar-genders button{flex:1;background:#fff;border:1px solid #e8c5d3}.mal-avatar-genders button.selected{outline:3px solid #d81b60;outline-offset:1px}.mal-avatar-preview{width:min(100%,250px);height:250px;margin:12px auto;border-radius:22px;overflow:hidden;background:#f5f0ed;box-shadow:0 12px 30px #40252a18}.mal-avatar-preview svg{width:100%;height:100%;display:block}.mal-avatar-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.mal-avatar-controls label{min-width:0}.mal-avatar-controls select{width:100%}.mal-avatar-builder .b1{width:100%;margin-top:12px}@media(max-width:360px){.mal-avatar-controls{grid-template-columns:1fr}}@media(prefers-reduced-motion:reduce){.mal-startup-logo{animation:none!important}}</style><style id="mal-profile-image-speed">.mal-own-cover{position:relative;overflow:hidden}.mal-own-cover-image{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 35%;display:block}.mal-own-cover-shade,.mal-own-cover-caption,.mal-own-cover-label{z-index:1}.mal-own-gallery img{display:block;object-fit:cover;content-visibility:auto}.mal-own-avatar-preview img{display:block;max-width:100%;height:auto;object-fit:cover}</style>\n</head>
 <body>
 <header><div class="lg0"><svg class="logo" viewBox="0 0 40 40" width="30" height="30" aria-hidden="true"><path d="M20 35C8 26 4 19 4 13.5 4 9 7.5 6 11.5 6c3.5 0 6.5 2 8.5 5 2-3 5-5 8.5-5C32.5 6 36 9 36 13.5 36 19 32 26 20 35z" fill="url(#lg)"/><path d="M11.5 6 20 11 28.5 6M4 13.5h32M4 13.5 20 35 36 13.5M13 13.5 20 11 27 13.5 20 35z" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width=".9" stroke-linejoin="round"/><path d="M33 1v6M30 4h6" stroke="#C9A227" stroke-width="1.1" stroke-linecap="round"/></svg><div class="brand">Malachite</div></div><div class="tag2">Lubumbashi</div></header>
+<aside id="malInstallBanner" style="display:flex;align-items:center;gap:10px;justify-content:space-between;padding:10px 14px;margin:10px 12px;border:1px solid #F3CCDA;border-radius:14px;background:#FFF5F8;color:#3A1224">
+ <div style="font-size:13px;line-height:1.35"><b>📲 Ajouter Malachite à l’écran d’accueil</b><br><span>Un raccourci pratique, sans télécharger d’application ni payer.</span></div>
+ <button type="button" onclick="malInstallSite()" style="background:#E6195E;color:white;white-space:nowrap;padding:9px 11px">Ajouter</button>
+ <button type="button" aria-label="Fermer" onclick="malDismissInstall()" style="padding:6px;background:transparent">×</button>
+</aside>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#D81B60"/><stop offset="1" stop-color="#FF6B9D"/></linearGradient></defs></svg><main id="v"></main><nav id="nav"></nav>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -615,6 +620,23 @@ body.mal-chat-mode .chat .m{max-width:min(84%,520px)}
 var sb=supabase.createClient('https://tscsmemsvgacqioncash.supabase.co','sb_publishable_XDpqSzsPNeVduv6aGyjuoA_suakeFN0',{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storage:window.localStorage}});
 var malStartupPending=true,malStartupMessage='',malAvatarTouched=false,malAvatar3dDraft=null,profilesLoadedAt=0,me=null,mine=null,profileDraft={},signupDraft={},signupStep=1,pendingSignupAvatar=null,pendingSignupPhoto=null,pendingSignupPreview='',pendingSignupEmail='',loginPrefillEmail='',phUrls=[],loadSeq=0,loadedUid=null,profileEditing=false,pendingProfileFile=null,pendingProfilePreview='',profileSaving=false,privLoadFailed=false,admSuspensions=[],ADM='famousnadroj@gmail.com',av2=null,mutual=false,ct=null,lastSig='',rdvFor=null,fresh=false,adm=[],admPage=0,admTotal=0,admSearch='',admPaymentStatus='attente',admPaymentPeriod='all',sigs=[],blocked=[],blockedProfiles=[],matchNoticeChecked={},blockedCurrent=false,blockedCheckedFor=null,NUM='',ORANGE='',rdvs=[],pos='',priv={},profs=[],st={},tab='home',open=null,msgs=[],convs=[],chatCursor=null,chatCursorId=0,chatCursorFor=null,chatLoadBusy=false,chatLoadQueued=false,chatSending=false,chatBeforeId=0,chatHasOlder=false,chatOlderBusy=false,chatInitialLoading=false,chatLoadBusyKeys=Object.create(null),chatLoadQueuedKeys=Object.create(null),msgRealtimeReady=false,chatMediaUrlCache=Object.create(null),receiptByMessage=Object.create(null),msgChannel=null,subUserId=null,backgroundTimersStarted=false,presenceChannel=null,presenceUserId=null,presenceReady=false,onlineIds=Object.create(null),typingChannel=null,typingTarget=null,typingStopTimer=null,typingHideTimer=null,typingActive=false,ph=[],msg='',F={g:'',c:'',a:18,b:99},timer,mode='in';
 var $=function(i){return document.getElementById(i)};
+var malDeferredInstallPrompt=null;
+window.addEventListener('beforeinstallprompt',function(event){event.preventDefault();malDeferredInstallPrompt=event;});
+window.addEventListener('appinstalled',function(){var el=$('malInstallBanner');if(el)el.remove();malDeferredInstallPrompt=null;});
+function malDismissInstall(){var el=$('malInstallBanner');if(el)el.remove();try{sessionStorage.setItem('malInstallDismissed','1')}catch(e){}}
+async function malInstallSite(){
+ if(malDeferredInstallPrompt){
+  try{await malDeferredInstallPrompt.prompt();var choice=await malDeferredInstallPrompt.userChoice;if(choice&&choice.outcome==='accepted'){var el=$('malInstallBanner');if(el)el.remove()}malDeferredInstallPrompt=null;return}catch(e){}
+ }
+ var ua=navigator.userAgent||'';
+ if(/iPhone|iPad|iPod/i.test(ua)){
+  alert('Pour ajouter Malachite sur ton écran d’accueil : ouvre ce site dans Safari, touche le bouton Partager, puis « Sur l’écran d’accueil » et confirme.');
+ }else{
+  alert('Pour ajouter Malachite sur ton écran d’accueil : dans Chrome, touche le menu ⋮ en haut à droite, puis « Installer l’application » ou « Ajouter à l’écran d’accueil », et confirme. Aucun paiement ni téléchargement depuis un magasin n’est nécessaire.');
+ }
+}
+try{if(sessionStorage.getItem('malInstallDismissed')==='1'){var installBanner=$('malInstallBanner');if(installBanner)installBanner.remove()}}catch(e){}
+
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 function on(t){return t&&new Date(t)>new Date()}
 function av(p){var u=p&&p.photoUrls&&p.photoUrls[0],a=p&&p.avatar;if(a&&a.type==='humanforge-3d'&&a.imageUrl)return '<div class="av mal-human-avatar"><img src="'+esc(a.imageUrl)+'" alt="Avatar 3D de '+esc(p.prenom||'membre')+'" onerror="malRefreshAvatar(this,\''+esc(p.id)+'\')"></div>';if(u)return '<div class="av" style="background-image:url('+esc(u)+');background-size:cover;background-position:center"></div>';if(a&&a.emoji)return '<div class="av" style="background:'+esc(a.color||'#F7B7D0')+';display:grid;place-items:center;font-size:30px">'+esc(a.emoji)+'</div>';return '<div class="av">'+esc(p&&p.prenom?p.prenom[0]:'?')+'</div>'}function card(p){
