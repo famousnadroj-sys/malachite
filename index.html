@@ -653,6 +653,43 @@ body.mal-chat-mode .recbar{position:fixed!important;left:0!important;right:0!imp
 </aside>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#D81B60"/><stop offset="1" stop-color="#FF6B9D"/></linearGradient></defs></svg><main id="v"><div class="mal-startup" role="status"><span class="mal-startup-mark">♥</span><span>Ouverture de MALACHITE…</span></div></main><nav id="nav"></nav>
+<script id="malachite-stability-guard">
+(function(){
+  "use strict";
+  var recovered=false, timer=null;
+  function showRecovery(){
+    if(recovered)return;
+    recovered=true;
+    var root=document.getElementById("v");
+    if(!root)return;
+    var panel=document.createElement("section");
+    panel.setAttribute("role","alert");
+    panel.style.cssText="max-width:520px;margin:12vh auto;padding:26px 20px;text-align:center;font:15px/1.55 system-ui;color:#3A1224;background:#fff;border:1px solid #F3CCDA;border-radius:20px;box-shadow:0 12px 34px rgba(58,18,36,.10)";
+    var title=document.createElement("h2");title.textContent="MALACHITE rencontre un problème de chargement";title.style.margin="0 0 10px";
+    var message=document.createElement("p");message.textContent="La page n’a pas pu démarrer correctement. Ta session et tes données enregistrées ne sont pas supprimées. Vérifie ta connexion puis réessaie.";message.style.color="#7A5566";
+    var retry=document.createElement("button");retry.type="button";retry.textContent="Réessayer";retry.style.cssText="background:#E6195E;color:white;border:0;border-radius:12px;padding:13px 22px;font:700 15px system-ui";
+    retry.addEventListener("click",function(){window.location.reload()});
+    root.replaceChildren(title,message,retry);
+    var nav=document.getElementById("nav");if(nav)nav.replaceChildren();
+  }
+  window.addEventListener("error",function(event){
+    if(event&&((event.message&&event.message!=="Script error.")||(event.target&&event.target.tagName==="SCRIPT"))){
+      if(document.readyState!=="loading")showRecovery();
+      else window.addEventListener("DOMContentLoaded",showRecovery,{once:true});
+    }
+  },true);
+  window.addEventListener("unhandledrejection",function(){
+    if(document.readyState!=="loading")showRecovery();
+    else window.addEventListener("DOMContentLoaded",showRecovery,{once:true});
+  });
+  timer=window.setTimeout(function(){
+    var root=document.getElementById("v");
+    if(root&&root.querySelector(".mal-startup, .mal-startup-screen"))showRecovery();
+  },18000);
+  window.addEventListener("pageshow",function(){if(timer)clearTimeout(timer)});
+})();
+</script>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js" defer></script>
 <script src="./app-core.js" defer></script>
 <style>
