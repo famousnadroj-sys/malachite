@@ -39,11 +39,13 @@
   };
 
   window.malResetCampaignForm = function () {
-    ["malCampaignEditId", "malCampaignTitle", "malCampaignDescription", "malCampaignLink"].forEach(function (id) {
+    ["malCampaignEditId", "malCampaignTitle", "malCampaignDescription", "malCampaignLink", "malCampaignVideo"].forEach(function (id) {
       var node = el(id); if (node) node.value = "";
     });
     if (el("malCampaignImage")) el("malCampaignImage").value = "";
     if (el("malCampaignStatus")) el("malCampaignStatus").value = "brouillon";
+    if (el("malCampaignMediaType")) el("malCampaignMediaType").value = "video";
+    if (el("malCampaignDuration")) el("malCampaignDuration").value = "15";
   };
 
   window.malEditCampaign = function (id) {
@@ -54,6 +56,8 @@
     el("malCampaignDescription").value = row.description;
     el("malCampaignLink").value = row.lien || "";
     el("malCampaignStatus").value = row.statut;
+    if (el("malCampaignMediaType")) el("malCampaignMediaType").value = row.media_type || "image";
+    if (el("malCampaignDuration")) el("malCampaignDuration").value = String(row.duration_seconds || 15);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
