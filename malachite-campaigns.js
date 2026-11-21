@@ -79,7 +79,7 @@
     }
     var old = campaignRows().find(function (x) { return x.id === id; });
     var path = old ? old.image_path : null;
-    var videoPath = old ? old.video_path : null;
+    var videoPath = mediaType === "video" && old ? old.video_path : null;
     var uploaded = null, uploadedVideo = null;
     if (!old && !file) { alert("Crée d’abord une affiche qui servira de couverture."); return; }
     if (mediaType === "video" && !videoFile && !(old && old.video_path)) { alert("Crée la vidéo avant de publier."); return; }
@@ -108,7 +108,7 @@
         : await window.sb.from("campagnes").insert(Object.assign({ cree_par: window.me.id }, payload)).select("id").single();
       if (result.error) throw result.error;
       if (old && uploaded && old.image_path) await window.sb.storage.from("malachite-campaigns").remove([old.image_path]);
-      if (old && uploadedVideo && old.video_path) await window.sb.storage.from("malachite-campaign-media").remove([old.video_path]);
+      if (old && old.video_path && (!videoPath || uploadedVideo)) await window.sb.storage.from("malachite-campaign-media").remove([old.video_path]);
       window.malResetCampaignForm();
       await window.loadAdm();
       if (typeof window.toast === "function") window.toast("Annonce enregistrée.");
