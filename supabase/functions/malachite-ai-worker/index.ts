@@ -144,7 +144,8 @@ async function prepareReviewTasks(admin: any) {
       else draft = "Bonjour, merci d’avoir contacté le support Malachite. Votre demande a bien été prise en compte et sera examinée par notre équipe.";
       recommendation = "Brouillon préparé automatiquement. Relire et envoyer manuellement depuis le support; aucune réponse n’a été envoyée au membre.";
     }
-    const automation = { prepared_at: new Date().toISOString(), recommendation, response_draft: draft, executed_by: "malachite-ai-worker", execution: "draft_only" };
+    const previousAutomation = current.automation && typeof current.automation === "object" ? current.automation : {};
+    const automation = { ...previousAutomation, prepared_at: new Date().toISOString(), recommendation, response_draft: draft, executed_by: "malachite-ai-worker", execution: "draft_only" };
     const { error: updateError } = await admin.from("malachite_ai_review_queue")
       .update({ details: { ...current, automation }, updated_at: new Date().toISOString() })
       .eq("id", task.id).eq("status","awaiting_human");
