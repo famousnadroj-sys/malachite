@@ -466,7 +466,7 @@ const notificationActionsMigration = fs.readFileSync('supabase/migrations/202611
 for (const item of ['action_type', 'action_id', 'private.create_my_notification', 'security definer', 'user_notifications_user_created_idx']) {
   if (!notificationActionsMigration.includes(item)) throw new Error('Notification action-target migration requirement missing: ' + item);
 }
-for (const item of ['openLinkedMessage', 'back-to-site', 'p_related_user_id', 'photo ou capture du message de confirmation', 'loadedAt']) {
+for (const item of ['openLinkedMessage', 'back-to-site', 'p_related_user_id', 'Capture du SMS de confirmation de paiement', 'loadedAt']) {
   if (!memberExperience.includes(item) && !frontend.includes(item)) throw new Error('Notification navigation or performance requirement missing: ' + item);
 }
 
