@@ -8,7 +8,7 @@
     var style=document.createElement("style");
     style.id="mal-share-styles";
     style.textContent=`
-      #mal-share-launcher{position:fixed;right:16px;bottom:calc(88px + env(safe-area-inset-bottom,0px));z-index:35;display:flex;align-items:center;gap:8px;padding:11px 15px;border:0;border-radius:999px;background:linear-gradient(135deg,#D81B60,#F0457F);color:#fff;font:600 14px Inter,system-ui,sans-serif;box-shadow:0 8px 24px rgba(216,27,96,.28);cursor:pointer}
+      #mal-share-launcher{display:none!important;position:fixed;right:16px;bottom:calc(88px + env(safe-area-inset-bottom,0px));z-index:35;display:flex;align-items:center;gap:8px;padding:11px 15px;border:0;border-radius:999px;background:linear-gradient(135deg,#D81B60,#F0457F);color:#fff;font:600 14px Inter,system-ui,sans-serif;box-shadow:0 8px 24px rgba(216,27,96,.28);cursor:pointer}
       #mal-share-launcher svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
       #mal-share-overlay{position:fixed;inset:0;z-index:200;background:rgba(31,18,24,.42);display:none;align-items:flex-end;justify-content:center;padding:14px}
       #mal-share-overlay.open{display:flex}
@@ -34,6 +34,7 @@
     document.body.appendChild(btn);document.body.appendChild(overlay);
     function close(){overlay.classList.remove("open");btn.focus()}
     function open(){overlay.classList.add("open");var first=overlay.querySelector('[data-share="native"]');if(first)first.focus()}
+    window.malShareOpen=open;
     btn.addEventListener("click",open);
     overlay.addEventListener("click",function(e){if(e.target===overlay)close()});
     overlay.querySelector("#mal-share-close").addEventListener("click",close);
