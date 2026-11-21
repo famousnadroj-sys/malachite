@@ -4,6 +4,15 @@
   if (window.__malPerformanceLoaded) return;
   window.__malPerformanceLoaded = true;
 
+  // Reduce decorative work on low-memory devices and when data saving is enabled.
+  var connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  var lowMemory = typeof navigator.deviceMemory === "number" && navigator.deviceMemory <= 4;
+  var fewCores = typeof navigator.hardwareConcurrency === "number" && navigator.hardwareConcurrency <= 4;
+  var saveData = !!(connection && connection.saveData);
+  if (lowMemory || saveData || (!("deviceMemory" in navigator) && fewCores)) {
+    document.documentElement.classList.add("mal-low-power");
+  }
+
   function optimizeImage(img) {
     if (!(img instanceof HTMLImageElement)) return;
     if (!img.hasAttribute("decoding")) img.decoding = "async";
@@ -37,7 +46,7 @@
   }
 
   var style = document.createElement("style");
-  style.textContent = "@media(prefers-reduced-motion:reduce){.mal-reduced-motion *,*{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}";
+  style.textContent = "@media(prefers-reduced-motion:reduce){.mal-reduced-motion *,*{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}} html.mal-low-power #bgfx,html.mal-low-power .fxl,html.mal-low-power .cpf{display:none!important} html.mal-low-power .brand,html.mal-low-power .b1,html.mal-low-power .av,html.mal-low-power .dot,html.mal-low-power .beat,html.mal-low-power .cup,html.mal-low-power .card,html.mal-low-power .plan,html.mal-low-power .mal-own-cover:before,html.mal-low-power .mal-own-cover-caption,html.mal-low-power .mal-own-gallery img{animation:none!important;transition:none!important} html.mal-low-power nav{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}";
   document.head.appendChild(style);
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true });
   else start();
