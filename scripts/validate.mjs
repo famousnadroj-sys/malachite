@@ -147,7 +147,7 @@ for (const item of ['malachite-copilots.js', 'Malachite Pulse', 'AutoCare', 'Mal
   if (!frontend.includes(item) && !copilots.includes(item)) throw new Error('Copilot module requirement missing: ' + item);
 }
 const serviceWorkerEarly = fs.readFileSync('sw.js', 'utf8');
-if (!serviceWorkerEarly.includes('./malachite-copilots.js') || !serviceWorkerEarly.includes('malachite-static-v85')) {
+if (!serviceWorkerEarly.includes('./malachite-copilots.js') || !serviceWorkerEarly.includes('malachite-static-v86')) {
   throw new Error('Copilot module must be included in the versioned PWA cache.');
 }
 
@@ -181,6 +181,12 @@ if (!performanceGuard.includes('mal-low-power') || !performanceGuard.includes('n
 }
 
 
+if (!frontend.includes('async function resolveProfilePhotosBatch(profiles)') ||
+    !frontend.includes('Signature groupée des photos de profil') ||
+    !frontend.includes('await Promise.all([othersPhotos,loadRdv(),loadAns(),loadMyAvis()])') ||
+    !frontend.includes("if(tab==='home'||tab==='search')draw(true);")) {
+  throw new Error('Discovery must render before the grouped profile-photo signing finishes.');
+}
 const appCore = frontendScripts[0];
 if (!appCore.includes("if(keepWarmCache){sub();return;}")) throw new Error('Warm profile cache must avoid repeat full profile reloads.');
 if (!appCore.includes("if(tab!=='chat'&&!msgRealtimeReady)")) throw new Error('Message polling must be fallback-only when realtime is unavailable.');
@@ -371,7 +377,7 @@ const campaignTemp = path.join(os.tmpdir(), 'malachite-campaigns.js');
 fs.writeFileSync(campaignTemp, campaignModule);
 const campaignCheck = spawnSync(process.execPath, ['--check', campaignTemp], { encoding: 'utf8' });
 if (campaignCheck.status !== 0) { process.stderr.write(campaignCheck.stderr || campaignCheck.stdout); process.exit(campaignCheck.status || 1); }
-for (const item of ['malachite-campaigns.js', 'malachite-static-v85']) {
+for (const item of ['malachite-campaigns.js', 'malachite-static-v86']) {
   if (!frontend.includes(item) && !sw.includes(item)) throw new Error('Campaign module release requirement missing: ' + item);
 }
 for (const item of ['campagnes', 'malachite-campaigns', 'SPONSORISÉ', 'malSaveCampaign', 'loadPublicCampaigns']) {
@@ -390,7 +396,7 @@ if (performanceCheck.status !== 0) { process.stderr.write(performanceCheck.stder
 for (const item of ['malachite-performance.js', 'img.loading', 'img.decoding']) {
   if (!performanceModule.includes(item) && !frontend.includes(item)) throw new Error('Mobile performance requirement missing: ' + item);
 }
-if (!sw.includes('./malachite-campaigns.js') || !sw.includes('./malachite-performance.js') || !sw.includes('malachite-static-v85')) {
+if (!sw.includes('./malachite-campaigns.js') || !sw.includes('./malachite-performance.js') || !sw.includes('malachite-static-v86')) {
   throw new Error('Campaign and performance modules must be included in the v67 PWA cache.');
 }
 
