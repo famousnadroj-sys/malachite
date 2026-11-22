@@ -483,44 +483,20 @@ for (const item of ['drop function if exists public.create_my_notification', 'cr
 if (!memberExperience.includes("rpc('create_my_action_notification'")) throw new Error('Member notification action RPC must use its unique endpoint name.');
 
 
-// MALACHITE WORLD prototype checks (static syntax and separation; not a real-device or multiplayer test).
-const world = fs.readFileSync('world/index.html', 'utf8');
-const worldStart = world.indexOf('<script type="module">');
-const worldEnd = world.indexOf('</script>', worldStart);
-if (worldStart < 0 || worldEnd < 0 || world.indexOf('<script type="module">', worldStart + 1) >= 0) {
-  throw new Error('MALACHITE WORLD must contain exactly one module script.');
+// MALACHITE WORLD is intentionally not part of the product; no prototype checks remain.
+
+// Match must fail closed if private-intention compatibility cannot be verified.
+if (!frontend.includes('matchCompatibilityReady') ||
+    !frontend.includes('if(!matchCompatibilityReady||!Array.isArray(matchCompatibleIds))return [];') ||
+    frontend.includes('(!Array.isArray(matchCompatibleIds)||matchCompatibleIds.indexOf(p.id)>-1)')) {
+  throw new Error('Match must not display candidates when private compatibility verification fails.');
 }
-const worldTemp = path.join(os.tmpdir(), 'malachite-world-prototype.mjs');
-fs.writeFileSync(worldTemp, world.slice(worldStart + '<script type="module">'.length, worldEnd));
-const worldCheck = spawnSync(process.execPath, ['--check', worldTemp], { encoding: 'utf8' });
-if (worldCheck.status !== 0) {
-  process.stderr.write(worldCheck.stderr || worldCheck.stdout);
-  process.exit(worldCheck.status || 1);
+const matchMigration = fs.readFileSync('supabase/migrations/202611220001_malachite_match_likes.sql', 'utf8');
+if (!matchMigration.includes('and coalesce(p.profile_private, false) is false')) {
+  throw new Error('Private profiles must be excluded from Match candidate IDs.');
 }
-for (const item of [
-  'importmap',
-  'three.module.js',
-  'new THREE.WebGLRenderer',
-  'function makeAvatar()',
-  'id="joystick"',
-  'firstPerson=!firstPerson',
-  'data-place="cafe"',
-  'data-place="garden"',
-  'data-place="lounge"',
-  'data-place="live"',
-  'base=firstPerson?yaw:0',
-  'Démo visuelle',
-  'function makeAvatar()',
-  'new THREE.MeshPhysicalMaterial',
-  'Direction artistique v2',
-  'IMMERSIVE PREVIEW',
-]) {
-  if (!world.includes(item)) throw new Error('MALACHITE WORLD prototype requirement missing: ' + item);
+const matchRuntime = fs.readFileSync('supabase/tests/malachite_match_runtime.psql', 'utf8');
+if (!matchRuntime.includes("'00000000-0000-0000-0000-000000000018'")) {
+  throw new Error('Match runtime test must cover private profiles with otherwise compatible intentions.');
 }
-if (world.includes('createClient(') || world.includes('SUPABASE_URL') || world.includes('SUPABASE_ANON_KEY')) {
-  throw new Error('The visual-only prototype must not connect accounts or backend services yet.');
-}
-if (!sw.includes('new URL("./world/", self.registration.scope).pathname')) {
-  throw new Error('Service worker must not redirect the isolated MALACHITE WORLD route into the app shell.');
-}
-console.log('MALACHITE WORLD prototype syntax and separation checks passed.');
+console.log('MALACHITE validation completed.');
