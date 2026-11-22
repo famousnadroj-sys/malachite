@@ -1,7 +1,8 @@
 (function(){
   "use strict";
-  var SITE_URL=window.location.origin+window.location.pathname;
-  function getShareUrl(){if(window.location.hostname.endsWith("github.io"))return null;var user=window.me&&window.me.id;if(!user)return null;var url=new URL(SITE_URL);url.searchParams.set("ref",user);return url.toString()}
+  // URL publique canonique : partage le site aux visiteurs, jamais un espace de compte.
+  var SITE_URL="https://famousnadroj-sys.github.io/malachite/";
+  function getShareUrl(){return SITE_URL}
   var TITLE="MALACHITE";
   var DESCRIPTION="Découvre MALACHITE : fais de belles rencontres et échange avec de nouvelles personnes.";
   function init(){
