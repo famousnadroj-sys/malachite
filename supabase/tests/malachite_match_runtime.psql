@@ -169,7 +169,8 @@ begin
     ('00000000-0000-0000-0000-000000000005','00000000-0000-0000-0000-000000000001',true),
     ('00000000-0000-0000-0000-000000000006','00000000-0000-0000-0000-000000000001',true),
     ('00000000-0000-0000-0000-000000000007','00000000-0000-0000-0000-000000000001',true),
-    ('00000000-0000-0000-0000-000000000008','00000000-0000-0000-0000-000000000001',true);
+    ('00000000-0000-0000-0000-000000000008','00000000-0000-0000-0000-000000000001',true)
+  on conflict (user_id,autre) do update set ok=excluded.ok;
   alter table public.avis_match enable trigger enforce_match_daily_like_limit;
   received := public.match_received_likes();
   if (received->>'total')::integer <> 4 then raise exception 'received_like_total_incorrect: %',received; end if;
