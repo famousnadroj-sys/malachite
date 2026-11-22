@@ -154,6 +154,8 @@ begin
 
   -- Four eligible public likes are counted; only three IDs are revealed to free members.
   perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000001',true);
+  -- Seed historical likes before applying block/suspension filtering in the RPC.
+  alter table public.avis_match disable trigger enforce_match_daily_like_limit;
   insert into public.avis_match(user_id,autre,ok) values
     ('00000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000001',true),
     ('00000000-0000-0000-0000-000000000003','00000000-0000-0000-0000-000000000001',true),
@@ -162,6 +164,7 @@ begin
     ('00000000-0000-0000-0000-000000000006','00000000-0000-0000-0000-000000000001',true),
     ('00000000-0000-0000-0000-000000000007','00000000-0000-0000-0000-000000000001',true),
     ('00000000-0000-0000-0000-000000000008','00000000-0000-0000-0000-000000000001',true);
+  alter table public.avis_match enable trigger enforce_match_daily_like_limit;
   received := public.match_received_likes();
   if (received->>'total')::integer <> 4 then raise exception 'received_like_total_incorrect: %',received; end if;
   if (received->>'visible')::integer <> 3 or (received->>'locked')::integer <> 1 then
@@ -171,11 +174,13 @@ begin
 
   -- Premium sees the complete eligible list.
   perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000013',true);
+  alter table public.avis_match disable trigger enforce_match_daily_like_limit;
   insert into public.avis_match(user_id,autre,ok) values
     ('00000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000013',true),
     ('00000000-0000-0000-0000-000000000003','00000000-0000-0000-0000-000000000013',true),
     ('00000000-0000-0000-0000-000000000007','00000000-0000-0000-0000-000000000013',true),
     ('00000000-0000-0000-0000-000000000008','00000000-0000-0000-0000-000000000013',true);
+  alter table public.avis_match enable trigger enforce_match_daily_like_limit;
   received := public.match_received_likes();
   if (received->>'total')::integer <> 4 or (received->>'visible')::integer <> 4 then
     raise exception 'premium_received_likes_not_complete: %',received;
