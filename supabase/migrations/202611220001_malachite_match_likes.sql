@@ -48,7 +48,7 @@ begin
     v_new_like := coalesce(new.ok, false) and not coalesce(old.ok, false);
   end if;
 
-  if v_new_like and not private.est_premium(v_uid) then
+  if v_new_like then
     -- Serialize each member's like attempts to prevent parallel requests
     -- from exceeding the daily allowance.
     perform pg_advisory_xact_lock(hashtextextended(v_uid::text, 0));
@@ -57,12 +57,14 @@ begin
     values (v_uid, new.autre, v_day)
     on conflict (user_id, target_id, liked_on) do nothing;
 
-    select count(*)::integer into v_used
-    from private.match_daily_like_events
-    where user_id = v_uid and liked_on = v_day;
+    if not private.est_premium(v_uid) then
+      select count(*)::integer into v_used
+      from private.match_daily_like_events
+      where user_id = v_uid and liked_on = v_day;
 
-    if v_used > 10 then
-      raise exception 'match_like_limit_reached';
+      if v_used > 10 then
+        raise exception 'match_like_limit_reached';
+      end if;
     end if;
   end if;
 
@@ -152,7 +154,7 @@ begin
       and not private.is_blocked_with(a.user_id)
       and not private.is_suspended(a.user_id)
     order by lower(p.prenom)
-    limit case when v_premium then 500 else 3 end
+    limit case when v_premium then null else 3 end
   ) q;
 
   v_visible := coalesce(cardinality(v_ids), 0);
