@@ -228,10 +228,11 @@ async function loadOlderMessages(){
   msgs=older.concat(msgs).sort(function(a,b){return Number(a.id)-Number(b.id)});
   chatBeforeId=Number(older[0].id)||chatBeforeId;
   chatHasOlder=(r.data||[]).length===50;
-  await resolveMessagesMedia(older);
+  var olderMedia=older.filter(function(m){return !!m.media_url});
   if(open!==target||tab!=='chat')return;
   draw(true);
   var next=$('msgs');if(next)next.scrollTop=oldTop+(next.scrollHeight-oldHeight);
+  if(olderMedia.length)resolveMessagesMedia(olderMedia).then(function(){if(open===target&&tab==='chat')patchMessageMedia(olderMedia)}).catch(function(error){console.warn('Chargement des photos anciennes',error)});
  }catch(error){console.warn('Chargement des anciens messages Malachite',error)}
  finally{chatOlderBusy=false}
 }
@@ -488,7 +489,13 @@ async function loadChat(){
    var maxId=chatCursorId;
    incoming.forEach(function(m){var n=Number(m.id);if(Number.isFinite(n)&&n>maxId)maxId=n});
    chatCursorId=maxId;
-   if(mediaRows.length)resolveMessagesMedia(mediaRows).then(function(){if(open===current&&tab==='chat')patchMessageMedia(mediaRows)}).catch(function(error){console.warn('Chargement des médias de la conversation',error)});
+   if(mediaRows.length){
+    // Priorité aux photos des messages les plus récents, visibles en bas du fil.
+    var priorityMedia=firstLoad?mediaRows.slice(-12):mediaRows;
+    var deferredMedia=firstLoad?mediaRows.slice(0,-12):[];
+    resolveMessagesMedia(priorityMedia).then(function(){if(open===current&&tab==='chat')patchMessageMedia(priorityMedia)}).catch(function(error){console.warn('Chargement prioritaire des médias',error)});
+    if(deferredMedia.length)setTimeout(function(){if(open===current&&tab==='chat')resolveMessagesMedia(deferredMedia).then(function(){if(open===current&&tab==='chat')patchMessageMedia(deferredMedia)}).catch(function(error){console.warn('Chargement différé des médias',error)})},450);
+   }
    if(firstLoad||fresh.length){markSeen(current);updNav();markIncomingReceipts(incoming,document.visibilityState==='visible').catch(function(e){console.warn('Statut de lecture',e)})}
    loadReceiptsForRows(fresh).catch(function(e){console.warn('Statut des messages envoyés',e)});
    
@@ -606,15 +613,17 @@ async function ensureMatchNotice(id){
 }
 async function avis(ok){ans[open]=ok;await sb.from('avis_match').upsert({autre:open,ok:ok});if(ok)hearts();lastSig='';loadChat()}
 async function compressChatImage(file){
- if(!file||!/^image\/(jpeg|png|webp)$/i.test(file.type)||file.size<500*1024||!window.createImageBitmap)return {file:file,mime:file.type};
+ // Compacte les photos avant transfert, sans sacrifier la transparence PNG.
+ if(!file||!/^image\/(jpeg|png|webp)$/i.test(file.type)||file.size<180*1024||!window.createImageBitmap)return {file:file,mime:file.type};
  var bitmap=null;
  try{
   bitmap=await createImageBitmap(file);
-  var scale=Math.min(1,1600/Math.max(bitmap.width,bitmap.height));
+  var scale=Math.min(1,1280/Math.max(bitmap.width,bitmap.height));
   var canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(bitmap.width*scale));canvas.height=Math.max(1,Math.round(bitmap.height*scale));
-  var ctx=canvas.getContext('2d',{alpha:false});ctx.drawImage(bitmap,0,0,canvas.width,canvas.height);
-  var blob=await new Promise(function(resolve){canvas.toBlob(resolve,'image/webp',0.80)});
-  if(blob&&blob.size<file.size*0.9)return {file:blob,mime:'image/webp',ext:'webp'};
+  var ctx=canvas.getContext('2d',{alpha:true});if(!ctx)return {file:file,mime:file.type};
+  ctx.drawImage(bitmap,0,0,canvas.width,canvas.height);
+  var blob=await new Promise(function(resolve){canvas.toBlob(resolve,'image/webp',0.70)});
+  if(blob&&blob.type==='image/webp'&&blob.size<file.size*0.96)return {file:blob,mime:'image/webp',ext:'webp'};
  }catch(e){}finally{if(bitmap&&bitmap.close)bitmap.close()}
  return {file:file,mime:file.type};
 }
@@ -698,7 +707,7 @@ function loadTusClient(){
 }
 async function uploadChatAsset(path,file,forcedType){
  if(file.size<=6*1024*1024){
-  var standard=await sb.storage.from('chat-media').upload(path,file,{contentType:forcedType||file.type||'application/octet-stream',upsert:false,cacheControl:'3600'});
+  var standard=await sb.storage.from('chat-media').upload(path,file,{contentType:forcedType||file.type||'application/octet-stream',upsert:false,cacheControl:'31536000'});
   if(standard.error)throw standard.error;
   return standard.data;
  }
@@ -712,7 +721,7 @@ async function uploadChatAsset(path,file,forcedType){
    retryDelays:[0,1000,3000,5000,10000],
    headers:{authorization:'Bearer '+session.access_token,apikey:'sb_publishable_XDpqSzsPNeVduv6aGyjuoA_suakeFN0'},
    uploadDataDuringCreation:true,removeFingerprintOnSuccess:true,chunkSize:6*1024*1024,
-   metadata:{bucketName:'chat-media',objectName:path,contentType:forcedType||file.type||'application/octet-stream',cacheControl:'3600'},
+   metadata:{bucketName:'chat-media',objectName:path,contentType:forcedType||file.type||'application/octet-stream',cacheControl:'31536000'},
    onError:function(error){reject(error)},
    onProgress:function(sent,total){var el=$('chatUploadStatus');if(el)el.textContent='Transfert… '+Math.round(sent/total*100)+'%'},
    onSuccess:function(){resolve({path:path})}
@@ -1125,7 +1134,7 @@ async function syncIncomingDeliveries(){
  await markIncomingReceipts(r.data||[],false);
 }
 
-function bub(m,i){var pending=!!m._pending,u=!!m.display_url,j=m.media_type=='call'&&/^https:\/\/meet\.jit\.si\//.test(m.media_url||''),t=new Date(m.created_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),file=(m.media_url||'').split('/').pop()||'document';var body=u&&m.media_type=='image'?'<img alt="photo" class="pic" loading="lazy" decoding="async" onclick="viewImg(this.src,event)" src="'+esc(m.display_url)+'">':u&&m.media_type=='video'?'<video class="chat-video" controls playsinline preload="metadata" src="'+esc(m.display_url)+'"></video>':u&&m.media_type=='audio'?'<audio class="aud" controls preload="metadata" src="'+esc(m.display_url)+'"></audio><a class="ol" href="'+esc(m.display_url)+'" target="_blank" rel="noopener">Si ça ne joue pas : ouvrir le vocal</a>':u&&m.media_type=='document'?'<a class="chat-document" href="'+esc(m.display_url)+'" target="_blank" rel="noopener" download><b>📄 '+esc((m.texte||file).slice(2))+'</b><small>Télécharger le document</small></a>':j?'📹 <b>Appel vidéo indisponible temporairement</b>':esc(m.texte);return '<div class="m '+(m.de==me.id?'out':'in')+'" data-message-id="'+esc(m.id)+'" data-message-index="'+i+'" onclick="openMessageActions('+i+',event)" role="button" tabindex="0" aria-label="Options du message">'+body+'<span class="tm">'+(pending?'Envoi…':t)+receiptMarkup(m,pending)+'</span></div>'}
+function bub(m,i){var pending=!!m._pending,u=!!m.display_url,j=m.media_type=='call'&&/^https:\/\/meet\.jit\.si\//.test(m.media_url||''),t=new Date(m.created_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),file=(m.media_url||'').split('/').pop()||'document';var body=u&&m.media_type=='image'?'<img alt="photo" class="pic" loading="lazy" decoding="async" onload="this.classList.add(\'is-loaded\')" onerror="this.classList.add(\'is-broken\')" onclick="viewImg(this.src,event)" src="'+esc(m.display_url)+'">':u&&m.media_type=='video'?'<video class="chat-video" controls playsinline preload="metadata" src="'+esc(m.display_url)+'"></video>':u&&m.media_type=='audio'?'<audio class="aud" controls preload="metadata" src="'+esc(m.display_url)+'"></audio><a class="ol" href="'+esc(m.display_url)+'" target="_blank" rel="noopener">Si ça ne joue pas : ouvrir le vocal</a>':u&&m.media_type=='document'?'<a class="chat-document" href="'+esc(m.display_url)+'" target="_blank" rel="noopener" download><b>📄 '+esc((m.texte||file).slice(2))+'</b><small>Télécharger le document</small></a>':j?'📹 <b>Appel vidéo indisponible temporairement</b>':esc(m.texte);return '<div class="m '+(m.de==me.id?'out':'in')+'" data-message-id="'+esc(m.id)+'" data-message-index="'+i+'" onclick="openMessageActions('+i+',event)" role="button" tabindex="0" aria-label="Options du message">'+body+'<span class="tm">'+(pending?'Envoi…':t)+receiptMarkup(m,pending)+'</span></div>'}
 function viewImg(u,event){if(event)event.stopPropagation();var d=document.createElement('div');d.className='lbx';d.innerHTML='<button class="lx" aria-label="Fermer">✕</button><img alt="photo" src="'+esc(u)+'"><div class="lbar"><button class="b1" id="lsv">⬇ Enregistrer</button><button id="lsh">↗ Partager</button></div>';d.onclick=function(e){if(e.target===d||e.target.className=='lx')d.remove()};document.body.appendChild(d);
 $('lsv').onclick=async function(){try{var r=await fetch(u),b=await r.blob(),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='malachite-'+Date.now()+'.jpg';document.body.appendChild(a);a.click();a.remove()}catch(e){window.open(u,'_blank')}};
 $('lsh').onclick=async function(){try{var r=await fetch(u),b=await r.blob(),f=new File([b],'photo.jpg',{type:b.type||'image/jpeg'});if(navigator.canShare&&navigator.canShare({files:[f]}))await navigator.share({files:[f]});else if(navigator.share)await navigator.share({url:u});else{await navigator.clipboard.writeText(u);alert('Lien copié')}}catch(e){}}}
