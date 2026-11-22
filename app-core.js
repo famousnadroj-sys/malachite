@@ -1275,7 +1275,7 @@ async function malRetrySession(){malStartupMessage='Vérification de ta session�
 function founderDashboard(){
  if(!me||me.email!==ADM)return '<section class="card"><h2>Accès réservé</h2><p class="note">Cet espace est privé.</p></section>';
  var state=window.__malFounderOverviewState;
- if(!state){
+ if(!state||state.uid!==me.id){
   state=window.__malFounderOverviewState={status:'loading',data:null,error:null,uid:me.id};
   (async function(uid){
    try{
@@ -1302,7 +1302,7 @@ function founderDashboard(){
   var statusRows=(payments.by_status||[]).map(function(x){return '<div class="sub">'+safe(x.status)+': <b>'+number(x.count)+'</b></div>'}).join('')||'<p class="note">Aucune déclaration enregistrée.</p>';
   var offerRows=(payments.by_offer||[]).map(function(x){return '<div class="sub">'+safe(x.offer)+': <b>'+number(x.count)+'</b></div>'}).join('')||'<p class="note">Aucune offre enregistrée.</p>';
   var financeRows=finance.map(function(x){return '<article class="card"><b>'+safe(x.currency)+'</b><div class="sub">Brut confirmé : '+number(x.gross)+'</div><div class="sub">Frais : '+number(x.fees)+' · Commissions : '+number(x.commissions)+'</div><p><b>Net confirmé : '+number(x.net)+' '+safe(x.currency)+'</b></p><div class="note">'+number(x.events)+' événement(s) comptabilisé(s)</div></article>'}).join('');
-  overview='<section class="ml-search-intro"><span class="ml-auth-kicker">INDICATEURS INTERNES · PRIVÉS</span><h2>Activité et finances</h2><p>Vue agrégée du projet. Aucun profil individuel ni justificatif de paiement n’est affiché ici.</p></section>'+
+  overview='<section class="ml-search-intro"><span class="ml-auth-kicker">INDICATEURS INTERNES · PRIVÉS · STAGING</span><h2>Activité et finances</h2><p>Vue agrégée de la base de test uniquement. Ces chiffres ne représentent pas la production. Aucun profil individuel ni justificatif de paiement n’est affiché ici.</p></section>'+
    '<div class="grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:10px;margin:12px 0">'+
    '<article class="card"><div class="note">Membres inscrits</div><h2>'+number(members.total)+'</h2></article>'+
    '<article class="card"><div class="note">Déclarations de paiement</div><h2>'+number(payments.total)+'</h2></article></div>'+
