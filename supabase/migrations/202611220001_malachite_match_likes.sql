@@ -49,15 +49,17 @@ begin
   end if;
 
   if v_new_like then
-    -- Serialize each member's like attempts to prevent parallel requests
+    -- Serialize free-member like attempts to prevent parallel requests
     -- from exceeding the daily allowance.
     perform pg_advisory_xact_lock(hashtextextended(v_uid::text, 0));
 
-    insert into private.match_daily_like_events (user_id, target_id, liked_on)
-    values (v_uid, new.autre, v_day)
-    on conflict (user_id, target_id, liked_on) do nothing;
-
+    -- Premium likes must not consume the free allowance if Premium expires
+    -- later the same day.
     if not private.est_premium(v_uid) then
+      insert into private.match_daily_like_events (user_id, target_id, liked_on)
+      values (v_uid, new.autre, v_day)
+      on conflict (user_id, target_id, liked_on) do nothing;
+
       select count(*)::integer into v_used
       from private.match_daily_like_events
       where user_id = v_uid and liked_on = v_day;
