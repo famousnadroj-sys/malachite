@@ -1271,7 +1271,7 @@ body.mal-chat-mode .msg-action-sheet{border-radius:14px 14px 0 0!important}
 
 <script src="admin-push.js" defer></script>
 <script src="malachite-share.js" defer></script>
-<script src="./malachite-user-experience.js?v=20261122-chat-premium-v7" defer></script>
+<script src="./malachite-user-experience.js?v=20261122-chat-speed-v8" defer></script>
 
 <style id="malachite-messaging-premium-2026">
 /* MALACHITE conversation redesign — mature editorial rose/ivory UI */
@@ -1518,6 +1518,57 @@ body.mal-chat-mode .callbtn{background:#fff!important;color:#a43d68!important;bo
  body.mal-chat-mode .sendbar .chat-composer>button.chat-send{flex-basis:40px!important;width:40px!important;height:40px!important;min-width:40px!important}
 }
 @media(prefers-reduced-motion:reduce){body.mal-chat-mode *{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+</style>
+
+<style id="malachite-chat-layout-v8">
+body.mal-chat-mode{background:#f8f4f6!important;overflow:hidden!important}
+body.mal-chat-mode main#v{display:flex!important;flex-direction:column!important;align-items:stretch!important;width:100%!important;max-width:none!important;height:100dvh!important;max-height:100dvh!important;min-height:0!important;margin:0!important;padding:env(safe-area-inset-top,0px) 0 0!important;overflow:hidden!important;background:linear-gradient(180deg,#fff 0%,#fbf7f9 30%,#f8f4f6 100%)!important}
+body.mal-chat-mode .chtop{position:relative!important;flex:0 0 auto!important;width:100%!important;margin:0!important;padding:12px max(14px,calc((100vw - 760px)/2)) 11px!important;background:rgba(255,255,255,.97)!important;border:0!important;border-bottom:1px solid #eee2e8!important;border-radius:0!important;box-shadow:0 5px 22px rgba(57,28,43,.045)!important;backdrop-filter:blur(18px)!important}
+body.mal-chat-mode .chtop .top{display:flex!important;align-items:center!important;gap:9px!important;min-width:0!important}
+body.mal-chat-mode .chtop .top>button:not(.mal-chat-profile){display:grid!important;place-items:center!important;flex:0 0 38px!important;width:38px!important;height:38px!important;min-width:38px!important;padding:0!important;border:1px solid #eee3e9!important;border-radius:13px!important;background:#fff!important;color:#805c70!important;font-size:17px!important;box-shadow:0 2px 8px rgba(50,20,38,.04)!important}
+body.mal-chat-mode .mal-chat-profile{display:flex!important;flex:1 1 auto!important;align-items:center!important;gap:11px!important;min-width:0!important;padding:0!important;background:transparent!important;border:0!important;box-shadow:none!important;text-align:left!important}
+body.mal-chat-mode .mal-chat-profile .av{flex:0 0 44px!important;width:44px!important;height:44px!important;border:2px solid #fff!important;box-shadow:0 0 0 1px #e8cbd8,0 3px 10px rgba(65,24,45,.08)!important}
+body.mal-chat-mode .mal-chat-profile>span{display:grid!important;gap:3px!important;min-width:0!important}
+body.mal-chat-mode .mal-chat-profile b{overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;color:#30232b!important;font-size:15px!important;font-weight:750!important;letter-spacing:-.03em!important}
+body.mal-chat-mode .mal-chat-profile small{color:#967f8c!important;font-size:11px!important}
+body.mal-chat-mode .mal-chat-profile i{display:none!important}
+body.mal-chat-mode #chatTyping{flex:0 0 auto!important;margin:0!important;padding:7px 16px!important;background:#fff!important;border-bottom:1px solid #f0e7ec!important;color:#967f8c!important;font-size:11px!important}
+body.mal-chat-mode #msgs.chat{display:flex!important;flex:1 1 auto!important;flex-direction:column!important;align-items:stretch!important;gap:10px!important;width:100%!important;min-height:0!important;margin:0!important;padding:18px max(14px,calc((100vw - 760px)/2)) 22px!important;overflow-x:hidden!important;overflow-y:auto!important;overscroll-behavior:contain!important;-webkit-overflow-scrolling:touch!important;border:0!important;border-radius:0!important;background-color:#faf7f9!important;background-image:radial-gradient(rgba(171,117,145,.10) .7px,transparent .7px)!important;background-size:22px 22px!important}
+body.mal-chat-mode #msgs .dsep{align-self:center!important;width:max-content!important;max-width:90%!important;margin:8px auto 5px!important;padding:5px 12px!important;border:1px solid #eee4e9!important;border-radius:99px!important;background:rgba(255,255,255,.94)!important;color:#9a8490!important;font-size:10px!important;font-weight:700!important;letter-spacing:.04em!important;box-shadow:0 2px 8px rgba(55,25,42,.035)!important}
+body.mal-chat-mode #msgs .m{position:relative!important;width:fit-content!important;max-width:min(82%,520px)!important;margin:0!important;padding:11px 14px 8px!important;border:1px solid #eee5ea!important;border-radius:18px!important;background:#fff!important;color:#382b32!important;font-size:14px!important;line-height:1.55!important;font-weight:430!important;overflow-wrap:anywhere!important;box-shadow:0 4px 14px rgba(55,25,42,.045)!important}
+body.mal-chat-mode #msgs .m.in{align-self:flex-start!important;margin-right:auto!important;border-top-left-radius:6px!important}
+body.mal-chat-mode #msgs .m.out{align-self:flex-end!important;margin-left:auto!important;border-color:#ead3df!important;border-top-right-radius:6px!important;background:linear-gradient(145deg,#f9edf2,#f1dfe8)!important;color:#382b32!important}
+body.mal-chat-mode #msgs .m .tm{display:block!important;margin-top:5px!important;color:#a08b96!important;font-size:10px!important}
+body.mal-chat-mode #msgs .m:has(.pic){padding:7px!important;overflow:hidden!important}
+body.mal-chat-mode #msgs .m .pic{display:block!important;width:min(100%,360px)!important;max-width:100%!important;min-height:135px!important;max-height:390px!important;object-fit:contain!important;border:1px solid #eadde5!important;border-radius:12px!important;background:linear-gradient(110deg,#f1e8ed 8%,#fff8fb 18%,#f1e8ed 33%)!important;background-size:200% 100%!important;animation:malPhotoShimmer 1.25s linear infinite!important;opacity:.72!important;transition:opacity .18s ease!important}
+body.mal-chat-mode #msgs .m .pic.is-loaded{min-height:0!important;background:#f5eef2!important;animation:none!important;opacity:1!important}
+body.mal-chat-mode #msgs .m .pic.is-broken{min-height:70px!important;animation:none!important;opacity:.55!important}
+@keyframes malPhotoShimmer{to{background-position-x:-200%}}
+body.mal-chat-mode #msgs .m:has(video){padding:7px!important}
+body.mal-chat-mode #msgs .m video{display:block!important;width:100%!important;max-width:360px!important;max-height:300px!important;object-fit:contain!important;border-radius:12px!important;background:#211a1e!important}
+body.mal-chat-mode .sendbar{position:relative!important;inset:auto!important;z-index:20!important;display:block!important;flex:0 0 auto!important;width:100%!important;margin:0!important;padding:10px max(10px,calc((100vw - 760px)/2)) calc(10px + env(safe-area-inset-bottom,0px))!important;border:0!important;border-top:1px solid #eee4e9!important;border-radius:0!important;background:rgba(255,255,255,.98)!important;box-shadow:0 -7px 24px rgba(55,25,42,.045)!important;backdrop-filter:blur(18px)!important}
+body.mal-chat-mode .sendbar .chat-composer{display:flex!important;align-items:center!important;gap:7px!important;width:100%!important;max-width:760px!important;margin:0 auto!important}
+body.mal-chat-mode .sendbar .chat-composer>input.chat-hidden-file{display:none!important}
+body.mal-chat-mode .sendbar .chat-composer>button.chat-tool{display:grid!important;place-items:center!important;flex:0 0 38px!important;width:38px!important;height:40px!important;min-width:38px!important;padding:0!important;border:1px solid #f0e3e9!important;border-radius:13px!important;background:#fbf5f8!important;color:#92677b!important;font-size:17px!important;box-shadow:none!important}
+body.mal-chat-mode .sendbar .chat-composer>input#mi{display:block!important;flex:1 1 auto!important;min-width:0!important;width:0!important;height:44px!important;margin:0!important;padding:0 14px!important;border:1px solid #ece1e7!important;border-radius:15px!important;background:#fcfafb!important;color:#382b32!important;font-size:14px!important;box-shadow:none!important}
+body.mal-chat-mode .sendbar .chat-composer>input#mi:focus{border-color:#d7a4ba!important;background:#fff!important;box-shadow:0 0 0 3px rgba(168,61,104,.09)!important;outline:0!important}
+body.mal-chat-mode .sendbar .chat-composer>button.chat-send{display:grid!important;place-items:center!important;flex:0 0 42px!important;width:42px!important;height:42px!important;min-width:42px!important;padding:0!important;border:0!important;border-radius:14px!important;background:linear-gradient(145deg,#b64c79,#91345f)!important;color:#fff!important;font-size:19px!important;box-shadow:0 5px 14px rgba(150,48,90,.2)!important}
+body.mal-chat-mode .reply-preview{width:100%!important;max-width:760px!important;margin:0 auto 8px!important;padding:9px 11px!important;border:1px solid #eee1e8!important;border-left:3px solid #a83d68!important;border-radius:12px!important;background:#fff!important}
+body.mal-chat-mode .reply-preview b{color:#91345f!important}
+@media(max-width:420px){
+ body.mal-chat-mode .chtop{padding:10px 9px!important}
+ body.mal-chat-mode .chtop .top{gap:7px!important}
+ body.mal-chat-mode .mal-chat-profile .av{flex-basis:40px!important;width:40px!important;height:40px!important}
+ body.mal-chat-mode #msgs.chat{padding:15px 10px 18px!important;gap:9px!important}
+ body.mal-chat-mode #msgs .m{max-width:89%!important;padding:10px 11px 7px!important;font-size:13.5px!important}
+ body.mal-chat-mode #msgs .m .pic{max-height:330px!important}
+ body.mal-chat-mode .sendbar{padding:9px 8px calc(9px + env(safe-area-inset-bottom,0px))!important}
+ body.mal-chat-mode .sendbar .chat-composer{gap:6px!important}
+ body.mal-chat-mode .sendbar .chat-composer>button.chat-tool{flex-basis:34px!important;width:34px!important;height:38px!important;min-width:34px!important}
+ body.mal-chat-mode .sendbar .chat-composer>input#mi{height:42px!important;padding:0 11px!important;font-size:13px!important}
+ body.mal-chat-mode .sendbar .chat-composer>button.chat-send{flex-basis:40px!important;width:40px!important;height:40px!important;min-width:40px!important}
+}
+@media(prefers-reduced-motion:reduce){body.mal-chat-mode #msgs .m .pic{animation:none!important}}
 </style>
 </body>
 </html>
