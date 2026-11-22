@@ -312,7 +312,7 @@ async function load(){
   blocked=tasks[0].error?[]:(tasks[0].data||[]);blockedProfiles=tasks[1].error?[]:(tasks[1].data||[]);
   st={};(tasks[2].data||[]).forEach(function(x){st[x.user_id]=x});NUM='';ORANGE='';(tasks[3].data||[]).forEach(function(x){if(x.cle==='airtel')NUM=x.valeur||'';if(x.cle==='orange')ORANGE=x.valeur||''});
   if(tab==='home'||tab==='search')draw(true);
-  await Promise.all([othersPhotos,loadRdv(),loadAns(),loadMyAvis()]);
+  await Promise.all([othersPhotos,loadRdv(),loadAns(),loadMyAvis(),loadMatchData()]);
   if(seq!==loadSeq||!me||me.id!==uid)return;
   if(tab==='home'||tab==='search')draw(true);
  })();
@@ -432,7 +432,7 @@ function discoverCard(p){
 }
 function home(){
  var o=others();
- return '<section class="mal-discover-top"><div><span class="ml-auth-kicker">MALACHITE · HAUT-KATANGA</span><h1>Les rencontres commencent <i>ici.</i></h1><p>Découvre les membres de Malachite à Lubumbashi.</p></div><div class="mal-discover-count"><b>'+o.length+'</b><small>membre'+(o.length>1?'s':'')+'</small></div></section>'+malPublicCampaignMarkup()+'<div class="mal-discover-photo-strip"><img src="https://images.pexels.com/photos/32103487/pexels-photo-32103487/free-photo-of-happy-african-couple-enjoying-time-together-outdoors.jpeg?auto=compress&amp;cs=tinysrgb&amp;w=900" alt="Couple africain partageant un moment complice dans un café" loading="eager"><img src="https://images.pexels.com/photos/9705741/pexels-photo-9705741.jpeg?auto=compress&amp;cs=tinysrgb&amp;w=900" alt="Couple africain riant ensemble" loading="lazy"><img src="https://images.pexels.com/photos/35752214/pexels-photo-35752214/free-photo-of-group-of-happy-african-people-outdoors.png?auto=compress&amp;cs=tinysrgb&amp;w=900" alt="Amis africains réunis et souriants en plein air" loading="lazy"><img src="https://images.pexels.com/photos/9705732/pexels-photo-9705732.jpeg?auto=compress&amp;cs=tinysrgb&amp;w=900" alt="Famille africaine partageant un moment chaleureux" loading="lazy"></div><div class="mal-discover-section-head"><div><span class="ml-auth-kicker">À RENCONTRER</span><h2>Les membres</h2><p>Fais défiler les profils de gauche à droite.</p></div><button class="b1" onclick="qreset()">Tout découvrir →</button></div><div class="mal-discover-carousel" aria-label="Profils des membres">'+(o.length?o.map(discoverCard).join(''):'<div class="box" style="min-width:100%;text-align:center"><b>Les premières rencontres arrivent bientôt.</b><p class="note">Les profils des membres apparaîtront ici dès leur inscription.</p></div>')+'</div><div class="mal-discover-footer"><span>📍 Lubumbashi · Haut-Katanga</span><span>Les portraits du bandeau sont des images d’illustration.</span></div>'+mascotHint();
+ return '<section class="mal-discover-top"><div><span class="ml-auth-kicker">MALACHITE · HAUT-KATANGA</span><h1>Les rencontres commencent <i>ici.</i></h1><p>Découvre les membres de Malachite à Lubumbashi.</p></div><div class="mal-discover-count"><b>'+o.length+'</b><small>membre'+(o.length>1?'s':'')+'</small></div></section>'+malPublicCampaignMarkup()+'<div class="mal-discover-photo-strip"><img src="https://images.pexels.com/photos/32103487/pexels-photo-32103487/free-photo-of-happy-african-couple-enjoying-time-together-outdoors.jpeg?auto=compress&amp;cs=tinysrgb&amp;w=900" alt="Couple africain partageant un moment complice dans un café" loading="eager"><img src="https://images.pexels.com/photos/9705741/pexels-photo-9705741.jpeg?auto=compress&amp;cs=tinysrgb&amp;w=900" alt="Couple africain riant ensemble" loading="lazy"><img src="https://images.pexels.com/photos/35752214/pexels-photo-35752214/free-photo-of-group-of-happy-african-people-outdoors.png?auto=compress&amp;cs=tinysrgb&amp;w=900" alt="Amis africains réunis et souriants en plein air" loading="lazy"><img src="https://images.pexels.com/photos/9705732/pexels-photo-9705732.jpeg?auto=compress&amp;cs=tinysrgb&amp;w=900" alt="Famille africaine partageant un moment chaleureux" loading="lazy"></div><div class="mal-discover-section-head"><div><span class="ml-auth-kicker">À RENCONTRER</span><h2>Les membres</h2><p>Fais défiler les profils de gauche à droite.</p></div><button class="b1" onclick="qreset()">Tout découvrir →</button></div><div class="mal-discover-carousel" aria-label="Profils des membres">'+(o.length?o.map(discoverCard).join(''):'<div class="box" style="min-width:100%;text-align:center"><b>Les premières rencontres arrivent bientôt.</b><p class="note">Les profils des membres apparaîtront ici dès leur inscription.</p></div>')+'</div>'+matchExperience()+'<div class="mal-discover-footer"><span>📍 Lubumbashi · Haut-Katanga</span><span>Les portraits du bandeau sont des images d’illustration.</span></div>'+mascotHint();
 }
 function prof(id){return profs.filter(function(p){return p.id==id})[0]}
 async function loadChat(){
@@ -844,12 +844,54 @@ function celebrate(){var d=document.createElement('div');d.className='wel';d.inn
 document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('button,.btn');if(!b)return;var h=document.createElement('span');h.className='mh';h.textContent='💗';h.style.left=(e.clientX-10)+'px';h.style.top=(e.clientY-10)+'px';document.body.appendChild(h);setTimeout(function(){h.remove()},900)});
 var ans={},ICE=['Salut ! Tu es de quelle commune ? 😊','Rumba ou Ndombolo ? 🎶','Ton plat congolais préféré ?','Un week-end idéal à Lubumbashi, ça ressemble à quoi ?','Karibu ! Comment s’est passée ta journée ?'];
 async function loadAns(){var r=await sb.from('avis_match').select('autre,ok');ans={};(r.data||[]).forEach(function(x){ans[x.autre]=x.ok})}
+var matchQuota=null,receivedLikesData=null,matchLikesBusy=false;
+async function loadMatchData(){
+ var results=await Promise.all([sb.rpc('match_like_quota'),sb.rpc('match_received_likes')]);
+ matchQuota=results[0]&&!results[0].error?results[0].data:null;
+ receivedLikesData=results[1]&&!results[1].error?results[1].data:null;
+}
+function matchQuotaMarkup(){
+ if(!matchQuota)return '<span class="note">Limite quotidienne vérifiée au moment du like.</span>';
+ if(matchQuota.premium)return '<span class="chip">👑 Premium · Likes illimités</span>';
+ return '<span class="note">'+Number(matchQuota.remaining||0)+' likes gratuits restants aujourd’hui · 10 maximum</span>';
+}
+function matchExperience(){
+ var total=Number(receivedLikesData&&receivedLikesData.total||0),visible=Number(receivedLikesData&&receivedLikesData.visible||0),locked=Number(receivedLikesData&&receivedLikesData.locked||0);
+ return '<section class="mal-match-experience" style="margin:24px 0;padding:18px;border:1px solid #f0d5e0;border-radius:22px;background:linear-gradient(145deg,#fff8fb,#fff)"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><span class="ml-auth-kicker">MALACHITE MATCH</span><h2 style="margin:4px 0">Une belle rencontre, peut-être. 💗</h2><p class="note" style="margin:0">Découvre les profils, aime ceux qui t’intéressent et attends un intérêt réciproque.</p></div><div style="text-align:right;min-width:120px">'+matchQuotaMarkup()+'</div></div>'+deck()+'<button type="button" class="b1" style="width:100%;margin-top:12px" onclick="openReceivedLikes()">💌 Likes reçus · '+total+(locked?' · '+locked+' masqués':'')+'</button>'+(locked?'<p class="note" style="text-align:center;margin:7px 0 0">'+visible+' aperçu'+(visible>1?'s':'')+' gratuit'+(visible>1?'s':'')+' · Premium pour voir toute la liste.</p>':'')+'</section>';
+}
+async function openReceivedLikes(){
+ if(matchLikesBusy)return;matchLikesBusy=true;
+ try{
+  var r=await sb.rpc('match_received_likes');if(r.error)throw r.error;
+  receivedLikesData=r.data||{};var ids=receivedLikesData.ids||[],rows=ids.map(function(id){return prof(id)}).filter(Boolean);
+  var d=document.createElement('div');d.className='wel';d.style.zIndex='9999';
+  d.innerHTML='<div class="box list" style="width:min(100%,520px);max-height:82vh;overflow:auto;text-align:left"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div><span class="ml-auth-kicker">MALACHITE MATCH</span><h2 style="margin:4px 0">Les personnes intéressées 💗</h2></div><button type="button" aria-label="Fermer" onclick="this.closest(\'.wel\').remove()">✕</button></div><p class="note">'+(receivedLikesData.premium?'Voici toutes les personnes qui ont aimé ton profil.': 'Voici un aperçu gratuit. Premium permet de consulter la liste complète.')+'</p>'+(rows.length?'<div class="list">'+rows.map(function(p){return '<button type="button" class="conv" style="text-align:left" onclick="this.closest(\'.wel\').remove();viewProf(\''+esc(p.id)+'\')">'+av(p)+'<span style="margin-left:10px"><b>'+esc(p.prenom||'Membre')+(p.age?', '+esc(p.age):'')+'</b><small class="sub" style="display:block">'+esc(p.commune||'Lubumbashi')+'</small></span><span style="margin-left:auto">Voir →</span></button>'}).join('')+'</div>':'<p class="note">Aucun like reçu pour le moment. Quand quelqu’un aimera ton profil, tu le verras ici.</p>')+(receivedLikesData.locked?'<div class="box" style="margin-top:12px"><b>'+Number(receivedLikesData.locked)+' autres personnes</b><p class="note">Passe à Premium pour découvrir toute la liste.</p><button class="b1" onclick="this.closest(\'.wel\').remove();go(\'offres\')">Découvrir Premium</button></div>':'')+'<button style="width:100%;margin-top:12px" onclick="this.closest(\'.wel\').remove()">Fermer</button></div>';
+  d.addEventListener('click',function(e){if(e.target===d)d.remove()});document.body.appendChild(d);
+ }catch(e){alert('Impossible de charger les likes reçus. Réessaie dans un instant.');console.warn('Likes reçus',e)}
+ finally{matchLikesBusy=false}
+}
+
 function ice(i){var m=$('mi');if(m){m.value=ICE[i];m.focus()}}
 function affs(p){if(!mine)return -1;var a=(mine.interets||[]).map(function(y){return y.toLowerCase()}),sh=(p.interets||[]).filter(function(x){return a.indexOf(x.toLowerCase())>-1}).length;return Math.min(98,50+Math.min(sh,4)*12+(mine.commune==p.commune?10:0))}
 function meter(){var m=mine||{},n=[ph.length,m.bio,(m.interets||[]).length,m.profession,priv.telephone].filter(Boolean).length,pc=n*20;return '<div class="meter"><div style="display:flex;justify-content:space-between"><b>Profil complété à '+pc+' %</b><span>'+(pc==100?'🏆':'💗')+'</span></div><div class="bar"><i style="width:'+pc+'%"></i></div>'+(pc<100?'<div class="note">Complète ton profil pour mieux te faire connaître.</div>':'')+'</div>'}
 function cands(){return others().filter(function(p){return ans[p.id]===undefined}).sort(function(a,b){return sc(b)-sc(a)})}
 function deck(){var c=cands()[0];if(!c)return '<div class="box" style="text-align:center;margin-top:12px">Plus de nouveaux profils pour l’instant 💫<div class="note">Reviens bientôt, ou invite tes amis !</div></div>';var f=c.photoUrls&&c.photoUrls[0],locked=!!c.profile_private;return '<div class="dk"><div class="dcard'+(on((st[c.id]||{}).premium_until)?' vipc':'')+'" id="dc" data-id="'+c.id+'"><div class="dph" style="'+(f?'background-image:url('+esc(f)+')':'')+'">'+(f?'':'<span>'+esc((c.prenom||'?')[0])+'</span>')+'</div><div class="dinfo"><div class="nm" style="font-size:22px">'+esc(c.prenom)+(locked?'':(c.age?', '+esc(c.age):''))+'</div>'+(locked?'<div class="sub">Profil privé</div>':'<div class="sub">'+esc(c.commune||'')+(c.profession?' · '+esc(c.profession):'')+'</div>'+aff(c)+'<p style="margin:6px 0">'+esc(c.bio||'')+'</p>'+qaHtml(c)+'<div>'+(c.interets||[]).map(function(x){return '<span class="chip">'+esc(x)+'</span>'}).join('')+'</div>')+'</div></div><div class="dbtn"><button onclick="swipe(-1)" aria-label="Passer">✖</button><button class="yes" onclick="swipe(1)" aria-label="J’aime">💗</button></div><p class="note" style="text-align:center">Glisse à droite pour aimer, à gauche pour passer.</p></div>'}
-async function swipe(d){try{navigator.vibrate&&navigator.vibrate(d>0?[20,40,20]:10)}catch(e){}var el=$('dc');if(!el||el.dataset.busy)return;el.dataset.busy=1;var id=el.dataset.id;el.style.transition='transform .35s,opacity .35s';el.style.transform='translateX('+(d*130)+'vw) rotate('+(d*25)+'deg)';el.style.opacity=0;if(d>0)hearts();ans[id]=d>0;await sb.from('avis_match').upsert({autre:id,ok:d>0});if(d>0){var m=await sb.rpc('est_match',{p_autre:id});if(m.data){cel[id]=1;celebrate()}}setTimeout(function(){draw(true)},250)}
+async function swipe(d){
+ try{navigator.vibrate&&navigator.vibrate(d>0?[20,40,20]:10)}catch(e){}
+ var el=$('dc');if(!el||el.dataset.busy)return;
+ var id=el.dataset.id;el.dataset.busy='1';
+ if(d>0&&matchQuota&&!matchQuota.premium&&Number(matchQuota.remaining)<=0){el.dataset.busy='';alert('Tu as utilisé tes 10 likes gratuits du jour. Premium permet des likes illimités.');return}
+ var saved=await sb.from('avis_match').upsert({autre:id,ok:d>0},{onConflict:'user_id,autre'});
+ if(saved.error){
+  el.dataset.busy='';await loadMatchData();
+  var message=/match_like_limit_reached/.test(saved.error.message)?'Tu as utilisé tes 10 likes gratuits du jour. Passe à Premium pour continuer.':'Ton choix n’a pas été enregistré. Vérifie ta connexion et réessaie.';
+  alert(message);draw(true);return;
+ }
+ ans[id]=d>0;
+ el.style.transition='transform .35s,opacity .35s';el.style.transform='translateX('+(d*130)+'vw) rotate('+(d*25)+'deg)';el.style.opacity=0;
+ if(d>0){hearts();await loadMatchData();var m=await sb.rpc('est_match',{p_autre:id});if(m.data){cel[id]=1;celebrate()}}
+ setTimeout(function(){draw(true)},250)
+}
 function bindDrag(){var el=$('dc');if(!el)return;var x0=null;el.onpointerdown=function(e){x0=e.clientX;try{el.setPointerCapture(e.pointerId)}catch(z){}el.style.transition='none'};el.onpointermove=function(e){if(x0===null)return;var dx=e.clientX-x0;el.style.transform='perspective(900px) translateX('+dx+'px) rotate('+dx/18+'deg) rotateY('+dx/14+'deg)';el.classList.toggle('lk',dx>40);el.classList.toggle('ps',dx<-40)};el.onpointerup=function(e){if(x0===null)return;var dx=e.clientX-x0;x0=null;if(Math.abs(dx)>90)swipe(dx>0?1:-1);else{el.style.transition='transform .25s';el.style.transform='';el.classList.remove('lk','ps')}}}
 var INT=['Musique','Cuisine','Voyage','Football','Église','Cinéma','Lecture','Business','Danse','Mode','Photo','Sport'],REL=['Relation sérieuse','Mariage','Amitié','On verra'],COM=['Lubumbashi','Kampemba','Katuba','Kenya','Rwashi','Annexe'];
 function toks(t){return (String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').match(/[a-z]{5,}/g)||[]).map(function(w){return w.slice(0,5)})}
