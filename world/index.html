@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f7dce7"><meta name="description" content="MALACHITE WORLD — prototype immersif de rencontre et d'exploration.">
+<title>MALACHITE WORLD · Prototype 01</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<style>
+:root{--rose:#d85c88;--deep:#702b4b;--cream:#fffaf7;--glass:rgba(255,250,247,.82);--line:rgba(255,255,255,.7)}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#f6dce5;color:#53253a;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif}#world{position:fixed;inset:0;display:block;width:100%;height:100%;touch-action:none}
+#loading{position:fixed;inset:0;display:grid;place-items:center;background:linear-gradient(145deg,#f8e6eb,#f3cbd9 55%,#fff8f4);z-index:30;text-align:center;padding:24px;transition:opacity .5s}
+.load-card{max-width:330px}.mark{width:64px;height:64px;margin:auto auto 16px;border-radius:22px;background:linear-gradient(145deg,#d85c88,#9b4168);color:white;display:grid;place-items:center;font:700 35px Georgia;box-shadow:0 14px 40px #8f3d5c35}.load-title{font:600 25px Georgia;letter-spacing:.12em}.load-sub{font-size:12px;letter-spacing:.18em;color:#9a5570;margin-top:6px}.load-track{height:4px;background:#e8c4d1;border-radius:9px;margin-top:24px;overflow:hidden}.load-track i{display:block;width:35%;height:100%;background:#b64e77;animation:load 1.4s ease-in-out infinite}@keyframes load{to{transform:translateX(300%)}}#fallback{display:none;position:fixed;inset:0;background:radial-gradient(ellipse at 50% 60%,#fff2f4 0,#e9c1d1 50%,#c78ca7 100%);overflow:hidden}
+.topbar{position:fixed;z-index:5;top:max(14px,env(safe-area-inset-top));left:14px;right:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;pointer-events:none}.brand,.top-actions>*{pointer-events:auto}.brand{display:flex;align-items:center;gap:10px;background:var(--glass);border:1px solid var(--line);backdrop-filter:blur(18px);padding:9px 13px;border-radius:18px;box-shadow:0 8px 28px #69304b18}.brand-mark{width:32px;height:32px;border-radius:11px;background:linear-gradient(145deg,#d85c88,#9b4168);display:grid;place-items:center;color:white;font:700 20px Georgia}.brand strong{display:block;font:600 14px Georgia;letter-spacing:.13em}.brand small{display:block;color:#9c637a;font-size:9px;letter-spacing:.16em;margin-top:2px}.top-actions{display:flex;gap:7px}.glass-btn{border:1px solid var(--line);background:var(--glass);backdrop-filter:blur(16px);color:#713a53;border-radius:14px;padding:10px 13px;font-size:12px;font-weight:700;box-shadow:0 7px 22px #69304b16}
+.panel{position:fixed;z-index:5;left:14px;top:94px;width:min(260px,calc(100vw - 28px));background:var(--glass);border:1px solid var(--line);border-radius:22px;padding:15px;backdrop-filter:blur(18px);box-shadow:0 12px 35px #69304b1c}.eyebrow{font-size:9px;letter-spacing:.2em;color:#a45c7a;font-weight:800}.panel h1{font:600 22px/1.1 Georgia;margin:7px 0 6px;color:#602a43}.panel p{font-size:11px;line-height:1.5;color:#81576a;margin:0 0 13px}.place-list{display:grid;gap:7px}.place{display:flex;align-items:center;gap:9px;border:1px solid #edd2dc;background:#fff9f8d9;border-radius:13px;padding:9px;text-align:left;color:#69354d;font-weight:700;font-size:11px}.place .ico{width:29px;height:29px;display:grid;place-items:center;background:#f8e5eb;border-radius:10px;font-size:16px}.place small{display:block;color:#a16d82;font-size:9px;font-weight:500;margin-top:2px}.place.active{border-color:#d77b9b;background:#fff0f4}
+.hud{position:fixed;z-index:5;left:50%;bottom:max(15px,env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;gap:8px;align-items:center;background:var(--glass);border:1px solid var(--line);border-radius:19px;padding:8px;backdrop-filter:blur(18px);box-shadow:0 10px 30px #69304b20;max-width:calc(100vw - 24px)}.hud button{border:0;border-radius:13px;background:#f8e7ed;color:#713a53;padding:11px 13px;font-size:11px;font-weight:800;white-space:nowrap}.hud button.primary{background:linear-gradient(135deg,#d85c88,#a94a72);color:#fff}.hud button.selected{background:#7c3655;color:#fff}
+.status{position:fixed;z-index:5;right:15px;top:94px;background:var(--glass);border:1px solid var(--line);border-radius:15px;padding:9px 12px;backdrop-filter:blur(15px);font-size:10px;color:#82556b}.status b{color:#4d9a71}.hint{position:fixed;z-index:5;left:50%;bottom:86px;transform:translateX(-50%);padding:8px 12px;background:#fffaf0d9;border:1px solid #fff;border-radius:99px;color:#795065;font-size:10px;white-space:nowrap;backdrop-filter:blur(10px)}
+#joystick{position:fixed;z-index:6;left:18px;bottom:90px;width:116px;height:116px;border-radius:50%;background:#fff8;border:1px solid #fff;backdrop-filter:blur(8px);display:none;touch-action:none}#stick{position:absolute;width:48px;height:48px;left:33px;top:33px;border-radius:50%;background:linear-gradient(145deg,#d85c88,#9b4168);box-shadow:0 4px 12px #79324d55;border:2px solid #fff}
+.modal{position:fixed;z-index:12;inset:0;display:none;place-items:center;background:#35152355;padding:20px;backdrop-filter:blur(6px)}.modal.show{display:grid}.modal-card{width:min(360px,100%);background:#fffaf7;border:1px solid white;border-radius:24px;padding:21px;box-shadow:0 20px 70px #38182c45}.modal-card h2{font:600 24px Georgia;margin:7px 0}.modal-card p{font-size:13px;line-height:1.6;color:#80576b}.modal-card button{width:100%;border:0;border-radius:13px;background:#a94a72;color:white;padding:13px;font-weight:800;margin-top:8px}
+.toast{position:fixed;z-index:15;top:82px;left:50%;transform:translateX(-50%);background:#fffaf7;border:1px solid white;border-radius:14px;padding:10px 15px;font-size:12px;color:#713a53;box-shadow:0 8px 25px #69304b25;display:none;max-width:90vw;text-align:center}.toast.show{display:block;animation:pop .25s}@keyframes pop{from{opacity:0;transform:translate(-50%,-8px)}}
+.fallback-scene{position:absolute;inset:0;background:linear-gradient(#e9c7d3 0%,#f9e8e9 45%,#d6a9bb 46%,#bd829e 100%)}.fallback-scene:before{content:"";position:absolute;left:15%;right:15%;bottom:12%;height:40%;border-radius:50% 50% 8% 8%;background:linear-gradient(135deg,#fff4ee,#d8a4b9);box-shadow:0 0 80px #fff8}.fallback-label{position:absolute;top:42%;left:50%;transform:translate(-50%,-50%);font:28px Georgia;color:#773d58;text-shadow:0 2px white}
+@media(min-width:800px){.panel{top:105px;left:22px;width:275px}.status{right:22px;top:105px}.hud{bottom:24px}.hint{bottom:92px}#joystick{display:none!important}}
+@media(max-width:560px){.topbar{left:9px;right:9px}.brand{padding:7px 9px}.brand-mark{width:29px;height:29px}.brand strong{font-size:12px}.top-actions .glass-btn{padding:9px 10px}.panel{top:80px;left:9px;width:205px;padding:11px;border-radius:18px}.panel h1{font-size:18px}.panel p{font-size:10px;margin-bottom:8px}.place{padding:7px;gap:7px}.place .ico{width:25px;height:25px}.status{top:80px;right:9px;font-size:9px;padding:7px}.hud{bottom:max(12px,env(safe-area-inset-bottom));gap:5px;padding:6px}.hud button{padding:10px 9px;font-size:10px}.hint{bottom:77px;font-size:9px}#joystick{display:block}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
+</head>
+<body>
+<canvas id="world" aria-label="Monde 3D de démonstration MALACHITE"></canvas>
+<div id="fallback"><div class="fallback-scene"><div class="fallback-label">MALACHITE WORLD</div></div></div>
+<div id="loading"><div class="load-card"><div class="mark">M</div><div class="load-title">MALACHITE WORLD</div><div class="load-sub">UN MONDE À EXPLORER ENSEMBLE</div><div class="load-track"><i></i></div><p style="font-size:11px;color:#98647a;margin-top:14px">Préparation de votre univers…</p></div></div>
+<div class="topbar"><div class="brand"><div class="brand-mark">M</div><div><strong>MALACHITE</strong><small>WORLD · PROTOTYPE 01</small></div></div><div class="top-actions"><button class="glass-btn" id="soundBtn">♫ Ambiance : oui</button><button class="glass-btn" id="exitBtn">Quitter ↗</button></div></div>
+<aside class="panel"><div class="eyebrow">BIENVENUE DANS TON UNIVERS</div><h1>La place centrale</h1><p>Explore ce premier lieu, approche-toi des portails et découvre les espaces de MALACHITE.</p><div class="place-list">
+<button class="place active" data-place="plaza"><span class="ico">✧</span><span>Place centrale<small>Le cœur du monde</small></span></button>
+<button class="place" data-place="cafe"><span class="ico">☕</span><span>Café des rencontres<small>Faire connaissance</small></span></button>
+<button class="place" data-place="garden"><span class="ico">❀</span><span>Jardin de l'amitié<small>Se détendre et échanger</small></span></button>
+<button class="place" data-place="lounge"><span class="ico">♧</span><span>Salon privé<small>Espace personnel · aperçu</small></span></button>
+<button class="place" data-place="live"><span class="ico">♫</span><span>Scène MALACHITE LIVE<small>Événements · aperçu</small></span></button>
+</div></aside>
+<div class="status">● <b>Prototype local</b> · 1 explorateur</div>
+<div class="hint" id="hint">Glisse pour regarder · utilise le joystick pour avancer</div>
+<div id="joystick"><div id="stick"></div></div>
+<div class="hud"><button id="modeBtn">Vue : 3e personne</button><button id="interactBtn" class="primary">Explorer ✧</button><button id="homeBtn">⌂ Recentrer</button></div>
+<div class="modal" id="modal"><div class="modal-card"><div class="eyebrow">MALACHITE WORLD · DÉCOUVERTE</div><h2 id="modalTitle">Bienvenue</h2><p id="modalText">Explore le monde.</p><button id="modalClose">Continuer l'exploration</button></div></div>
+<div class="toast" id="toast"></div>
+<script type="module">
+const $=s=>document.querySelector(s), toast=t=>{const el=$('#toast');el.textContent=t;el.classList.add('show');clearTimeout(window._toastTimer);window._toastTimer=setTimeout(()=>el.classList.remove('show'),2400)};
+let THREE,renderer,scene,camera,player,avatarRoot,clock,firstPerson=false,activePlace='plaza',soundOn=true,started=false;
+const keys={},velocity={x:0,z:0},move={x:0,z:0},touch={active:false,x:0,y:0},portals={};
+const placeInfo={
+ plaza:{title:'La place centrale',text:'Tu es au cœur de MALACHITE WORLD. C’est le point de départ pour explorer les différents espaces.',pos:[0,0,0]},
+ cafe:{title:'Le Café des rencontres',text:'Un espace imaginé pour faire connaissance, discuter et partager des jeux de questions. Les conversations multijoueurs ne sont pas encore connectées dans ce prototype.',pos:[-13,0,-13]},
+ garden:{title:'Le Jardin de l’amitié',text:'Un jardin paisible pour rencontrer des amis, découvrir des activités et prendre le temps d’échanger.',pos:[13,0,-13]},
+ lounge:{title:'Les salons privés',text:'La prochaine étape permettra de créer des salons personnels et de choisir qui peut y entrer. Cette porte est une prévisualisation.',pos:[-13,0,13]},
+ live:{title:'La scène MALACHITE LIVE',text:'Une future scène pour les événements, les talents et les soirées communautaires. Aucun flux en direct n’est activé ici.',pos:[13,0,13]}
+};
+function material(color,rough=.72,metal=0){return new THREE.MeshStandardMaterial({color,roughness:rough,metalness:metal})}
+function box(w,h,d,mat,x,y,z,group=scene){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;group.add(o);return o}
+function sphere(r,mat,x,y,z,group=scene){const o=new THREE.Mesh(new THREE.SphereGeometry(r,18,14),mat);o.position.set(x,y,z);o.castShadow=true;group.add(o);return o}
+function cylinder(rt,rb,h,mat,x,y,z,group=scene){const o=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,24),mat);o.position.set(x,y,z);o.castShadow=true;group.add(o);return o}
+function makeTree(x,z,scale=1){const g=new THREE.Group();g.position.set(x,0,z);g.scale.setScalar(scale);cylinder(.16,.22,1.5,material('#8b5b59'),0,.75,0,g);for(let i=0;i<4;i++)sphere(.7-i*.08,material(i%2?'#9d9b82':'#b6b59b'),0,1.65+i*.32,0,g);scene.add(g)}
+function makeLamp(x,z){cylinder(.055,.08,2.5,material('#8d6274',.4,.35),x,1.25,z);sphere(.22, new THREE.MeshStandardMaterial({color:'#fff1d6',emissive:'#f5c5d4',emissiveIntensity:1.4}),x,2.55,z)}
+function makeAvatar(){
+ const g=new THREE.Group();const skin=material('#c98770'),shirt=material('#9d4d70'),pants=material('#554454'),hair=material('#30242a');
+ sphere(.27,skin,0,1.55,0,g);sphere(.28,hair,0,1.72,-.035,g);box(.48,.62,.28,shirt,0,1.05,0,g);
+ const armGeo=new THREE.CapsuleGeometry(.075,.42,4,8);for(const side of [-1,1]){const arm=new THREE.Mesh(armGeo,shirt);arm.position.set(side*.32,1.08,0);arm.rotation.z=side*.12;g.add(arm);const leg=new THREE.Mesh(new THREE.CapsuleGeometry(.09,.48,4,8),pants);leg.position.set(side*.13,.38,0);g.add(leg)}
+ g.position.set(0,0,5);scene.add(g);return g;
+}
+function makePortal(id,x,z,label,accent){const g=new THREE.Group();g.position.set(x,0,z);const stone=material('#fff4ed'),pink=material(accent,.35,.12),gold=material('#d6ad91',.3,.5);
+ const left=box(.35,3.6,.55,stone,-1.15,1.8,0,g),right=box(.35,3.6,.55,stone,1.15,1.8,0,g),top=box(2.65,.38,.58,stone,0,3.55,0,g);
+ const arch=new THREE.Mesh(new THREE.TorusGeometry(1.15,.15,12,40,Math.PI),pink);arch.position.set(0,2.9,.05);g.add(arch);
+ box(1.6,.09,.68,gold,0,.12,0,g);const glow=new THREE.PointLight(accent,1.3,7);glow.position.set(0,2,1.3);g.add(glow);
+ const sign=box(1.7,.43,.12,pink,0,4.05,.15,g);const labelMesh=makeText(label);labelMesh.position.set(0,4.05,.23);g.add(labelMesh);
+ scene.add(g);portals[id]=g;
+}
+function makeText(txt){const c=document.createElement('canvas');c.width=512;c.height=128;const ctx=c.getContext('2d');ctx.fillStyle='#fff8f5';ctx.font='bold 42px Georgia';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(txt,256,64);const tex=new THREE.CanvasTexture(c);const m=new THREE.Mesh(new THREE.PlaneGeometry(1.55,.38),new THREE.MeshBasicMaterial({map:tex,transparent:true}));return m}
+function build(){
+ scene=new THREE.Scene();scene.background=new THREE.Color('#ead0d9');scene.fog=new THREE.FogExp2('#ead0d9',.012);
+ camera=new THREE.PerspectiveCamera(58,innerWidth/innerHeight,.1,180);camera.position.set(0,5,10);
+ renderer=new THREE.WebGLRenderer({canvas:$('#world'),antialias:!matchMedia('(max-width:600px)').matches,alpha:false,powerPreference:'low-power'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=innerWidth>650;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;
+ const hemi=new THREE.HemisphereLight('#fff7f1','#9d7185',2.1);scene.add(hemi);const sun=new THREE.DirectionalLight('#fff0e2',2.5);sun.position.set(-18,28,14);sun.castShadow=innerWidth>650;sun.shadow.mapSize.set(1024,1024);scene.add(sun);
+ const ground=box(100,.5,100,material('#d9c4bd'),0,-.35,0);ground.receiveShadow=true;
+ const plaza= new THREE.Mesh(new THREE.CircleGeometry(9,64),material('#f0e1d9'));plaza.rotation.x=-Math.PI/2;plaza.position.y=-.08;scene.add(plaza);
+ const pathMat=material('#f7eee8');for(const [x,z,w,d] of [[0,-8,4,18],[0,8,4,18],[-8,0,18,4],[8,0,18,4]]){const p=box(w,.04,d,pathMat,x,-.07,z);p.castShadow=false}
+ cylinder(2.2,2.5,.55,material('#e9d6d0'),0,.05,0);cylinder(1.75,1.9,.35,material('#d99bb1'),0,.48,0);cylinder(1.2,1.3,.22,material('#fff5ef'),0,.75,0);
+ const water=cylinder(.9,.9,.12, new THREE.MeshStandardMaterial({color:'#b9d8d5',roughness:.18,metalness:.25}),0,.91,0);const jet=new THREE.Mesh(new THREE.CylinderGeometry(.08,.13,1.3,16),new THREE.MeshStandardMaterial({color:'#f7e5e9',transparent:true,opacity:.72}),);jet.position.set(0,1.55,0);scene.add(jet);
+ for(let i=0;i<12;i++){const a=i*Math.PI/6;makeLamp(Math.cos(a)*8,Math.sin(a)*8)}
+ [[-20,-20],[20,-20],[-20,20],[20,20],[-24,0],[24,0],[0,-24],[0,24]].forEach(([x,z],i)=>makeTree(x,z,i%2?.85:1.15));
+ makePortal('cafe',-13,-13,'LE CAFÉ','#d77b9b');makePortal('garden',13,-13,'LE JARDIN','#a7a98e');makePortal('lounge',-13,13,'SALON PRIVÉ','#c28da3');makePortal('live',13,13,'LIVE','#d5a76f');
+ // Architecture framing the square
+ for(const [x,z] of [[-22,-22],[22,-22],[-22,22],[22,22]]){cylinder(1.1,1.25,5,material('#eadbd4'),x,2.5,z);cylinder(1.3,1.3,.35,material('#c58da2'),x,5.05,z)}
+ for(let i=0;i<18;i++){const a=i*Math.PI/9;const x=Math.cos(a)*34,z=Math.sin(a)*34;makeTree(x,z,.75)}
+ player=makeAvatar();clock=new THREE.Clock();started=true;$('#loading').style.opacity='0';setTimeout(()=>$('#loading').style.display='none',550);$('#joystick').style.display=innerWidth<800?'block':'none';animate();
+}
+function animate(){if(!started)return;requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);
+ const forward=(keys.KeyW||keys.ArrowUp?1:0)-(keys.KeyS||keys.ArrowDown?1:0)+move.y;
+ const side=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0)+move.x;
+ const len=Math.hypot(forward,side)||1;const f=forward/len,s=side/len;const speed=keys.ShiftLeft?7:4.3;
+ if(Math.abs(forward)+Math.abs(side)>.04){const angle=Math.atan2(s,f);player.rotation.y=angle;player.position.x+=Math.sin(angle)*speed*dt;player.position.z+=Math.cos(angle)*speed*dt}
+ player.position.x=THREE.MathUtils.clamp(player.position.x,-43,43);player.position.z=THREE.MathUtils.clamp(player.position.z,-43,43);
+ const target=new THREE.Vector3(player.position.x,firstPerson?1.55:3.1,player.position.z);
+ if(firstPerson){camera.position.copy(target);camera.position.y=1.6;const dir=new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw));camera.lookAt(target.clone().add(dir))}
+ else{const behind=new THREE.Vector3(Math.sin(player.rotation.y)*-6,3.1,Math.cos(player.rotation.y)*-6);camera.position.lerp(target.clone().add(behind),.09);camera.lookAt(player.position.x,1.4,player.position.z)}
+ if(firstPerson)player.visible=false;else player.visible=true;
+ renderer.render(scene,camera);
+}
+let yaw=0,dragging=false,lastX=0,lastY=0;
+function cameraDragStart(e){dragging=true;lastX=e.clientX;lastY=e.clientY}
+function cameraDrag(e){if(!dragging)return;const dx=e.clientX-lastX,dy=e.clientY-lastY;lastX=e.clientX;lastY=e.clientY;if(firstPerson)yaw-=dx*.005;else player.rotation.y-=dx*.006}
+window.addEventListener('pointerup',()=>dragging=false);$('#world').addEventListener('pointerdown',cameraDragStart);$('#world').addEventListener('pointermove',cameraDrag);
+window.addEventListener('keydown',e=>{keys[e.code]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault()});window.addEventListener('keyup',e=>keys[e.code]=false);
+function setPlace(id){activePlace=id;document.querySelectorAll('.place').forEach(b=>b.classList.toggle('active',b.dataset.place===id));const info=placeInfo[id];if(info){$('#modalTitle').textContent=info.title;$('#modalText').textContent=info.text;$('#modal').classList.add('show');if(id==='plaza')player.position.set(0,0,5);else player.position.set(info.pos[0]+(id==='cafe'?2:id==='garden'?-2:0),0,info.pos[2]+4)}}
+document.querySelectorAll('.place').forEach(b=>b.addEventListener('click',()=>setPlace(b.dataset.place)));
+$('#modeBtn').addEventListener('click',()=>{firstPerson=!firstPerson;$('#modeBtn').textContent=firstPerson?'Vue : 1re personne':'Vue : 3e personne';toast(firstPerson?'Vue immersive activée':'Vue avatar activée')});
+$('#homeBtn').addEventListener('click',()=>{player.position.set(0,0,5);player.rotation.y=0;firstPerson=false;$('#modeBtn').textContent='Vue : 3e personne';toast('Retour à la place centrale')});
+$('#interactBtn').addEventListener('click',()=>{let closest='plaza',dist=99;for(const [id,g] of Object.entries(portals)){const d=player.position.distanceTo(g.position);if(d<dist){dist=d;closest=id}}if(dist<7){setPlace(closest)}else{const near=Object.entries(portals).sort((a,b)=>player.position.distanceTo(a[1].position)-player.position.distanceTo(b[1].position))[0];toast('Approche-toi du portail '+placeInfo[near[0]].title+' pour le découvrir.')}});
+$('#modalClose').addEventListener('click',()=>$('#modal').classList.remove('show'));
+$('#exitBtn').addEventListener('click',()=>{location.href='../'});
+$('#soundBtn').addEventListener('click',()=>{soundOn=!soundOn;$('#soundBtn').textContent='♫ Ambiance : '+(soundOn?'oui':'non');toast(soundOn?'Ambiance visuelle activée':'Mode silencieux')});
+const joy=$('#joystick'),stick=$('#stick');function joyMove(e){const r=joy.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;let dx=e.clientX-cx,dy=e.clientY-cy;const max=36,l=Math.hypot(dx,dy);if(l>max){dx=dx/l*max;dy=dy/l*max}stick.style.transform='translate('+dx+'px,'+dy+'px)';move.x=dx/max;move.y=-dy/max}
+joy.addEventListener('pointerdown',e=>{touch.active=true;joy.setPointerCapture(e.pointerId);joyMove(e)});joy.addEventListener('pointermove',e=>{if(touch.active)joyMove(e)});function joyEnd(){touch.active=false;move.x=0;move.y=0;stick.style.transform=''}joy.addEventListener('pointerup',joyEnd);joy.addEventListener('pointercancel',joyEnd);
+window.addEventListener('resize',()=>{if(!renderer)return;camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));$('#joystick').style.display=innerWidth<800?'block':'none'});
+try{THREE=await import('three');build()}catch(err){console.error('MALACHITE WORLD renderer:',err);$('#loading').style.display='none';$('#fallback').style.display='block';toast('Le moteur 3D ne s’est pas chargé. Vérifie la connexion puis recharge.')}
+</script>
+</body></html>
