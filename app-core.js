@@ -880,7 +880,6 @@ async function swipe(d){
  try{navigator.vibrate&&navigator.vibrate(d>0?[20,40,20]:10)}catch(e){}
  var el=$('dc');if(!el||el.dataset.busy)return;
  var id=el.dataset.id;el.dataset.busy='1';
- if(d>0&&matchQuota&&!matchQuota.premium&&Number(matchQuota.remaining)<=0){el.dataset.busy='';alert('Tu as utilisé tes 10 likes gratuits du jour. Premium permet des likes illimités.');return}
  var saved=await sb.from('avis_match').upsert({autre:id,ok:d>0},{onConflict:'user_id,autre'});
  if(saved.error){
   el.dataset.busy='';await loadMatchData();
