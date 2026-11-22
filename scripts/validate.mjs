@@ -484,4 +484,19 @@ if (!memberExperience.includes("rpc('create_my_action_notification'")) throw new
 
 
 // MALACHITE WORLD is intentionally not part of the product; no prototype checks remain.
+
+// Match must fail closed if private-intention compatibility cannot be verified.
+if (!frontend.includes('matchCompatibilityReady') ||
+    !frontend.includes('if(!matchCompatibilityReady||!Array.isArray(matchCompatibleIds))return [];') ||
+    frontend.includes('(!Array.isArray(matchCompatibleIds)||matchCompatibleIds.indexOf(p.id)>-1)')) {
+  throw new Error('Match must not display candidates when private compatibility verification fails.');
+}
+const matchMigration = fs.readFileSync('supabase/migrations/202611220001_malachite_match_likes.sql', 'utf8');
+if (!matchMigration.includes('and coalesce(p.profile_private, false) is false')) {
+  throw new Error('Private profiles must be excluded from Match candidate IDs.');
+}
+const matchRuntime = fs.readFileSync('supabase/tests/malachite_match_runtime.psql', 'utf8');
+if (!matchRuntime.includes("'00000000-0000-0000-0000-000000000018'")) {
+  throw new Error('Match runtime test must cover private profiles with otherwise compatible intentions.');
+}
 console.log('MALACHITE validation completed.');
