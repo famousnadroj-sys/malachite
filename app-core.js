@@ -847,9 +847,11 @@ var ans={},ICE=['Salut ! Tu es de quelle commune ? 😊','Rumba ou Ndombolo ? �
 async function loadAns(){var r=await sb.from('avis_match').select('autre,ok');ans={};(r.data||[]).forEach(function(x){ans[x.autre]=x.ok})}
 var matchQuota=null,receivedLikesData=null,matchLikesBusy=false;
 async function loadMatchData(){
- var results=await Promise.all([sb.rpc('match_like_quota'),sb.rpc('match_received_likes')]);
- matchQuota=results[0]&&!results[0].error?results[0].data:null;
- receivedLikesData=results[1]&&!results[1].error?results[1].data:null;
+ try{
+  var results=await Promise.all([sb.rpc('match_like_quota'),sb.rpc('match_received_likes')]);
+  matchQuota=results[0]&&!results[0].error?results[0].data:null;
+  receivedLikesData=results[1]&&!results[1].error?results[1].data:null;
+ }catch(e){matchQuota=null;receivedLikesData=null;console.warn('Chargement des données Match',e)}
 }
 function matchQuotaMarkup(){
  if(!matchQuota)return '<span class="note">Limite quotidienne vérifiée au moment du like.</span>';
@@ -878,19 +880,25 @@ function meter(){var m=mine||{},n=[ph.length,m.bio,(m.interets||[]).length,m.pro
 function cands(){return others().filter(function(p){return ans[p.id]===undefined}).sort(function(a,b){return sc(b)-sc(a)})}
 function deck(){var c=cands()[0];if(!c)return '<div class="box" style="text-align:center;margin-top:12px">Plus de nouveaux profils pour l’instant 💫<div class="note">Reviens bientôt, ou invite tes amis !</div></div>';var f=c.photoUrls&&c.photoUrls[0],locked=!!c.profile_private;return '<div class="dk"><div class="dcard'+(on((st[c.id]||{}).premium_until)?' vipc':'')+'" id="dc" data-id="'+c.id+'"><div class="dph" style="'+(f?'background-image:url('+esc(f)+')':'')+'">'+(f?'':'<span>'+esc((c.prenom||'?')[0])+'</span>')+'</div><div class="dinfo"><div class="nm" style="font-size:22px">'+esc(c.prenom)+(locked?'':(c.age?', '+esc(c.age):''))+'</div>'+(locked?'<div class="sub">Profil privé</div>':'<div class="sub">'+esc(c.commune||'')+(c.profession?' · '+esc(c.profession):'')+'</div>'+aff(c)+'<p style="margin:6px 0">'+esc(c.bio||'')+'</p>'+qaHtml(c)+'<div>'+(c.interets||[]).map(function(x){return '<span class="chip">'+esc(x)+'</span>'}).join('')+'</div>')+'</div></div><div class="dbtn"><button onclick="swipe(-1)" aria-label="Passer">✖</button><button class="yes" onclick="swipe(1)" aria-label="J’aime">💗</button></div><p class="note" style="text-align:center">Glisse à droite pour aimer, à gauche pour passer.</p></div>'}
 async function swipe(d){
- try{navigator.vibrate&&navigator.vibrate(d>0?[20,40,20]:10)}catch(e){}
  var el=$('dc');if(!el||el.dataset.busy)return;
  var id=el.dataset.id;el.dataset.busy='1';
- var saved=await sb.from('avis_match').upsert({autre:id,ok:d>0},{onConflict:'user_id,autre'});
- if(saved.error){
-  el.dataset.busy='';await loadMatchData();
-  var message=/match_like_limit_reached/.test(saved.error.message)?'Tu as utilisé tes 10 likes gratuits du jour. Passe à Premium pour continuer.':'Ton choix n’a pas été enregistré. Vérifie ta connexion et réessaie.';
-  alert(message);draw(true);return;
+ try{
+  try{navigator.vibrate&&navigator.vibrate(d>0?[20,40,20]:10)}catch(e){}
+  var saved=await sb.from('avis_match').upsert({autre:id,ok:d>0},{onConflict:'user_id,autre'});
+  if(saved.error){
+   el.dataset.busy='';await loadMatchData();
+   var message=/match_like_limit_reached/.test(saved.error.message)?'Tu as utilisé tes 10 likes gratuits du jour. Passe à Premium pour continuer.':'Ton choix n’a pas été enregistré. Vérifie ta connexion et réessaie.';
+   alert(message);draw(true);return;
+  }
+  ans[id]=d>0;
+  el.style.transition='transform .35s,opacity .35s';el.style.transform='translateX('+(d*130)+'vw) rotate('+(d*25)+'deg)';el.style.opacity=0;
+  if(d>0){hearts();await loadMatchData();var m=await sb.rpc('est_match',{p_autre:id});if(m.data){cel[id]=1;celebrate()}}
+  setTimeout(function(){draw(true)},250);
+ }catch(error){
+  el.dataset.busy='';console.warn('Action Match non terminée',error);
+  alert('Ton choix n’a pas pu être enregistré. Vérifie ta connexion puis réessaie.');
+  draw(true);
  }
- ans[id]=d>0;
- el.style.transition='transform .35s,opacity .35s';el.style.transform='translateX('+(d*130)+'vw) rotate('+(d*25)+'deg)';el.style.opacity=0;
- if(d>0){hearts();await loadMatchData();var m=await sb.rpc('est_match',{p_autre:id});if(m.data){cel[id]=1;celebrate()}}
- setTimeout(function(){draw(true)},250)
 }
 function bindDrag(){var el=$('dc');if(!el)return;var x0=null;el.onpointerdown=function(e){x0=e.clientX;try{el.setPointerCapture(e.pointerId)}catch(z){}el.style.transition='none'};el.onpointermove=function(e){if(x0===null)return;var dx=e.clientX-x0;el.style.transform='perspective(900px) translateX('+dx+'px) rotate('+dx/18+'deg) rotateY('+dx/14+'deg)';el.classList.toggle('lk',dx>40);el.classList.toggle('ps',dx<-40)};el.onpointerup=function(e){if(x0===null)return;var dx=e.clientX-x0;x0=null;if(Math.abs(dx)>90)swipe(dx>0?1:-1);else{el.style.transition='transform .25s';el.style.transform='';el.classList.remove('lk','ps')}}}
 var INT=['Musique','Cuisine','Voyage','Football','Église','Cinéma','Lecture','Business','Danse','Mode','Photo','Sport'],REL=['Relation sérieuse','Mariage','Amitié','On verra'],COM=['Lubumbashi','Kampemba','Katuba','Kenya','Rwashi','Annexe'];
