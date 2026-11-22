@@ -481,3 +481,42 @@ for (const item of ['drop function if exists public.create_my_notification', 'cr
   if (!uniqueActionRpcMigration.includes(item)) throw new Error('Unique notification RPC migration requirement missing: ' + item);
 }
 if (!memberExperience.includes("rpc('create_my_action_notification'")) throw new Error('Member notification action RPC must use its unique endpoint name.');
+
+
+// MALACHITE WORLD prototype checks (static syntax and separation; not a real-device or multiplayer test).
+const world = fs.readFileSync('world/index.html', 'utf8');
+const worldStart = world.indexOf('<script type="module">');
+const worldEnd = world.indexOf('</script>', worldStart);
+if (worldStart < 0 || worldEnd < 0 || world.indexOf('<script type="module">', worldStart + 1) >= 0) {
+  throw new Error('MALACHITE WORLD must contain exactly one module script.');
+}
+const worldTemp = path.join(os.tmpdir(), 'malachite-world-prototype.mjs');
+fs.writeFileSync(worldTemp, world.slice(worldStart + '<script type="module">'.length, worldEnd));
+const worldCheck = spawnSync(process.execPath, ['--check', worldTemp], { encoding: 'utf8' });
+if (worldCheck.status !== 0) {
+  process.stderr.write(worldCheck.stderr || worldCheck.stdout);
+  process.exit(worldCheck.status || 1);
+}
+for (const item of [
+  'importmap',
+  'three.module.js',
+  'new THREE.WebGLRenderer',
+  'function makeAvatar()',
+  'id="joystick"',
+  'firstPerson=!firstPerson',
+  'data-place="cafe"',
+  'data-place="garden"',
+  'data-place="lounge"',
+  'data-place="live"',
+  'base=firstPerson?yaw:0',
+  'Prototype local',
+]) {
+  if (!world.includes(item)) throw new Error('MALACHITE WORLD prototype requirement missing: ' + item);
+}
+if (world.includes('createClient(') || world.includes('SUPABASE_URL') || world.includes('SUPABASE_ANON_KEY')) {
+  throw new Error('The visual-only prototype must not connect accounts or backend services yet.');
+}
+if (!sw.includes('new URL("./world/", self.registration.scope).pathname')) {
+  throw new Error('Service worker must not redirect the isolated MALACHITE WORLD route into the app shell.');
+}
+console.log('MALACHITE WORLD prototype syntax and separation checks passed.');
