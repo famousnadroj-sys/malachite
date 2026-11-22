@@ -841,7 +841,7 @@ function sub(){
  syncIncomingDeliveries().catch(function(e){console.warn('Synchronisation des accusés',e)});
 }
 var cel={};
-function celebrate(){var d=document.createElement('div');d.className='wel';d.innerHTML='<div><div class="cup" style="font-size:60px"><span class="cb">😇🏹</span><span class="ar">➳</span><span class="ht">💘</span></div><h2>🎉 C’est un match !</h2><p>Vous vous plaisez tous les deux. Proposez-vous un rendez-vous !</p><button class="b1">Super 💗</button></div>';d.onclick=function(){d.remove()};document.body.appendChild(d);hearts();setTimeout(function(){d.remove()},5000)}
+function celebrate(id){var d=document.createElement('div');d.className='wel';d.setAttribute('role','dialog');d.setAttribute('aria-modal','true');d.setAttribute('aria-label','Nouveau Match');d.innerHTML='<div><div class="cup" style="font-size:60px"><span class="cb">😇🏹</span><span class="ar">➳</span><span class="ht">💘</span></div><h2>🎉 C’est un match !</h2><p>Vous vous plaisez tous les deux. Vous pouvez maintenant commencer à discuter.</p><button type="button" class="b1" onclick="event.stopPropagation();this.closest(\'.wel\').remove();talk(\''+esc(id)+'\')">Envoyer un message 💬</button><button type="button" onclick="event.stopPropagation();this.closest(\'.wel\').remove()">Plus tard</button></div>';d.onclick=function(){d.remove()};document.body.appendChild(d);hearts();setTimeout(function(){d.remove()},8000)}
 document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('button,.btn');if(!b)return;var h=document.createElement('span');h.className='mh';h.textContent='💗';h.style.left=(e.clientX-10)+'px';h.style.top=(e.clientY-10)+'px';document.body.appendChild(h);setTimeout(function(){h.remove()},900)});
 var ans={},ICE=['Salut ! Tu es de quelle commune ? 😊','Rumba ou Ndombolo ? 🎶','Ton plat congolais préféré ?','Un week-end idéal à Lubumbashi, ça ressemble à quoi ?','Karibu ! Comment s’est passée ta journée ?'];
 async function loadAns(){var r=await sb.from('avis_match').select('autre,ok');ans={};(r.data||[]).forEach(function(x){ans[x.autre]=x.ok})}
@@ -892,7 +892,7 @@ async function swipe(d){
   }
   ans[id]=d>0;
   el.style.transition='transform .35s,opacity .35s';el.style.transform='translateX('+(d*130)+'vw) rotate('+(d*25)+'deg)';el.style.opacity=0;
-  if(d>0){hearts();await loadMatchData();var m=await sb.rpc('est_match',{p_autre:id});if(m.data){cel[id]=1;celebrate()}}
+  if(d>0){hearts();await loadMatchData();var m=await sb.rpc('est_match',{p_autre:id});if(!m.error&&m.data){cel[id]=1;celebrate(id)}}
   setTimeout(function(){draw(true)},250);
  }catch(error){
   el.dataset.busy='';console.warn('Action Match non terminée',error);
