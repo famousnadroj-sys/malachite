@@ -845,13 +845,14 @@ function celebrate(id){var d=document.createElement('div');d.className='wel';d.s
 document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('button,.btn');if(!b)return;var h=document.createElement('span');h.className='mh';h.textContent='💗';h.style.left=(e.clientX-10)+'px';h.style.top=(e.clientY-10)+'px';document.body.appendChild(h);setTimeout(function(){h.remove()},900)});
 var ans={},ICE=['Salut ! Tu es de quelle commune ? 😊','Rumba ou Ndombolo ? 🎶','Ton plat congolais préféré ?','Un week-end idéal à Lubumbashi, ça ressemble à quoi ?','Karibu ! Comment s’est passée ta journée ?'];
 async function loadAns(){var r=await sb.from('avis_match').select('autre,ok');ans={};(r.data||[]).forEach(function(x){ans[x.autre]=x.ok})}
-var matchQuota=null,receivedLikesData=null,matchLikesBusy=false;
+var matchQuota=null,receivedLikesData=null,matchCompatibleIds=null,matchLikesBusy=false;
 async function loadMatchData(){
  try{
-  var results=await Promise.all([sb.rpc('match_like_quota'),sb.rpc('match_received_likes')]);
+  var results=await Promise.all([sb.rpc('match_like_quota'),sb.rpc('match_received_likes'),sb.rpc('match_relation_compatible_ids')]);
   matchQuota=results[0]&&!results[0].error?results[0].data:null;
   receivedLikesData=results[1]&&!results[1].error?results[1].data:null;
- }catch(e){matchQuota=null;receivedLikesData=null;console.warn('Chargement des données Match',e)}
+  matchCompatibleIds=results[2]&&!results[2].error&&Array.isArray(results[2].data)?results[2].data:null;
+ }catch(e){matchQuota=null;receivedLikesData=null;matchCompatibleIds=null;console.warn('Chargement des données Match',e)}
 }
 function matchQuotaMarkup(){
  if(!matchQuota)return '<span class="note">Limite quotidienne vérifiée au moment du like.</span>';
@@ -877,7 +878,7 @@ async function openReceivedLikes(){
 function ice(i){var m=$('mi');if(m){m.value=ICE[i];m.focus()}}
 function affs(p){if(!mine)return -1;var a=(mine.interets||[]).map(function(y){return y.toLowerCase()}),sh=(p.interets||[]).filter(function(x){return a.indexOf(x.toLowerCase())>-1}).length;return Math.min(98,50+Math.min(sh,4)*12+(mine.commune==p.commune?10:0))}
 function meter(){var m=mine||{},n=[ph.length,m.bio,(m.interets||[]).length,m.profession,priv.telephone].filter(Boolean).length,pc=n*20;return '<div class="meter"><div style="display:flex;justify-content:space-between"><b>Profil complété à '+pc+' %</b><span>'+(pc==100?'🏆':'💗')+'</span></div><div class="bar"><i style="width:'+pc+'%"></i></div>'+(pc<100?'<div class="note">Complète ton profil pour mieux te faire connaître.</div>':'')+'</div>'}
-function cands(){return others().filter(function(p){return ans[p.id]===undefined}).sort(function(a,b){return sc(b)-sc(a)})}
+function cands(){return others().filter(function(p){return ans[p.id]===undefined&&(!Array.isArray(matchCompatibleIds)||matchCompatibleIds.indexOf(p.id)>-1)}).sort(function(a,b){return sc(b)-sc(a)})}
 function deck(){var c=cands()[0];if(!c)return '<div class="box" style="text-align:center;margin-top:12px">Plus de nouveaux profils pour l’instant 💫<div class="note">Reviens bientôt, ou invite tes amis !</div></div>';var locked=!!c.profile_private,f=locked?null:(c.photoUrls&&c.photoUrls[0]);return '<div class="dk"><div class="dcard'+(on((st[c.id]||{}).premium_until)?' vipc':'')+'" id="dc" data-id="'+c.id+'"><div class="dph" style="'+(f?'background-image:url('+esc(f)+')':'')+'">'+(f?'':'<span>'+esc((c.prenom||'?')[0])+'</span>')+'</div><div class="dinfo"><div class="nm" style="font-size:22px">'+esc(c.prenom)+(locked?'':(c.age?', '+esc(c.age):''))+'</div>'+(locked?'<div class="sub">Profil privé</div>':'<div class="sub">'+esc(c.commune||'')+(c.profession?' · '+esc(c.profession):'')+'</div>'+aff(c)+'<p style="margin:6px 0">'+esc(c.bio||'')+'</p>'+qaHtml(c)+'<div>'+(c.interets||[]).map(function(x){return '<span class="chip">'+esc(x)+'</span>'}).join('')+'</div>')+'</div></div><div class="dbtn"><button onclick="swipe(-1)" aria-label="Passer">✖</button><button class="yes" onclick="swipe(1)" aria-label="J’aime">💗</button></div><p class="note" style="text-align:center">Glisse à droite pour aimer, à gauche pour passer.</p></div>'}
 async function swipe(d){
  var el=$('dc');if(!el||el.dataset.busy)return;
