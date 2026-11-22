@@ -2,6 +2,9 @@
 -- Apply only after reviewing the matching frontend changes in this feature branch.
 begin;
 
+-- The SECURITY INVOKER public RPC wrappers need schema visibility for authenticated callers.
+grant usage on schema private to authenticated;
+
 create table if not exists private.match_daily_like_events (
   user_id uuid not null references auth.users(id) on delete cascade,
   target_id uuid not null references auth.users(id) on delete cascade,
