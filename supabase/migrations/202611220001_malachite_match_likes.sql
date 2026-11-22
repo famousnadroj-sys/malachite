@@ -171,9 +171,8 @@ begin
 end;
 $function$;
 
-revoke all on function private.match_like_quota() from public, anon;
-revoke all on function private.match_received_likes() from public, anon;
-grant execute on function private.match_like_quota(), private.match_received_likes() to authenticated;
+revoke all on function private.match_like_quota() from public, anon, authenticated;
+revoke all on function private.match_received_likes() from public, anon, authenticated;
 
 
 -- Compare private relationship intentions without returning either member's preferences.
@@ -229,8 +228,7 @@ begin
 end;
 $function$;
 
-revoke all on function private.match_relation_compatible_ids() from public, anon;
-grant execute on function private.match_relation_compatible_ids() to authenticated;
+revoke all on function private.match_relation_compatible_ids() from public, anon, authenticated;
 
 create or replace function public.match_relation_compatible_ids()
 returns uuid[]
