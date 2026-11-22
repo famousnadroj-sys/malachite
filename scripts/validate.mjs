@@ -41,6 +41,7 @@ if (!frontend.includes("insert({de:me.id,profil:id,motif:motif})")) throw new Er
 if ((frontend.match(/storage\.from\('photos'\)\.upload/g) || []).length) throw new Error('New uploads must not use the legacy public photos bucket.');
 if (/service[_-]?role|sb_secret_/i.test(html)) throw new Error('Privileged Supabase credentials must never appear in browser code.');
 if (frontend.includes('contact_interdit')) throw new Error('Private message content must not be scanned to block contact details.');
+if (!frontend.includes('id="malachite-chat-layout-v9"') || !frontend.includes('body.mal-chat-mode .chtop:before') || !frontend.includes('body.mal-chat-mode .mal-call-head')) throw new Error('Premium chat v9 styles are missing.');
 if (!frontend.includes('id="mal-chat-fullscreen-restore-v2"') ||
     !frontend.includes('body.mal-chat-mode>header,body.mal-chat-mode>nav{display:none!important}') ||
     !frontend.includes('body.mal-chat-mode main#v{position:fixed!important;inset:0!important') ||
@@ -101,7 +102,7 @@ if (callsCheck.status !== 0) {
   process.stderr.write(callsCheck.stderr || callsCheck.stdout);
   process.exit(callsCheck.status || 1);
 }
-if (!frontend.includes('<script src="calls.js" defer></script>')) throw new Error('Realtime call client must be loaded by the application.');
+if (frontend.includes('<script src="calls.js" defer></script>') || !frontend.includes('core.onload=function(){') || !frontend.includes('calls.src="./calls.js?v=20261122-call-init-v2"')) throw new Error('Call client must load only after app-core has defined its functions.');
 if (!calls.includes('Les appels sécurisés seront réactivés après leur mise en place') ||
     !calls.includes("h=h.replace('<button disabled title=")) {
   throw new Error('Mutual-match call actions must replace the legacy disabled call button.');
