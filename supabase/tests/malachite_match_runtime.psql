@@ -204,4 +204,26 @@ begin
 end
 $$;
 
+
+-- Exercise the public RPC wrappers as a real authenticated database role,
+-- not only as the migration owner used by the assertions above.
+set role authenticated;
+select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000001',false);
+do $
+declare
+  quota jsonb;
+  received jsonb;
+begin
+  quota := public.match_like_quota();
+  received := public.match_received_likes();
+  if (quota->>'remaining')::integer <> 0 then
+    raise exception 'authenticated_quota_rpc_failed: %',quota;
+  end if;
+  if (received->>'total')::integer <> 4 or (received->>'visible')::integer <> 3 then
+    raise exception 'authenticated_received_likes_rpc_failed: %',received;
+  end if;
+end
+$;
+reset role;
+
 select 'MALACHITE MATCH RUNTIME TESTS PASSED' as result;
