@@ -204,6 +204,7 @@ begin
   from public.profiles p
   left join public.prives other on other.id = p.id
   where p.id <> v_uid
+    and coalesce(p.profile_private, false) is false
     and not private.is_blocked_with(p.id)
     and not private.is_suspended(p.id)
     and (
