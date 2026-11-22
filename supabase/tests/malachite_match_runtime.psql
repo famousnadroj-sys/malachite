@@ -224,7 +224,7 @@ begin
     raise exception 'authenticated_received_likes_rpc_failed: %',received;
   end if;
 end
-$;
+$$;
 reset role;
 
 select 'MALACHITE MATCH RUNTIME TESTS PASSED' as result;
