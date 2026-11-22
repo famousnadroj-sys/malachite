@@ -128,7 +128,7 @@ function build(){
  renderer.shadowMap.enabled=innerWidth>650;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;
  const hemi=new THREE.HemisphereLight('#f4eee9','#6e6563',1.55);scene.add(hemi);
  const sun=new THREE.DirectionalLight('#fff1e4',2.25);sun.position.set(-25,36,18);sun.castShadow=innerWidth>650;sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=-48;sun.shadow.camera.right=48;sun.shadow.camera.top=48;sun.shadow.camera.bottom=-48;scene.add(sun);
- const groundMat=material('#77716d',.98),stone=material('#c4bbb4',.92),paleStone=material('#ddd4cd',.9),darkStone=material('#625b59',.92),roseMetal=material('#9d6479',.38,.62),glassMat=new THREE.MeshPhysicalMaterial({color:'#aab8bb',roughness:.18,metalness:.08,transparent:true,opacity:.42});
+ const concreteFacade=material('#aaa29d',.92),groundMat=material('#77716d',.98),stone=material('#c4bbb4',.92),paleStone=material('#ddd4cd',.9),darkStone=material('#625b59',.92),roseMetal=material('#9d6479',.38,.62),glassMat=new THREE.MeshPhysicalMaterial({color:'#aab8bb',roughness:.18,metalness:.08,transparent:true,opacity:.42});
  box(120,.6,120,groundMat,0,-.42,0);
  // Large-format paving with subtle joints and a clear central promenade.
  for(let x=-42;x<=42;x+=4)for(let z=-42;z<=42;z+=4){const tile=box(3.92,.055,3.92,((x+z)/4)%2===0?paleStone:stone,x,-.09,z);tile.castShadow=false}
@@ -144,7 +144,7 @@ function build(){
  const jet=new THREE.Mesh(new THREE.CylinderGeometry(.045,.09,1.1,20),new THREE.MeshPhysicalMaterial({color:'#e5e6e1',roughness:.12,transparent:true,opacity:.42}));jet.position.set(0,2.25,0);scene.add(jet);
  // Low seating, raised planters and warm architectural lighting.
  for(let i=0;i<8;i++){const a=i*Math.PI/4,x=Math.cos(a)*7.6,z=Math.sin(a)*7.6;const bench=new THREE.Group();bench.position.set(x,0,z);bench.rotation.y=-a;box(2.25,.16,.62,darkStone,0,.42,0,bench);box(2.25,.12,.62,roseMetal,0,.56,0,bench);box(2.25,.62,.12,stone,0,.78,-.25,bench);scene.add(bench)}
- for(let i=0;i<12;i++){const a=i*Math.PI/6;const x=Math.cos(a)*13.2,z=Math.sin(a)*13.2;const planter=new THREE.Group();planter.position.set(x,0,z);cylinder(.85,.95,.55,stone,0,.25,0,planter);makeTree(0,0,.52);scene.add(planter)}
+ for(let i=0;i<12;i++){const a=i*Math.PI/6;const x=Math.cos(a)*13.2,z=Math.sin(a)*13.2;const planter=new THREE.Group();planter.position.set(x,0,z);cylinder(.85,.95,.55,stone,0,.25,0,planter);scene.add(planter);makeTree(x,z,.52)}
  // Modern glass pavilions, one for each social destination.
  makePortal('cafe',-18,-18,'CAFÉ DES RENCONTRES','#a85b7b');
  makePortal('garden',18,-18,'JARDIN DE L’AMITIÉ','#987b70');
