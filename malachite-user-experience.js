@@ -596,7 +596,7 @@
     var style = document.createElement('style');
     style.id = 'mal-member-experience-style';
     style.textContent = [
-      'header{position:relative}.mal-user-menu-trigger{position:absolute;right:16px;top:14px;z-index:30;display:flex;align-items:center;gap:7px;padding:9px 12px;border:1px solid #ffffff75;border-radius:999px;background:#ffffff20;color:#fff;font-size:12px;font-weight:750;backdrop-filter:blur(10px)}',
+      'header{position:relative;padding-left:58px!important}.mal-user-menu-trigger{position:absolute;left:10px;right:auto;top:7px;z-index:30;display:flex;align-items:center;justify-content:center;width:38px;height:38px;padding:0;border:1px solid #f0c9d8;border-radius:50%;background:#fff4f8;color:#d81b60;font-size:12px;font-weight:750;box-shadow:0 2px 8px #d81b6018}.mal-user-menu-label{display:none!important}',
       '.mal-user-menu-icon{font-size:16px;line-height:1}.mal-notif-badge{min-width:19px;height:19px;padding:0 5px;border-radius:99px;background:#fff;color:#d81b60;font-size:11px;font-weight:850;display:inline-flex;align-items:center;justify-content:center}.mal-notif-badge[hidden]{display:none}',
       '.mal-notif-backdrop{position:fixed;inset:0;z-index:100000;background:#17091480;display:flex;justify-content:flex-end;align-items:stretch;padding:0}',
       '.mal-notif-panel{width:min(100%,470px);height:100%;background:#fff;color:#3a1224;display:flex;flex-direction:column;box-shadow:-12px 0 40px #260b1830;animation:malPanelIn .22s ease-out}',
