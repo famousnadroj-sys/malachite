@@ -95,7 +95,7 @@ function animate(){if(!started)return;requestAnimationFrame(animate);const dt=Ma
  const forward=(keys.KeyW||keys.ArrowUp?1:0)-(keys.KeyS||keys.ArrowDown?1:0)+move.y;
  const side=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0)+move.x;
  const len=Math.hypot(forward,side)||1;const f=forward/len,s=side/len;const speed=keys.ShiftLeft?7:4.3;
- if(Math.abs(forward)+Math.abs(side)>.04){const angle=Math.atan2(s,f);player.rotation.y=angle;player.position.x+=Math.sin(angle)*speed*dt;player.position.z+=Math.cos(angle)*speed*dt}
+ if(Math.abs(forward)+Math.abs(side)>.04){const base=firstPerson?yaw:0;const angle=base+Math.atan2(s,f);if(!firstPerson)player.rotation.y=angle;player.position.x+=Math.sin(angle)*speed*dt;player.position.z+=Math.cos(angle)*speed*dt}
  player.position.x=THREE.MathUtils.clamp(player.position.x,-43,43);player.position.z=THREE.MathUtils.clamp(player.position.z,-43,43);
  const target=new THREE.Vector3(player.position.x,firstPerson?1.55:3.1,player.position.z);
  if(firstPerson){camera.position.copy(target);camera.position.y=1.6;const dir=new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw));camera.lookAt(target.clone().add(dir))}
