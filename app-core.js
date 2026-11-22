@@ -268,7 +268,7 @@ async function ensureSignupProfile(user,metadata){
 async function load(){
  var uid=me&&me.id;if(!uid)return;var seq=++loadSeq;
  var keepWarmCache=loadedUid===uid&&profs.length>0&&Date.now()-profilesLoadedAt<300000;
- if(keepWarmCache){sub();return;}
+ if(keepWarmCache){sub();if(tab==='home'||tab==='search'){loadMatchData().then(function(){if(me&&me.id===uid&&(tab==='home'||tab==='search'))draw(true)})}return;}
  if(!keepWarmCache){mine=null;profileDraft={};ph=[];phUrls=[];priv={};privLoadFailed=false;}
  var results=await Promise.all([
   sb.from('profiles').select('id,username,prenom,age,genre,commune,quartier,profession,bio,interets,photos,created_at,prompts,derniere_vue,avatar,profile_private'),
@@ -855,13 +855,13 @@ async function loadMatchData(){
  }catch(e){matchQuota=null;receivedLikesData=null;matchCompatibleIds=null;matchCompatibilityReady=false;matchCompatibilityError=true;console.warn('Chargement des données Match',e)}
 }
 function matchQuotaMarkup(){
- if(!matchQuota)return '<span class="note">Limite quotidienne vérifiée au moment du like.</span>';
- if(matchQuota.premium)return '<span class="chip">👑 Premium · Likes illimités</span>';
- return '<span class="note">'+Number(matchQuota.remaining||0)+' likes gratuits restants aujourd’hui · 10 maximum</span>';
+ if(!matchQuota)return '<span class="note">10 likes gratuits par jour</span>';
+ if(matchQuota.premium)return '<span class="chip">👑 Premium · Illimité</span>';
+ return '<span class="note">'+Number(matchQuota.remaining||0)+' likes restants aujourd’hui</span>';
 }
 function matchExperience(){
- var total=Number(receivedLikesData&&receivedLikesData.total||0),visible=Number(receivedLikesData&&receivedLikesData.visible||0),locked=Number(receivedLikesData&&receivedLikesData.locked||0);
- return '<section class="mal-match-experience" style="margin:24px 0;padding:18px;border:1px solid #f0d5e0;border-radius:22px;background:linear-gradient(145deg,#fff8fb,#fff)"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><span class="ml-auth-kicker">MALACHITE MATCH</span><h2 style="margin:4px 0">Une belle rencontre, peut-être. 💗</h2><p class="note" style="margin:0">Découvre les profils, aime ceux qui t’intéressent et attends un intérêt réciproque.</p></div><div style="text-align:right;min-width:120px">'+matchQuotaMarkup()+'</div></div>'+(matchCompatibilityReady?deck():'<div class="box" style="text-align:center;margin-top:12px">'+(matchCompatibilityError?'La vérification sécurisée des préférences est indisponible. Aucun profil ne sera proposé tant que la vérification n’aura pas réussi. <button type="button" onclick="loadMatchData().then(draw)">Réessayer</button>':'Vérification des préférences de rencontre…')+'</div>')+'<button type="button" class="b1" style="width:100%;margin-top:12px" onclick="openReceivedLikes()">💌 Likes reçus · '+total+(locked?' · '+locked+' masqués':'')+'</button>'+(locked?'<p class="note" style="text-align:center;margin:7px 0 0">'+visible+' aperçu'+(visible>1?'s':'')+' gratuit'+(visible>1?'s':'')+' · Premium pour voir toute la liste.</p>':'')+'</section>';
+ var total=Number(receivedLikesData&&receivedLikesData.total||0),locked=Number(receivedLikesData&&receivedLikesData.locked||0);
+ return '<section class="mal-match-experience" style="margin:20px 0;padding:16px;border:1px solid #f0d5e0;border-radius:20px;background:#fff8fb"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><span class="ml-auth-kicker">MALACHITE</span><h2 style="margin:3px 0">Match 💗</h2><p class="note" style="margin:0">Découvre des profils et aime ceux qui te plaisent.</p></div><div style="text-align:right">'+matchQuotaMarkup()+'</div></div>'+(matchCompatibilityReady?deck():'<div class="box" style="text-align:center;margin-top:12px">'+(matchCompatibilityError?'Match est momentanément indisponible. Réessaie. <button type="button" onclick="loadMatchData().then(draw)">Réessayer</button>':'Chargement de Match…')+'</div>')+'<button type="button" class="b1" style="width:100%;margin-top:10px" onclick="openReceivedLikes()">💌 Likes reçus · '+total+(locked?' · '+locked+' masqués':'')+'</button>'+(locked?'<p class="note" style="text-align:center;margin:6px 0 0">Premium permet de voir tous les likes reçus.</p>':'')+'</section>';
 }
 async function openReceivedLikes(){
  if(matchLikesBusy)return;matchLikesBusy=true;
