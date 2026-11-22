@@ -42,10 +42,10 @@
     document.addEventListener("keydown",function(e){if(e.key==="Escape"&&overlay.classList.contains("open"))close()});
     function feedback(message){var el=document.getElementById("mal-share-feedback");if(el)el.textContent=message}
     function copyLink(){
-      var link=getShareUrl();if(!link){feedback(window.location.hostname.endsWith("github.io")?"Le lien officiel MALACHITE est en cours de configuration.":"Connecte-toi pour obtenir ton lien personnel.");return}if(navigator.clipboard&&window.isSecureContext){return navigator.clipboard.writeText(link).then(function(){feedback("Lien personnel copié. Tu peux le partager.")})}
+      var link=getShareUrl();if(!link){feedback("Lien du site MALACHITE indisponible pour le moment.");return}if(navigator.clipboard&&window.isSecureContext){return navigator.clipboard.writeText(link).then(function(){feedback("Lien du site MALACHITE copié. Tu peux le partager.")})}
       var field=document.createElement("textarea");field.value=link;field.setAttribute("readonly","");field.style.position="fixed";field.style.opacity="0";document.body.appendChild(field);field.select();
       var ok=false;try{ok=document.execCommand("copy")}catch(e){}document.body.removeChild(field);
-      feedback(ok?"Lien copié. Tu peux le coller où tu veux.":"Copie automatique indisponible : "+link);
+      feedback(ok?"Lien du site MALACHITE copié. Tu peux le coller où tu veux.":"Copie automatique indisponible : "+link);
     }
     overlay.querySelector(".mal-share-grid").addEventListener("click",function(e){
       var action=e.target.closest("[data-share]");if(!action)return;
