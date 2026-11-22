@@ -131,7 +131,7 @@ function build(){
  const concreteFacade=material('#aaa29d',.92),groundMat=material('#77716d',.98),stone=material('#c4bbb4',.92),paleStone=material('#ddd4cd',.9),darkStone=material('#625b59',.92),roseMetal=material('#9d6479',.38,.62),glassMat=new THREE.MeshPhysicalMaterial({color:'#aab8bb',roughness:.18,metalness:.08,transparent:true,opacity:.42});
  box(120,.6,120,groundMat,0,-.42,0);
  // Large-format paving with subtle joints and a clear central promenade.
- for(let x=-42;x<=42;x+=4)for(let z=-42;z<=42;z+=4){const tile=box(3.92,.055,3.92,((x+z)/4)%2===0?paleStone:stone,x,-.09,z);tile.castShadow=false}
+ const pavingGrid=new THREE.GridHelper(84,21,'#8e817b','#a99d96');pavingGrid.position.y=-.055;pavingGrid.material.transparent=true;pavingGrid.material.opacity=.18;scene.add(pavingGrid)
  const plaza=new THREE.Mesh(new THREE.CircleGeometry(10.2,72),paleStone);plaza.rotation.x=-Math.PI/2;plaza.position.y=-.045;plaza.receiveShadow=true;scene.add(plaza);
  for(let r=10.6;r<12.2;r+=.55){const ring=new THREE.Mesh(new THREE.RingGeometry(r,r+.055,96),roseMetal);ring.rotation.x=-Math.PI/2;ring.position.y=-.025;scene.add(ring)}
  const pathMat=material('#d9d0c9',.94);
