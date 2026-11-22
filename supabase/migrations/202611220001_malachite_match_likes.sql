@@ -2,9 +2,6 @@
 -- Apply only after reviewing the matching frontend changes in this feature branch.
 begin;
 
--- The SECURITY INVOKER public RPC wrappers need schema visibility for authenticated callers.
-grant usage on schema private to authenticated;
-
 create table if not exists private.match_daily_like_events (
   user_id uuid not null references auth.users(id) on delete cascade,
   target_id uuid not null references auth.users(id) on delete cascade,
@@ -239,7 +236,7 @@ create or replace function public.match_relation_compatible_ids()
 returns uuid[]
 language sql
 stable
-security invoker
+security definer
 set search_path = ''
 as $function$
   select private.match_relation_compatible_ids();
@@ -252,7 +249,7 @@ create or replace function public.match_like_quota()
 returns jsonb
 language sql
 stable
-security invoker
+security definer
 set search_path = ''
 as $function$
   select private.match_like_quota();
@@ -262,7 +259,7 @@ create or replace function public.match_received_likes()
 returns jsonb
 language sql
 stable
-security invoker
+security definer
 set search_path = ''
 as $function$
   select private.match_received_likes();
