@@ -21,6 +21,10 @@ create table public.profiles (
   prenom text not null,
   profile_private boolean not null default false
 );
+create table public.prives (
+  id uuid primary key references auth.users(id) on delete cascade,
+  prefs jsonb not null default '{}'::jsonb
+);
 create table public.statuts (
   user_id uuid primary key references auth.users(id) on delete cascade,
   premium_until timestamptz
@@ -70,6 +74,14 @@ select ('00000000-0000-0000-0000-' || lpad(n::text,12,'0'))::uuid
 from generate_series(1,30) n;
 insert into public.profiles(id,prenom)
 select id, 'Membre ' || right(id::text,4) from auth.users;
+insert into public.prives(id,prefs)
+select id,
+  case
+    when id='00000000-0000-0000-0000-000000000001' then '{"rel":["Relation sérieuse"]}'::jsonb
+    when id='00000000-0000-0000-0000-000000000002' then '{"rel":["Relation sérieuse"]}'::jsonb
+    else '{"rel":["Amitié"]}'::jsonb
+  end
+from auth.users;
 
 -- Fixtures: blocked, suspended and private profiles must not appear in received likes.
 insert into public.suspensions(user_id)
@@ -90,6 +102,7 @@ declare
   used_count integer;
   quota jsonb;
   received jsonb;
+  compatible uuid[];
 begin
   -- Ten free likes succeed; the eleventh is rejected atomically.
   perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000001',true);
@@ -179,6 +192,12 @@ begin
   end if;
   if jsonb_array_length(received->'ids') <> 3 then raise exception 'free_received_ids_not_limited'; end if;
 
+  -- Relationship intentions are compared privately; only compatible IDs leave the database.
+  compatible := public.match_relation_compatible_ids();
+  if compatible <> array['00000000-0000-0000-0000-000000000002'::uuid] then
+    raise exception 'private_relation_compatibility_incorrect: %',compatible;
+  end if;
+
   -- Premium sees the complete eligible list.
   perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000013',true);
   alter table public.avis_match disable trigger enforce_match_daily_like_limit;
@@ -195,11 +214,13 @@ begin
 
   -- RPCs must not be executable by anon and must be available to authenticated.
   if has_function_privilege('anon','public.match_like_quota()','EXECUTE')
-     or has_function_privilege('anon','public.match_received_likes()','EXECUTE') then
+     or has_function_privilege('anon','public.match_received_likes()','EXECUTE')
+     or has_function_privilege('anon','public.match_relation_compatible_ids()','EXECUTE') then
     raise exception 'anon_can_execute_match_rpc';
   end if;
   if not has_function_privilege('authenticated','public.match_like_quota()','EXECUTE')
-     or not has_function_privilege('authenticated','public.match_received_likes()','EXECUTE') then
+     or not has_function_privilege('authenticated','public.match_received_likes()','EXECUTE')
+     or not has_function_privilege('authenticated','public.match_relation_compatible_ids()','EXECUTE') then
     raise exception 'authenticated_cannot_execute_match_rpc';
   end if;
 end
@@ -214,14 +235,19 @@ do $$
 declare
   quota jsonb;
   received jsonb;
+  compatible uuid[];
 begin
   quota := public.match_like_quota();
   received := public.match_received_likes();
+  compatible := public.match_relation_compatible_ids();
   if (quota->>'remaining')::integer <> 0 then
     raise exception 'authenticated_quota_rpc_failed: %',quota;
   end if;
   if (received->>'total')::integer <> 4 or (received->>'visible')::integer <> 3 then
     raise exception 'authenticated_received_likes_rpc_failed: %',received;
+  end if;
+  if compatible <> array['00000000-0000-0000-0000-000000000002'::uuid] then
+    raise exception 'authenticated_private_relation_match_failed: %',compatible;
   end if;
 end
 $$;
