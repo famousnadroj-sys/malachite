@@ -312,7 +312,8 @@ async function load(){
   blocked=tasks[0].error?[]:(tasks[0].data||[]);blockedProfiles=tasks[1].error?[]:(tasks[1].data||[]);
   st={};(tasks[2].data||[]).forEach(function(x){st[x.user_id]=x});NUM='';ORANGE='';(tasks[3].data||[]).forEach(function(x){if(x.cle==='airtel')NUM=x.valeur||'';if(x.cle==='orange')ORANGE=x.valeur||''});
   if(tab==='home'||tab==='search')draw(true);
-  await Promise.all([othersPhotos,loadRdv(),loadAns(),loadMyAvis(),loadMatchData()]);
+  await Promise.all([othersPhotos,loadRdv(),loadAns(),loadMyAvis()]);
+   await loadMatchData();
   if(seq!==loadSeq||!me||me.id!==uid)return;
   if(tab==='home'||tab==='search')draw(true);
  })();
