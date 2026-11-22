@@ -22,6 +22,8 @@ function restoreMalView(){
  var state=null;try{state=JSON.parse(sessionStorage.getItem('malachite:view:'+me.id)||'null')}catch(e){}
  var allowed=['home','search','chat','rdv','offres','me','centre','adm'];
  tab=state&&allowed.indexOf(state.tab)>=0?state.tab:'home';
+ // Never reopen the app on the profile/avatar setup screen after a fresh page load.
+ if(tab==='me'){tab='home';try{sessionStorage.removeItem('malachite:view:'+me.id)}catch(e){}}
  if(tab==='adm'&&me.email!==ADM)tab='home';
  open=tab==='chat'&&state&&state.open&&state.open!==me.id?state.open:null;
  chatCursor=null;chatCursorId=0;chatCursorFor=null;msgs=[];lastSig='';
