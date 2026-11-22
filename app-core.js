@@ -1274,16 +1274,55 @@ function malStartupView(){return '<section class="mal-startup-screen" aria-label
 async function malRetrySession(){malStartupMessage='Vérification de ta session…';draw();try{var r=await sb.auth.getSession();if(r.error)throw r.error;me=r.data&&r.data.session?r.data.session.user:null;if(!me){malStartupPending=false;malStartupMessage='';malAuthBooted=true;draw();return}restoreMalView();await load();malStartupPending=false;malStartupMessage='';malAuthBooted=true;if(tab==='chat')await loadChat();draw(true)}catch(e){malStartupPending=true;malStartupMessage='Connexion non vérifiée. Vérifie Internet puis réessaie.';draw()}}
 function founderDashboard(){
  if(!me||me.email!==ADM)return '<section class="card"><h2>Accès réservé</h2><p class="note">Cet espace est privé.</p></section>';
- return '<section class="ml-search-intro"><span class="ml-auth-kicker">ESPACE FONDATEUR · PRIVÉ</span><h2>Suivi du projet MALACHITE</h2><p>État des travaux et accès à l’environnement de test Match.</p></section>'+
- '<section class="card" style="margin:12px 0;border-left:4px solid #2e9d68"><b>✓ Site public préservé</b><p class="note">La version publique continue d’utiliser la base de production. Aucun changement Match n’a été appliqué à la base de production.</p></section>'+
+ var state=window.__malFounderOverviewState;
+ if(!state){
+  state=window.__malFounderOverviewState={status:'loading',data:null,error:null,uid:me.id};
+  (async function(uid){
+   try{
+    var result=await sb.rpc('founder_business_overview',{p_from:null,p_to:null});
+    if(!me||me.id!==uid)return;
+    if(result.error)throw result.error;
+    if(!result.data||typeof result.data!=='object')throw new Error('Réponse du tableau indisponible');
+    window.__malFounderOverviewState={status:'ready',data:result.data,error:null,uid:uid};
+   }catch(error){
+    console.error('Tableau financier fondateur:',error);
+    if(me&&me.id===uid)window.__malFounderOverviewState={status:'error',data:null,error:'Impossible de charger les indicateurs. Vérifie la connexion et les droits administrateur.',uid:uid};
+   }
+   if(me&&me.id===uid&&tab==='founder')draw(true);
+  })(me.id);
+ }
+ window.malRefreshFounderOverview=function(){window.__malFounderOverviewState=null;draw(true);};
+ function safe(value){return String(value==null?'':value).replace(/[&<>"']/g,function(ch){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]})}
+ function number(value){return Number(value||0).toLocaleString('fr-FR')}
+ var overview='';
+ if(state.status==='loading')overview='<section class="card"><b>Chargement des indicateurs…</b><p class="note">Lecture sécurisée des données agrégées.</p></section>';
+ else if(state.status==='error')overview='<section class="card"><b>Indicateurs indisponibles</b><p class="note">'+safe(state.error)+'</p><button class="btn b1" onclick="malRefreshFounderOverview()">Réessayer</button></section>';
+ else{
+  var d=state.data||{},members=d.members||{},payments=d.payment_declarations||{},finance=d.confirmed_finance||[];
+  var statusRows=(payments.by_status||[]).map(function(x){return '<div class="sub">'+safe(x.status)+': <b>'+number(x.count)+'</b></div>'}).join('')||'<p class="note">Aucune déclaration enregistrée.</p>';
+  var offerRows=(payments.by_offer||[]).map(function(x){return '<div class="sub">'+safe(x.offer)+': <b>'+number(x.count)+'</b></div>'}).join('')||'<p class="note">Aucune offre enregistrée.</p>';
+  var financeRows=finance.map(function(x){return '<article class="card"><b>'+safe(x.currency)+'</b><div class="sub">Brut confirmé : '+number(x.gross)+'</div><div class="sub">Frais : '+number(x.fees)+' · Commissions : '+number(x.commissions)+'</div><p><b>Net confirmé : '+number(x.net)+' '+safe(x.currency)+'</b></p><div class="note">'+number(x.events)+' événement(s) comptabilisé(s)</div></article>'}).join('');
+  overview='<section class="ml-search-intro"><span class="ml-auth-kicker">INDICATEURS INTERNES · PRIVÉS</span><h2>Activité et finances</h2><p>Vue agrégée du projet. Aucun profil individuel ni justificatif de paiement n’est affiché ici.</p></section>'+
+   '<div class="grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:10px;margin:12px 0">'+
+   '<article class="card"><div class="note">Membres inscrits</div><h2>'+number(members.total)+'</h2></article>'+
+   '<article class="card"><div class="note">Déclarations de paiement</div><h2>'+number(payments.total)+'</h2></article></div>'+
+   '<div class="card"><b>Déclarations par statut</b>'+statusRows+'</div>'+
+   '<div class="card"><b>Déclarations par offre</b>'+offerRows+'</div>'+
+   '<h3>Revenus réellement comptabilisés</h3>'+
+   (financeRows||'<div class="card"><b>Aucun revenu confirmé dans le registre</b><p class="note">Cela ne signifie pas nécessairement zéro encaissement historique : les anciennes déclarations de paiement ne contiennent pas de montant ni de devise fiables. Aucun revenu n’est inventé ou estimé.</p></div>')+
+   '<div class="card"><p class="note">'+safe(d.revenue_note||'Les déclarations de paiement ne prouvent pas à elles seules un encaissement.')+'</p><button class="btn b1" onclick="malRefreshFounderOverview()">Actualiser les indicateurs</button></div>';
+ }
+ return '<section class="ml-search-intro"><span class="ml-auth-kicker">ESPACE FONDATEUR · PRIVÉ</span><h2>Suivi du projet MALACHITE</h2><p>Indicateurs de l’activité et état des environnements.</p></section>'+
+ '<section class="card" style="margin:12px 0;border-left:4px solid #2e9d68"><b>✓ Site public préservé</b><p class="note">Cette modification est préparée sur une branche de travail. La version publique et la base de production ne sont pas modifiées.</p></section>'+
+ overview+
  '<h2>Match · environnement de test</h2><div class="list">'+
  '<article class="card"><b>✓ Base de test Supabase active</b><div class="sub">Projet isolé : malachite-match-test · région Europe (eu-west-1)</div><p class="note">Structure de base copiée sans les données des membres. Migration Match appliquée uniquement à cette base. Aucun compte de test ni vote Match actuellement conservé.</p></article>'+
  '<article class="card"><b>✓ Tests automatisés réussis</b><div class="sub">GitHub Actions · validation et tests runtime Match</div><p class="note">Contrôles couverts : quota de 10 likes gratuits par jour, likes Premium illimités, unlike/re-like, match réciproque, aperçu des likes reçus et filtres de confidentialité, blocage et suspension.</p></article>'+
  '<article class="card"><b>✓ Aperçu isolé disponible</b><p class="note">Cette version de prévisualisation utilise la base de test, pas les comptes ni les données de production.</p><a class="btn b1" href="https://sbawknyxcjslvhknomkd.supabase.co/functions/v1/malachite-match-preview/" target="_blank" rel="noopener" style="display:block;text-decoration:none">Ouvrir l’aperçu MALACHITE Match ↗</a></article>'+
  '<article class="card"><b>✓ Code préparé, pas encore publié</b><div class="sub">Branche : preview/malachite-match-staging-clean</div><p class="note">La demande GitHub #55 est ouverte en brouillon et compare uniquement les 3 fichiers de préparation. Elle n’est pas fusionnée dans la version publique.</p><a href="https://github.com/famousnadroj-sys/malachite/pull/55" target="_blank" rel="noopener">Consulter la demande GitHub #55 ↗</a></article>'+
  '</div><h2>Ce qui reste à vérifier</h2><div class="card"><ol style="padding-left:20px;margin:4px 0"><li>Configurer un moyen de connexion de test (authentification/SMS) dans le projet isolé.</li><li>Créer un compte de test sans utiliser de compte réel.</li><li>Tester dans un vrai navigateur les likes, le match réciproque et la conversation après match.</li><li>Vérifier tous les fichiers chargés dans l’aperçu mobile.</li><li>Faire l’audit final avant toute publication en production.</li></ol></div>'+
- '<h2>Décision de sécurité</h2><div class="card"><b>Pas de fusion ni de migration en production pour le moment.</b><p class="note">Les tests automatisés sont réussis, mais le parcours complet avec un utilisateur connecté n’a pas encore été validé dans un navigateur. La version Match n’est donc pas annoncée comme prête au lancement.</p></div>'+
- '<p class="note" style="text-align:center;margin:16px 0">Dernière actualisation du tableau : 22 novembre 2026 · État basé sur les vérifications GitHub et Supabase réalisées.</p>';
+ '<h2>Décision de sécurité</h2><div class="card"><b>Pas de fusion ni de migration en production pour le moment.</b><p class="note">Le tableau financier reste protégé par un contrôle serveur. La version Match n’est pas annoncée comme prête au lancement.</p></div>'+
+ '<p class="note" style="text-align:center;margin:16px 0">Les indicateurs sont chargés à la demande depuis Supabase staging.</p>';
 }
 function draw(keep){if(!me)malFounderLandingDone=false;if(me&&me.email===ADM&&!malFounderLandingDone){tab='founder';malFounderLandingDone=true;}if(!me&&malReferralId)malLoadReferralPreview();if(malStartupPending){document.body.classList.remove('mal-chat-mode');var root=$('v'),nav=$('nav');if(root)root.innerHTML=malStartupView();if(nav)nav.innerHTML='';return}var oldMsgs=$('msgs'),nearBottom=!oldMsgs||oldMsgs.scrollHeight-oldMsgs.scrollTop-oldMsgs.clientHeight<140,oldTop=oldMsgs?oldMsgs.scrollTop:0;document.body.classList.toggle('mal-chat-mode',!!(me&&tab==='chat'&&open));var y=scrollY,tv=$('mi')?$('mi').value:'';$('v').innerHTML=!me?authView():((tab==='chat'&&open)?'':banner())+{home:home,search:search,chat:chat,rdv:rdv,offres:offres,me:moi,adm:admin,founder:founderDashboard}[tab]();if(me&&tab=='search'){fqr();res()}if(tv&&$('mi'))$('mi').value=tv;if(me&&tab=='home')bindDrag();if(tab=='chat'&&open&&$('msgs'))$('msgs').scrollTop=nearBottom?$('msgs').scrollHeight:oldTop;$('nav').innerHTML=me?[['home','💘','Découvrir'],['search','🔍','Recherche'],['chat','💬','Messages'],['rdv','📅','RDV'],['offres','⭐','Offres'],['me','👤','Moi']].concat(me.email==ADM?[['adm','🛠','Admin'],['founder','📊','Projet']]:[]).map(function(x){return '<button data-k="'+x[0]+'" class="'+(tab==x[0]?'on':'')+'" onclick="goTab(\''+x[0]+'\')"><span>'+ico(x[0])+bdg(x[0])+'</span>'+x[2]+'</button>'}).join(''):'';if(!(tab=='chat'&&open))scrollTo(0,keep?y:0)}
 function go(t){if(t!=='chat')closeTypingChannel();document.querySelectorAll('.sheetbg,.viewer,.lbx').forEach(function(e){e.remove()});tab=t;msg='';lastSig='';clearInterval(timer);if(t=='chat'){loadChat();timer=setInterval(function(){if(tab==='chat'&&!document.hidden&&!msgRealtimeReady)loadChat()},20000);if(open)return}else if(t=='home'||t=='search'){load().then(draw)}else if(t=='rdv'){loadRdv().then(draw)}else if(t=='adm'){loadAdm()}draw();/* Les photos personnelles sont déjà résolues une seule fois par load(). Ne pas relancer ici une seconde signature Storage concurrente à l’ouverture de Moi. */}
