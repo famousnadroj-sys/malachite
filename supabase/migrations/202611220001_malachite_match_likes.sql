@@ -178,6 +178,76 @@ revoke all on function private.match_like_quota() from public, anon;
 revoke all on function private.match_received_likes() from public, anon;
 grant execute on function private.match_like_quota(), private.match_received_likes() to authenticated;
 
+
+-- Compare private relationship intentions without returning either member's preferences.
+create or replace function private.match_relation_compatible_ids()
+returns uuid[]
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $function$
+declare
+  v_uid uuid := auth.uid();
+  v_my_rel jsonb := '[]'::jsonb;
+  v_ids uuid[] := array[]::uuid[];
+begin
+  if v_uid is null then raise exception 'match_auth_required'; end if;
+  if private.is_suspended(v_uid) then raise exception 'compte_suspendu'; end if;
+
+  select case when jsonb_typeof(p.prefs->'rel') = 'array'
+              then p.prefs->'rel' else '[]'::jsonb end
+    into v_my_rel
+  from public.prives p
+  where p.id = v_uid;
+
+  v_my_rel := coalesce(v_my_rel, '[]'::jsonb);
+
+  select coalesce(array_agg(p.id), array[]::uuid[])
+    into v_ids
+  from public.profiles p
+  left join public.prives other on other.id = p.id
+  where p.id <> v_uid
+    and not private.is_blocked_with(p.id)
+    and not private.is_suspended(p.id)
+    and (
+      jsonb_array_length(v_my_rel) = 0
+      or jsonb_array_length(
+        case when jsonb_typeof(other.prefs->'rel') = 'array'
+             then other.prefs->'rel' else '[]'::jsonb end
+      ) = 0
+      or exists (
+        select 1
+        from jsonb_array_elements_text(v_my_rel) mine(value)
+        where mine.value in (
+          select jsonb_array_elements_text(
+            case when jsonb_typeof(other.prefs->'rel') = 'array'
+                 then other.prefs->'rel' else '[]'::jsonb end
+          )
+        )
+      )
+    );
+
+  return v_ids;
+end;
+$function$;
+
+revoke all on function private.match_relation_compatible_ids() from public, anon;
+grant execute on function private.match_relation_compatible_ids() to authenticated;
+
+create or replace function public.match_relation_compatible_ids()
+returns uuid[]
+language sql
+stable
+security invoker
+set search_path = ''
+as $function$
+  select private.match_relation_compatible_ids();
+$function$;
+
+revoke all on function public.match_relation_compatible_ids() from public, anon;
+grant execute on function public.match_relation_compatible_ids() to authenticated;
+
 create or replace function public.match_like_quota()
 returns jsonb
 language sql
