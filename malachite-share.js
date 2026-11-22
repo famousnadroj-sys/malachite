@@ -49,7 +49,7 @@
     }
     overlay.querySelector(".mal-share-grid").addEventListener("click",function(e){
       var action=e.target.closest("[data-share]");if(!action)return;
-      var link=getShareUrl();if(!link){feedback(window.location.hostname.endsWith("github.io")?"Le lien officiel MALACHITE est en cours de configuration.":"Connecte-toi pour obtenir ton lien personnel.");return}var url=encodeURIComponent(link),text=encodeURIComponent(DESCRIPTION+" "+link);
+      var link=getShareUrl();if(!link){feedback("Lien du site MALACHITE indisponible pour le moment.");return}var url=encodeURIComponent(link),text=encodeURIComponent(DESCRIPTION+" "+link);
       if(action.dataset.share==="copy"){copyLink();return}
       if(action.dataset.share==="whatsapp"){window.open("https://wa.me/?text="+text,"_blank","noopener,noreferrer");return}
       if(action.dataset.share==="facebook"){window.open("https://www.facebook.com/sharer/sharer.php?u="+url,"_blank","noopener,noreferrer");return}
