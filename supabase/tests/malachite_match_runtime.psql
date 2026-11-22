@@ -87,6 +87,10 @@ insert into public.suspensions(user_id)
 values ('00000000-0000-0000-0000-000000000005');
 update public.profiles set profile_private=true
 where id='00000000-0000-0000-0000-000000000006';
+update public.profiles set profile_private=true
+where id='00000000-0000-0000-0000-000000000018';
+update public.prives set prefs='{"rel":["Relation sérieuse"]}'::jsonb
+where id='00000000-0000-0000-0000-000000000018';
 
 -- Premium account used for unlimited-like and full received-list checks.
 insert into public.statuts(user_id,premium_until)
