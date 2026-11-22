@@ -31,7 +31,7 @@
     btn.id="mal-share-launcher";btn.type="button";btn.setAttribute("aria-haspopup","dialog");btn.setAttribute("aria-controls","mal-share-overlay");
     btn.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.7 10.7 6.6-4.4M8.7 13.3l6.6 4.4"/></svg><span>Partager</span>';
     var overlay=document.createElement("div");overlay.id="mal-share-overlay";overlay.setAttribute("role","presentation");
-    overlay.innerHTML='<section id="mal-share-panel" role="dialog" aria-modal="true" aria-labelledby="mal-share-title"><h2 id="mal-share-title">Faire découvrir MALACHITE</h2><p>Partage le site avec tes amis en quelques secondes.</p><div class="mal-share-grid"><button class="mal-share-option primary" type="button" data-share="native">Partager…</button><button class="mal-share-option" type="button" data-share="whatsapp">WhatsApp</button><button class="mal-share-option" type="button" data-share="facebook">Facebook</button><button class="mal-share-option" type="button" data-share="copy">Copier le lien</button></div><div id="mal-share-feedback" aria-live="polite"></div><button id="mal-share-close" type="button">Fermer</button></section>';
+    overlay.innerHTML='<section id="mal-share-panel" role="dialog" aria-modal="true" aria-labelledby="mal-share-title"><h2 id="mal-share-title">Faire découvrir MALACHITE</h2><p>Partage le site avec tes amis en quelques secondes.</p><div class="mal-share-grid"><button class="mal-share-option primary" type="button" data-share="native">Partager</button><button class="mal-share-option" type="button" data-share="copy">Copier le lien</button></div><div id="mal-share-feedback" aria-live="polite"></div><button id="mal-share-close" type="button">Fermer</button></section>';
     document.body.appendChild(btn);document.body.appendChild(overlay);
     function close(){overlay.classList.remove("open");btn.focus()}
     function open(){overlay.classList.add("open");var first=overlay.querySelector('[data-share="native"]');if(first)first.focus()}
@@ -51,11 +51,9 @@
       var action=e.target.closest("[data-share]");if(!action)return;
       var link=getShareUrl();if(!link){feedback("Lien du site MALACHITE indisponible pour le moment.");return}var url=encodeURIComponent(link),text=encodeURIComponent(DESCRIPTION+" "+link);
       if(action.dataset.share==="copy"){copyLink();return}
-      if(action.dataset.share==="whatsapp"){window.open("https://wa.me/?text="+text,"_blank","noopener,noreferrer");return}
-      if(action.dataset.share==="facebook"){window.open("https://www.facebook.com/sharer/sharer.php?u="+url,"_blank","noopener,noreferrer");return}
       if(action.dataset.share==="native"){
         if(navigator.share){navigator.share({title:TITLE,text:DESCRIPTION,url:link}).then(function(){feedback("Merci d'avoir partagé MALACHITE.")}).catch(function(err){if(err&&err.name!=="AbortError")feedback("Le partage n'a pas abouti. Essaie une autre option.")})}
-        else{copyLink()}
+        else{copyLink();feedback("Le menu de partage n’est pas disponible ici : le lien a été copié.")}
       }
     });
   }
