@@ -28,7 +28,7 @@
 <canvas id="world" aria-label="Monde 3D de démonstration MALACHITE"></canvas>
 <div id="fallback"><div class="fallback-scene"><div class="fallback-label">MALACHITE WORLD</div></div></div>
 <div id="loading"><div class="load-card"><div class="mark">M</div><div class="load-title">MALACHITE WORLD</div><div class="load-sub">UN MONDE À EXPLORER ENSEMBLE</div><div class="load-track"><i></i></div><p style="font-size:11px;color:#98647a;margin-top:14px">Préparation de votre univers…</p></div></div>
-<div class="topbar"><div class="brand"><div class="brand-mark">M</div><div><strong>MALACHITE</strong><small>WORLD · PROTOTYPE 01</small></div></div><div class="top-actions"><button class="glass-btn" id="soundBtn">♫ Ambiance : oui</button><button class="glass-btn" id="exitBtn">Quitter ↗</button></div></div>
+<div class="topbar"><div class="brand"><div class="brand-mark">M</div><div><strong>MALACHITE</strong><small>WORLD · PROTOTYPE 01</small></div></div><div class="top-actions"><span class="glass-btn">Prototype visuel</span><button class="glass-btn" id="exitBtn">Quitter ↗</button></div></div>
 <aside class="panel"><div class="eyebrow">BIENVENUE DANS TON UNIVERS</div><h1>La place centrale</h1><p>Explore ce premier lieu, approche-toi des portails et découvre les espaces de MALACHITE.</p><div class="place-list">
 <button class="place active" data-place="plaza"><span class="ico">✧</span><span>Place centrale<small>Le cœur du monde</small></span></button>
 <button class="place" data-place="cafe"><span class="ico">☕</span><span>Café des rencontres<small>Faire connaissance</small></span></button>
@@ -44,7 +44,7 @@
 <div class="toast" id="toast"></div>
 <script type="module">
 const $=s=>document.querySelector(s), toast=t=>{const el=$('#toast');el.textContent=t;el.classList.add('show');clearTimeout(window._toastTimer);window._toastTimer=setTimeout(()=>el.classList.remove('show'),2400)};
-let THREE,renderer,scene,camera,player,avatarRoot,clock,firstPerson=false,activePlace='plaza',soundOn=true,started=false;
+let THREE,renderer,scene,camera,player,avatarRoot,clock,firstPerson=false,activePlace='plaza',started=false;
 const keys={},velocity={x:0,z:0},move={x:0,z:0},touch={active:false,x:0,y:0},portals={};
 const placeInfo={
  plaza:{title:'La place centrale',text:'Tu es au cœur de MALACHITE WORLD. C’est le point de départ pour explorer les différents espaces.',pos:[0,0,0]},
@@ -115,7 +115,7 @@ $('#homeBtn').addEventListener('click',()=>{player.position.set(0,0,5);player.ro
 $('#interactBtn').addEventListener('click',()=>{let closest='plaza',dist=99;for(const [id,g] of Object.entries(portals)){const d=player.position.distanceTo(g.position);if(d<dist){dist=d;closest=id}}if(dist<7){setPlace(closest)}else{const near=Object.entries(portals).sort((a,b)=>player.position.distanceTo(a[1].position)-player.position.distanceTo(b[1].position))[0];toast('Approche-toi du portail '+placeInfo[near[0]].title+' pour le découvrir.')}});
 $('#modalClose').addEventListener('click',()=>$('#modal').classList.remove('show'));
 $('#exitBtn').addEventListener('click',()=>{location.href='../'});
-$('#soundBtn').addEventListener('click',()=>{soundOn=!soundOn;$('#soundBtn').textContent='♫ Ambiance : '+(soundOn?'oui':'non');toast(soundOn?'Ambiance visuelle activée':'Mode silencieux')});
+
 const joy=$('#joystick'),stick=$('#stick');function joyMove(e){const r=joy.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;let dx=e.clientX-cx,dy=e.clientY-cy;const max=36,l=Math.hypot(dx,dy);if(l>max){dx=dx/l*max;dy=dy/l*max}stick.style.transform='translate('+dx+'px,'+dy+'px)';move.x=dx/max;move.y=-dy/max}
 joy.addEventListener('pointerdown',e=>{touch.active=true;joy.setPointerCapture(e.pointerId);joyMove(e)});joy.addEventListener('pointermove',e=>{if(touch.active)joyMove(e)});function joyEnd(){touch.active=false;move.x=0;move.y=0;stick.style.transform=''}joy.addEventListener('pointerup',joyEnd);joy.addEventListener('pointercancel',joyEnd);
 window.addEventListener('resize',()=>{if(!renderer)return;camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));$('#joystick').style.display=innerWidth<800?'block':'none'});
