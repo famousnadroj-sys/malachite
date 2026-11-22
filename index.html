@@ -940,6 +940,38 @@ body.mal-chat-mode .chat-tool{font-size:19px!important}
 .mal-vector-avatar svg{width:100%;height:100%;display:block}
 @media(max-width:390px){.mal-avatar-layout{grid-template-columns:1fr}.mal-avatar-stage{min-height:160px}.mal-avatar-controls{grid-template-columns:1fr 1fr}}
 </style>
+<style id="malachite-chat-media-signature">
+/* MALACHITE media cards: editorial photo treatment and cinematic video frame */
+body.mal-chat-mode .chat .m:has(.pic),
+body.mal-chat-mode .chat .m:has(video){padding:6px!important;overflow:hidden!important;border-radius:17px!important;max-width:min(82%,390px)!important}
+body.mal-chat-mode .chat .m.in:has(.pic),
+body.mal-chat-mode .chat .m.in:has(video){background:#fff!important;border:1px solid #eadde4!important}
+body.mal-chat-mode .chat .m.out:has(.pic),
+body.mal-chat-mode .chat .m.out:has(video){background:#f1dce6!important;border:1px solid #e7cbd8!important}
+body.mal-chat-mode .chat .m .pic{display:block;width:100%!important;max-width:360px!important;max-height:460px!important;height:auto!important;object-fit:contain!important;object-position:center!important;background:#f5eaf0!important;border-radius:12px!important;box-shadow:0 3px 14px rgba(55,22,39,.10)!important;cursor:zoom-in!important;transition:filter .2s ease,transform .25s ease!important}
+body.mal-chat-mode .chat .m .pic:active{filter:brightness(.96)!important;transform:scale(.992)!important}
+body.mal-chat-mode .chat .m:has(.pic) .tm,
+body.mal-chat-mode .chat .m:has(video) .tm{padding:2px 5px 0!important;margin:5px 2px 1px!important}
+body.mal-chat-mode .chat .m video{display:block;width:100%!important;max-width:360px!important;max-height:460px!important;height:auto!important;aspect-ratio:auto!important;object-fit:contain!important;object-position:center!important;background:#21141b!important;border:1px solid rgba(255,255,255,.35)!important;border-radius:12px!important;box-shadow:0 5px 18px rgba(44,16,31,.15)!important;outline:none!important}
+body.mal-chat-mode .chat .m video::-webkit-media-controls-panel{background:linear-gradient(transparent,rgba(24,10,18,.82))!important}
+body.mal-chat-mode .chat .m video::-webkit-media-controls-play-button,
+body.mal-chat-mode .chat .m video::-webkit-media-controls-mute-button{accent-color:#d66b96!important}
+body.mal-chat-mode .chat .m:has(video){background:#24151d!important;border-color:#3a2632!important}
+body.mal-chat-mode .chat .m:has(video) .tm{color:#f2dce6!important}
+body.mal-chat-mode .chat .m:has(video) .msg-status{color:#f5d9e5!important}
+body.mal-chat-mode .chat .m .pic + .pic{margin-top:5px!important}
+body.mal-chat-mode .chat .m .pic:only-child{max-height:min(56vh,460px)!important}
+body.mal-chat-mode .chat .m:has(.pic:only-child){width:fit-content!important}
+@media(max-width:420px){
+ body.mal-chat-mode .chat .m:has(.pic),body.mal-chat-mode .chat .m:has(video){max-width:min(86%,330px)!important}
+ body.mal-chat-mode .chat .m .pic,body.mal-chat-mode .chat .m video{max-width:100%!important;max-height:56vh!important;border-radius:10px!important}
+}
+@media(hover:hover){
+ body.mal-chat-mode .chat .m:has(.pic),body.mal-chat-mode .chat .m:has(video){transition:transform .2s ease,box-shadow .2s ease!important}
+ body.mal-chat-mode .chat .m:has(.pic):hover,body.mal-chat-mode .chat .m:has(video):hover{transform:translateY(-1px)!important;box-shadow:0 8px 22px rgba(70,25,47,.09)!important}
+}
+@media(prefers-reduced-motion:reduce){body.mal-chat-mode .chat .m .pic,body.mal-chat-mode .chat .m:has(.pic),body.mal-chat-mode .chat .m:has(video){transition:none!important}}
+</style>
 </body>
 </html>
 
