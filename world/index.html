@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f7dce7"><meta name="description" content="MALACHITE WORLD — prototype immersif de rencontre et d'exploration.">
-<title>MALACHITE WORLD · Prototype 01</title>
+<title>MALACHITE WORLD · Immersive Preview</title>
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <style>
 :root{--rose:#d85c88;--deep:#702b4b;--cream:#fffaf7;--glass:rgba(255,250,247,.82);--line:rgba(255,255,255,.7)}
@@ -21,6 +21,17 @@
 @media(min-width:800px){.panel{top:105px;left:22px;width:275px}.status{right:22px;top:105px}.hud{bottom:24px}.hint{bottom:92px}#joystick{display:none!important}}
 @media(max-width:560px){.topbar{left:9px;right:9px}.brand{padding:7px 9px}.brand-mark{width:29px;height:29px}.brand strong{font-size:12px}.top-actions .glass-btn{padding:9px 10px}.panel{top:80px;left:9px;width:205px;padding:11px;border-radius:18px}.panel h1{font-size:18px}.panel p{font-size:10px;margin-bottom:8px}.place{padding:7px;gap:7px}.place .ico{width:25px;height:25px}.status{top:80px;right:9px;font-size:9px;padding:7px}.hud{bottom:max(12px,env(safe-area-inset-bottom));gap:5px;padding:6px}.hud button{padding:10px 9px;font-size:10px}.hint{bottom:77px;font-size:9px}#joystick{display:block}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
+
+/* Direction artistique v2 — architecture contemporaine, matériaux minéraux et rose en accent */
+:root{--rose:#a85b7b;--deep:#4b303d;--cream:#f4f0ec;--glass:rgba(247,243,239,.88);--line:rgba(255,255,255,.58)}
+html,body{background:#c9c5c3;color:#45383b}
+#loading{background:linear-gradient(145deg,#eee8e3,#d8c9c7 58%,#f4efea)}
+.mark,.brand-mark{background:linear-gradient(145deg,#a85b7b,#684453)}
+.panel,.brand,.status,.hud{box-shadow:0 14px 38px rgba(35,27,29,.2);border-color:rgba(255,255,255,.72)}
+.panel h1{color:#4b303d}.panel p{color:#74666a}.place{border-color:#ded2cc;background:#f7f2ed;color:#514047}.place .ico{background:#e9dce0}.place.active{border-color:#a85b7b;background:#f0e1e6}
+.hud button{background:#e8dfda;color:#57434b}.hud button.primary{background:linear-gradient(135deg,#a85b7b,#70465a)}
+#stick{background:linear-gradient(145deg,#a85b7b,#684453)}
+.status b{color:#8b5b72}
 </style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
 </head>
@@ -28,7 +39,7 @@
 <canvas id="world" aria-label="Monde 3D de démonstration MALACHITE"></canvas>
 <div id="fallback"><div class="fallback-scene"><div class="fallback-label">MALACHITE WORLD</div></div></div>
 <div id="loading"><div class="load-card"><div class="mark">M</div><div class="load-title">MALACHITE WORLD</div><div class="load-sub">UN MONDE À EXPLORER ENSEMBLE</div><div class="load-track"><i></i></div><p style="font-size:11px;color:#98647a;margin-top:14px">Préparation de votre univers…</p></div></div>
-<div class="topbar"><div class="brand"><div class="brand-mark">M</div><div><strong>MALACHITE</strong><small>WORLD · PROTOTYPE 01</small></div></div><div class="top-actions"><span class="glass-btn">Prototype visuel</span><button class="glass-btn" id="exitBtn">Quitter ↗</button></div></div>
+<div class="topbar"><div class="brand"><div class="brand-mark">M</div><div><strong>MALACHITE</strong><small>WORLD · IMMERSIVE PREVIEW</small></div></div><div class="top-actions"><span class="glass-btn">Prototype visuel</span><button class="glass-btn" id="exitBtn">Quitter ↗</button></div></div>
 <aside class="panel"><div class="eyebrow">BIENVENUE DANS TON UNIVERS</div><h1>La place centrale</h1><p>Explore ce premier lieu, approche-toi des portails et découvre les espaces de MALACHITE.</p><div class="place-list">
 <button class="place active" data-place="plaza"><span class="ico">✧</span><span>Place centrale<small>Le cœur du monde</small></span></button>
 <button class="place" data-place="cafe"><span class="ico">☕</span><span>Café des rencontres<small>Faire connaissance</small></span></button>
@@ -36,7 +47,7 @@
 <button class="place" data-place="lounge"><span class="ico">♧</span><span>Salon privé<small>Espace personnel · aperçu</small></span></button>
 <button class="place" data-place="live"><span class="ico">♫</span><span>Scène MALACHITE LIVE<small>Événements · aperçu</small></span></button>
 </div></aside>
-<div class="status">● <b>Prototype local</b> · 1 explorateur</div>
+<div class="status">● <b>Démo visuelle</b> · 1 avatar</div>
 <div class="hint" id="hint">Glisse pour regarder · utilise le joystick pour avancer</div>
 <div id="joystick"><div id="stick"></div></div>
 <div class="hud"><button id="modeBtn">Vue : 3e personne</button><button id="interactBtn" class="primary">Explorer ✧</button><button id="homeBtn">⌂ Recentrer</button></div>
@@ -57,38 +68,99 @@ function material(color,rough=.72,metal=0){return new THREE.MeshStandardMaterial
 function box(w,h,d,mat,x,y,z,group=scene){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;group.add(o);return o}
 function sphere(r,mat,x,y,z,group=scene){const o=new THREE.Mesh(new THREE.SphereGeometry(r,18,14),mat);o.position.set(x,y,z);o.castShadow=true;group.add(o);return o}
 function cylinder(rt,rb,h,mat,x,y,z,group=scene){const o=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,24),mat);o.position.set(x,y,z);o.castShadow=true;group.add(o);return o}
-function makeTree(x,z,scale=1){const g=new THREE.Group();g.position.set(x,0,z);g.scale.setScalar(scale);cylinder(.16,.22,1.5,material('#8b5b59'),0,.75,0,g);for(let i=0;i<4;i++)sphere(.7-i*.08,material(i%2?'#9d9b82':'#b6b59b'),0,1.65+i*.32,0,g);scene.add(g)}
+function makeTree(x,z,scale=1){
+ const g=new THREE.Group();g.position.set(x,0,z);g.scale.setScalar(scale);
+ const bark=material('#675047',.96),leafA=material('#46584b',.98),leafB=material('#596b58',.98);
+ cylinder(.19,.28,2.25,bark,0,1.12,0,g);
+ for(const [ox,oy,oz,sx,sy,sz,mat] of [
+  [0,2.45,0,1.12,1.25,1.05,leafA],[-.48,2.75,.08,.72,.82,.72,leafB],[.48,2.88,-.12,.78,.9,.74,leafA],[.08,3.35,.05,.7,.78,.7,leafB],[-.12,3.05,-.48,.62,.72,.65,leafA]
+ ]){
+  const crown=new THREE.Mesh(new THREE.IcosahedronGeometry(1,2),mat);crown.position.set(ox,oy,oz);crown.scale.set(sx,sy,sz);crown.castShadow=true;crown.receiveShadow=true;g.add(crown);
+ }
+ scene.add(g);return g;
+}
 function makeLamp(x,z){cylinder(.055,.08,2.5,material('#8d6274',.4,.35),x,1.25,z);sphere(.22, new THREE.MeshStandardMaterial({color:'#fff1d6',emissive:'#f5c5d4',emissiveIntensity:1.4}),x,2.55,z)}
 function makeAvatar(){
- const g=new THREE.Group();const skin=material('#c98770'),shirt=material('#9d4d70'),pants=material('#554454'),hair=material('#30242a');
- sphere(.27,skin,0,1.55,0,g);sphere(.28,hair,0,1.72,-.035,g);box(.48,.62,.28,shirt,0,1.05,0,g);
- const armGeo=new THREE.CapsuleGeometry(.075,.42,4,8);for(const side of [-1,1]){const arm=new THREE.Mesh(armGeo,shirt);arm.position.set(side*.32,1.08,0);arm.rotation.z=side*.12;g.add(arm);const leg=new THREE.Mesh(new THREE.CapsuleGeometry(.09,.48,4,8),pants);leg.position.set(side*.13,.38,0);g.add(leg)}
+ const g=new THREE.Group();
+ const skin=material('#9a6655',.82),shirt=material('#302b32',.88),pants=material('#28252b',.92),hair=material('#211d20',.98),shoe=material('#17171a',.82),metal=material('#b58b79',.35,.55);
+ const torso=new THREE.Mesh(new THREE.CapsuleGeometry(.31,.48,8,16),shirt);torso.position.set(0,1.18,0);torso.castShadow=true;g.add(torso);
+ const neck=new THREE.Mesh(new THREE.CylinderGeometry(.09,.11,.2,16),skin);neck.position.set(0,1.58,0);g.add(neck);
+ const head=new THREE.Mesh(new THREE.SphereGeometry(.235,28,24),skin);head.scale.set(.92,1.12,.92);head.position.set(0,1.86,0);head.castShadow=true;g.add(head);
+ const hairCap=new THREE.Mesh(new THREE.SphereGeometry(.242,24,18,0,Math.PI*2,0,Math.PI*.58),hair);hairCap.scale.set(1,1.05,1);hairCap.position.set(0,1.91,-.012);g.add(hairCap);
+ const earL=new THREE.Mesh(new THREE.SphereGeometry(.052,12,10),skin),earR=earL.clone();earL.position.set(-.23,1.84,0);earR.position.set(.23,1.84,0);g.add(earL,earR);
+ const eyeMat=new THREE.MeshStandardMaterial({color:'#21191a',roughness:.35});
+ for(const side of [-1,1]){const eye=new THREE.Mesh(new THREE.SphereGeometry(.018,10,8),eyeMat);eye.position.set(side*.075,1.88,.205);g.add(eye)}
+ const armMat=shirt,legMat=pants;
+ for(const side of [-1,1]){
+  const arm=new THREE.Mesh(new THREE.CapsuleGeometry(.085,.48,6,12),armMat);arm.position.set(side*.39,1.17,.015);arm.rotation.z=side*.09;arm.castShadow=true;g.add(arm);
+  const hand=new THREE.Mesh(new THREE.SphereGeometry(.075,14,12),skin);hand.position.set(side*.4,.83,.02);g.add(hand);
+  const leg=new THREE.Mesh(new THREE.CapsuleGeometry(.105,.56,6,12),legMat);leg.position.set(side*.145,.43,0);leg.castShadow=true;g.add(leg);
+  const foot=new THREE.Mesh(new THREE.BoxGeometry(.19,.12,.34),shoe);foot.position.set(side*.145,.105,.075);foot.castShadow=true;g.add(foot);
+ }
+ const collar=new THREE.Mesh(new THREE.TorusGeometry(.115,.018,8,24),metal);collar.position.set(0,1.47,.08);collar.rotation.x=Math.PI/2;g.add(collar);
  g.position.set(0,0,5);scene.add(g);return g;
 }
-function makePortal(id,x,z,label,accent){const g=new THREE.Group();g.position.set(x,0,z);const stone=material('#fff4ed'),pink=material(accent,.35,.12),gold=material('#d6ad91',.3,.5);
- const left=box(.35,3.6,.55,stone,-1.15,1.8,0,g),right=box(.35,3.6,.55,stone,1.15,1.8,0,g),top=box(2.65,.38,.58,stone,0,3.55,0,g);
- const arch=new THREE.Mesh(new THREE.TorusGeometry(1.15,.15,12,40,Math.PI),pink);arch.position.set(0,2.9,.05);g.add(arch);
- box(1.6,.09,.68,gold,0,.12,0,g);const glow=new THREE.PointLight(accent,1.3,7);glow.position.set(0,2,1.3);g.add(glow);
- const sign=box(1.7,.43,.12,pink,0,4.05,.15,g);const labelMesh=makeText(label);labelMesh.position.set(0,4.05,.23);g.add(labelMesh);
+function makePortal(id,x,z,label,accent){
+ const g=new THREE.Group();g.position.set(x,0,z);
+ const concrete=material('#c9c0b9',.9),dark=material('#35343a',.5,.38),glass=new THREE.MeshPhysicalMaterial({color:'#b9c5c5',roughness:.16,metalness:.08,transparent:true,opacity:.34,side:THREE.DoubleSide}),rose=material(accent,.38,.42),warm=material('#b79a82',.35,.55);
+ box(7.4,.34,5.2,concrete,0,.18,0,g);
+ box(6.8,.18,4.7,dark,0,.43,0,g);
+ // Slim structural frame and broad glass frontage: contemporary pavilion, not a cartoon arch.
+ for(const px of [-3.05,3.05]){box(.16,3.7,.18,dark,px,2.28,0,g);box(.08,3.45,.08,rose,px,2.28,.12,g)}
+ box(6.25,.22,.2,dark,0,4.12,0,g);
+ box(6.2,.13,5.0,concrete,0,4.28,0,g);
+ for(const px of [-2.0,-.65,.65,2.0]){
+  const pane=box(1.22,3.12,.045,glass,px,2.15,.02,g);pane.castShadow=false;
+  box(.035,3.2,.07,dark,px-.63,2.15,.08,g);
+ }
+ box(1.8,.12,.1,rose,0,3.72,.1,g);
+ const labelMesh=makeText(label);labelMesh.scale.set(1.65,.4,1);labelMesh.position.set(0,3.75,.17);g.add(labelMesh);
+ for(const px of [-2.6,2.6]){const lamp=new THREE.PointLight(accent,.45,5);lamp.position.set(px,2.8,1.1);g.add(lamp)}
+ box(7.2,.08,5.0,warm,0,.57,0,g);
  scene.add(g);portals[id]=g;
 }
 function makeText(txt){const c=document.createElement('canvas');c.width=512;c.height=128;const ctx=c.getContext('2d');ctx.fillStyle='#fff8f5';ctx.font='bold 42px Georgia';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(txt,256,64);const tex=new THREE.CanvasTexture(c);const m=new THREE.Mesh(new THREE.PlaneGeometry(1.55,.38),new THREE.MeshBasicMaterial({map:tex,transparent:true}));return m}
 function build(){
- scene=new THREE.Scene();scene.background=new THREE.Color('#ead0d9');scene.fog=new THREE.FogExp2('#ead0d9',.012);
- camera=new THREE.PerspectiveCamera(58,innerWidth/innerHeight,.1,180);camera.position.set(0,5,10);
- renderer=new THREE.WebGLRenderer({canvas:$('#world'),antialias:!matchMedia('(max-width:600px)').matches,alpha:false,powerPreference:'low-power'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=innerWidth>650;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;
- const hemi=new THREE.HemisphereLight('#fff7f1','#9d7185',2.1);scene.add(hemi);const sun=new THREE.DirectionalLight('#fff0e2',2.5);sun.position.set(-18,28,14);sun.castShadow=innerWidth>650;sun.shadow.mapSize.set(1024,1024);scene.add(sun);
- const ground=box(100,.5,100,material('#d9c4bd'),0,-.35,0);ground.receiveShadow=true;
- const plaza= new THREE.Mesh(new THREE.CircleGeometry(9,64),material('#f0e1d9'));plaza.rotation.x=-Math.PI/2;plaza.position.y=-.08;scene.add(plaza);
- const pathMat=material('#f7eee8');for(const [x,z,w,d] of [[0,-8,4,18],[0,8,4,18],[-8,0,18,4],[8,0,18,4]]){const p=box(w,.04,d,pathMat,x,-.07,z);p.castShadow=false}
- cylinder(2.2,2.5,.55,material('#e9d6d0'),0,.05,0);cylinder(1.75,1.9,.35,material('#d99bb1'),0,.48,0);cylinder(1.2,1.3,.22,material('#fff5ef'),0,.75,0);
- const water=cylinder(.9,.9,.12, new THREE.MeshStandardMaterial({color:'#b9d8d5',roughness:.18,metalness:.25}),0,.91,0);const jet=new THREE.Mesh(new THREE.CylinderGeometry(.08,.13,1.3,16),new THREE.MeshStandardMaterial({color:'#f7e5e9',transparent:true,opacity:.72}),);jet.position.set(0,1.55,0);scene.add(jet);
- for(let i=0;i<12;i++){const a=i*Math.PI/6;makeLamp(Math.cos(a)*8,Math.sin(a)*8)}
- [[-20,-20],[20,-20],[-20,20],[20,20],[-24,0],[24,0],[0,-24],[0,24]].forEach(([x,z],i)=>makeTree(x,z,i%2?.85:1.15));
- makePortal('cafe',-13,-13,'LE CAFÉ','#d77b9b');makePortal('garden',13,-13,'LE JARDIN','#a7a98e');makePortal('lounge',-13,13,'SALON PRIVÉ','#c28da3');makePortal('live',13,13,'LIVE','#d5a76f');
- // Architecture framing the square
- for(const [x,z] of [[-22,-22],[22,-22],[-22,22],[22,22]]){cylinder(1.1,1.25,5,material('#eadbd4'),x,2.5,z);cylinder(1.3,1.3,.35,material('#c58da2'),x,5.05,z)}
- for(let i=0;i<18;i++){const a=i*Math.PI/9;const x=Math.cos(a)*34,z=Math.sin(a)*34;makeTree(x,z,.75)}
+ scene=new THREE.Scene();scene.background=new THREE.Color('#c9c5c3');scene.fog=new THREE.FogExp2('#c9c5c3',.008);
+ camera=new THREE.PerspectiveCamera(58,innerWidth/innerHeight,.1,220);camera.position.set(0,5,10);
+ renderer=new THREE.WebGLRenderer({canvas:$('#world'),antialias:!matchMedia('(max-width:600px)').matches,alpha:false,powerPreference:'low-power'});
+ renderer.setPixelRatio(Math.min(devicePixelRatio,innerWidth<600?1.15:1.5));renderer.setSize(innerWidth,innerHeight);
+ renderer.shadowMap.enabled=innerWidth>650;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;
+ const hemi=new THREE.HemisphereLight('#f4eee9','#6e6563',1.55);scene.add(hemi);
+ const sun=new THREE.DirectionalLight('#fff1e4',2.25);sun.position.set(-25,36,18);sun.castShadow=innerWidth>650;sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=-48;sun.shadow.camera.right=48;sun.shadow.camera.top=48;sun.shadow.camera.bottom=-48;scene.add(sun);
+ const groundMat=material('#77716d',.98),stone=material('#c4bbb4',.92),paleStone=material('#ddd4cd',.9),darkStone=material('#625b59',.92),roseMetal=material('#9d6479',.38,.62),glassMat=new THREE.MeshPhysicalMaterial({color:'#aab8bb',roughness:.18,metalness:.08,transparent:true,opacity:.42});
+ box(120,.6,120,groundMat,0,-.42,0);
+ // Large-format paving with subtle joints and a clear central promenade.
+ for(let x=-42;x<=42;x+=4)for(let z=-42;z<=42;z+=4){const tile=box(3.92,.055,3.92,((x+z)/4)%2===0?paleStone:stone,x,-.09,z);tile.castShadow=false}
+ const plaza=new THREE.Mesh(new THREE.CircleGeometry(10.2,72),paleStone);plaza.rotation.x=-Math.PI/2;plaza.position.y=-.045;plaza.receiveShadow=true;scene.add(plaza);
+ for(let r=10.6;r<12.2;r+=.55){const ring=new THREE.Mesh(new THREE.RingGeometry(r,r+.055,96),roseMetal);ring.rotation.x=-Math.PI/2;ring.position.y=-.025;scene.add(ring)}
+ const pathMat=material('#d9d0c9',.94);
+ for(const [x,z,w,d] of [[0,-10,5,23],[0,10,5,23],[-10,0,23,5],[10,0,23,5]]){const p=box(w,.075,d,pathMat,x,-.035,z);p.castShadow=false}
+ // Monumental tiered fountain in honed stone and brushed metal.
+ cylinder(3.15,3.45,.5,darkStone,0,.13,0);cylinder(2.75,3.0,.3,stone,0,.52,0);cylinder(2.12,2.35,.28,roseMetal,0,.81,0);cylinder(1.62,1.78,.2,paleStone,0,1.04,0);
+ const waterMat=new THREE.MeshStandardMaterial({color:'#819c9e',roughness:.16,metalness:.28,transparent:true,opacity:.92});
+ const water=cylinder(1.48,1.48,.08,waterMat,0,1.18,0);water.receiveShadow=true;
+ const bowl=cylinder(.52,.7,.22,roseMetal,0,1.48,0);cylinder(.38,.5,.14,paleStone,0,1.65,0);
+ const jet=new THREE.Mesh(new THREE.CylinderGeometry(.045,.09,1.1,20),new THREE.MeshPhysicalMaterial({color:'#e5e6e1',roughness:.12,transparent:true,opacity:.42}));jet.position.set(0,2.25,0);scene.add(jet);
+ // Low seating, raised planters and warm architectural lighting.
+ for(let i=0;i<8;i++){const a=i*Math.PI/4,x=Math.cos(a)*7.6,z=Math.sin(a)*7.6;const bench=new THREE.Group();bench.position.set(x,0,z);bench.rotation.y=-a;box(2.25,.16,.62,darkStone,0,.42,0,bench);box(2.25,.12,.62,roseMetal,0,.56,0,bench);box(2.25,.62,.12,stone,0,.78,-.25,bench);scene.add(bench)}
+ for(let i=0;i<12;i++){const a=i*Math.PI/6;const x=Math.cos(a)*13.2,z=Math.sin(a)*13.2;const planter=new THREE.Group();planter.position.set(x,0,z);cylinder(.85,.95,.55,stone,0,.25,0,planter);makeTree(0,0,.52);scene.add(planter)}
+ // Modern glass pavilions, one for each social destination.
+ makePortal('cafe',-18,-18,'CAFÉ DES RENCONTRES','#a85b7b');
+ makePortal('garden',18,-18,'JARDIN DE L’AMITIÉ','#987b70');
+ makePortal('lounge',-18,18,'SALONS PRIVÉS','#8c667b');
+ makePortal('live',18,18,'MALACHITE LIVE','#ad8b68');
+ // Distant contemporary blocks create a believable urban horizon.
+ for(const [x,z,w,d,h] of [[-34,-24,10,12,9],[34,-24,12,10,12],[-34,24,12,10,11],[34,24,10,12,8],[-4,-38,15,8,10],[15,39,13,8,13]]){
+  box(w,h,d,concreteFacade,x,h/2-.05,z);
+  for(let yy=2;yy<h-1.5;yy+=2.1)for(let xx=-w/2+1;xx<w/2-1;xx+=2.2){const win=box(1.25,1.25,.045,glassMat,x+xx,yy,z-d/2-.03);win.castShadow=false}
+  box(w+.35,.22,d+.35,roseMetal,x,h+.08,z);
+ }
+ // Trees, landscaped islands and low shrubs around the perimeter.
+ for(const [x,z,s] of [[-29,-10,1.05],[29,-10,1.05],[-29,10,1.05],[29,10,1.05],[-25,-29,.95],[25,-29,.95],[-25,29,.95],[25,29,.95],[-40,0,1.2],[40,0,1.2],[0,-42,1.1],[0,42,1.1]])makeTree(x,z,s);
+ for(let i=0;i<20;i++){const a=i*Math.PI/10,x=Math.cos(a)*29,z=Math.sin(a)*29;const shrub=new THREE.Mesh(new THREE.IcosahedronGeometry(.58,1),material('#596354',.98));shrub.position.set(x,.48,z);shrub.scale.y=.72;shrub.castShadow=true;scene.add(shrub)}
+ // Restrained bronze lamps; no toy-like saturated glow.
+ for(let i=0;i<12;i++){const a=i*Math.PI/6,x=Math.cos(a)*11.5,z=Math.sin(a)*11.5;cylinder(.045,.075,3.4,roseMetal,x,1.7,z);box(.36,.12,.36,darkStone,x,3.36,z);const bulb=new THREE.PointLight('#f5dfd0',.5,6);bulb.position.set(x,3.55,z);scene.add(bulb)}
  player=makeAvatar();clock=new THREE.Clock();started=true;$('#loading').style.opacity='0';setTimeout(()=>$('#loading').style.display='none',550);$('#joystick').style.display=innerWidth<800?'block':'none';animate();
 }
 function animate(){if(!started)return;requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);
