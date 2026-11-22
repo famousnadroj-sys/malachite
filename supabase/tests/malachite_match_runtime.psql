@@ -217,6 +217,11 @@ begin
      or has_function_privilege('anon','public.match_relation_compatible_ids()','EXECUTE') then
     raise exception 'anon_can_execute_match_rpc';
   end if;
+  if has_function_privilege('authenticated','private.match_like_quota()','EXECUTE')
+     or has_function_privilege('authenticated','private.match_received_likes()','EXECUTE')
+     or has_function_privilege('authenticated','private.match_relation_compatible_ids()','EXECUTE') then
+    raise exception 'authenticated_can_execute_private_match_helpers';
+  end if;
   if not has_function_privilege('authenticated','public.match_like_quota()','EXECUTE')
      or not has_function_privilege('authenticated','public.match_received_likes()','EXECUTE')
      or not has_function_privilege('authenticated','public.match_relation_compatible_ids()','EXECUTE') then
