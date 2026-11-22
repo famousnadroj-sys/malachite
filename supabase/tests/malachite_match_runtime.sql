@@ -72,8 +72,6 @@ insert into public.profiles(id,prenom)
 select id, 'Membre ' || right(id::text,4) from auth.users;
 
 -- Fixtures: blocked, suspended and private profiles must not appear in received likes.
-insert into public.blocages(user_id,cible)
-values ('00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000004');
 insert into public.suspensions(user_id)
 values ('00000000-0000-0000-0000-000000000005');
 update public.profiles set profile_private=true
@@ -154,6 +152,10 @@ begin
 
   -- Four eligible public likes are counted; only three IDs are revealed to free members.
   perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000001',true);
+  -- Apply the block after the outgoing quota checks; old likes from blocked users must be hidden.
+  insert into public.blocages(user_id,cible)
+  values ('00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000004');
+
   -- Seed historical likes before applying block/suspension filtering in the RPC.
   alter table public.avis_match disable trigger enforce_match_daily_like_limit;
   insert into public.avis_match(user_id,autre,ok) values
