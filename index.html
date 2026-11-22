@@ -708,6 +708,11 @@ body.mal-chat-mode .recbar{position:fixed!important;left:0!important;right:0!imp
   function startCore(){
     if(coreStarted)return;coreStarted=true;
     var core=document.createElement("script");core.src="./app-core.js";
+    core.onload=function(){
+      var calls=document.createElement("script");calls.src="./calls.js?v=20261122-call-init-v2";calls.async=false;
+      calls.onerror=function(){console.error("Le module d’appels MALACHITE n’a pas pu être chargé.");};
+      document.head.appendChild(calls);
+    };
     core.onerror=function(){if(window.malShowStartupRecovery)window.malShowStartupRecovery("Le fichier principal de MALACHITE n’a pas pu être chargé. Réessaie après avoir vérifié ta connexion.");};
     document.head.appendChild(core);
   }
@@ -927,7 +932,7 @@ body.mal-chat-mode .chat-tool{font-size:19px!important}
 .mal-human-avatar img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit}.mal-profile-3d-image{width:100%;height:100%;object-fit:cover;display:block}.mal-own-avatar-large .mal-human-avatar{width:100%;height:100%}
 .mal-own-avatar-preview{width:min(100%,260px);margin:18px auto 22px;padding:10px;border-radius:22px;background:linear-gradient(145deg,#fff,#f8eaf0);border:1px solid #efd5df;box-shadow:0 10px 28px rgba(90,30,55,.10);text-align:center}.mal-own-avatar-preview img{display:block;width:100%;aspect-ratio:1/1;object-fit:contain;border-radius:16px;background:radial-gradient(circle at 50% 35%,#fff,#f2e3e9)}.mal-own-avatar-preview span{display:block;margin-top:8px;font-size:11px;letter-spacing:.16em;font-weight:800;color:#8e3e61}
 </style>
-<script src="calls.js" defer></script>
+
 <script src="i18n.js" defer></script>
 
 <style id="malachite-personalization-v2">
@@ -1271,7 +1276,7 @@ body.mal-chat-mode .msg-action-sheet{border-radius:14px 14px 0 0!important}
 
 <script src="admin-push.js" defer></script>
 <script src="malachite-share.js" defer></script>
-<script src="./malachite-user-experience.js?v=20261122-chat-speed-v8" defer></script>
+<script src="./malachite-user-experience.js?v=20261122-chat-premium-v9" defer></script>
 
 <style id="malachite-messaging-premium-2026">
 /* MALACHITE conversation redesign — mature editorial rose/ivory UI */
@@ -1520,7 +1525,7 @@ body.mal-chat-mode .callbtn{background:#fff!important;color:#a43d68!important;bo
 @media(prefers-reduced-motion:reduce){body.mal-chat-mode *{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
 </style>
 
-<style id="malachite-chat-layout-v8">
+<style id="malachite-chat-layout-v9">
 body.mal-chat-mode{background:#f8f4f6!important;overflow:hidden!important}
 body.mal-chat-mode main#v{display:flex!important;flex-direction:column!important;align-items:stretch!important;width:100%!important;max-width:none!important;height:100dvh!important;max-height:100dvh!important;min-height:0!important;margin:0!important;padding:env(safe-area-inset-top,0px) 0 0!important;overflow:hidden!important;background:linear-gradient(180deg,#fff 0%,#fbf7f9 30%,#f8f4f6 100%)!important}
 body.mal-chat-mode .chtop{position:relative!important;flex:0 0 auto!important;width:100%!important;margin:0!important;padding:12px max(14px,calc((100vw - 760px)/2)) 11px!important;background:rgba(255,255,255,.97)!important;border:0!important;border-bottom:1px solid #eee2e8!important;border-radius:0!important;box-shadow:0 5px 22px rgba(57,28,43,.045)!important;backdrop-filter:blur(18px)!important}
@@ -1569,6 +1574,23 @@ body.mal-chat-mode .reply-preview b{color:#91345f!important}
  body.mal-chat-mode .sendbar .chat-composer>button.chat-send{flex-basis:40px!important;width:40px!important;height:40px!important;min-width:40px!important}
 }
 @media(prefers-reduced-motion:reduce){body.mal-chat-mode #msgs .m .pic{animation:none!important}}
+/* MALACHITE CHAT V9 — stronger visual identity and clearer conversation hierarchy */
+body.mal-chat-mode .chtop{position:relative!important;isolation:isolate!important;padding-top:15px!important;background:linear-gradient(115deg,#fff 0%,#fff8fb 52%,#fff 100%)!important}
+body.mal-chat-mode .chtop:before{content:"";position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#a52f61 0%,#e78caf 48%,#f6d9e5 100%);pointer-events:none}
+body.mal-chat-mode .chtop .top>button:not(.mal-chat-profile){transition:transform .16s ease,background .16s ease,box-shadow .16s ease!important}
+body.mal-chat-mode .chtop .top>button:not(.mal-chat-profile):active{transform:scale(.94)!important;background:#f8e6ee!important}
+body.mal-chat-mode .mal-chat-profile .av{box-shadow:0 0 0 2px #fff,0 0 0 4px #e7b8cb,0 5px 14px rgba(115,38,73,.14)!important}
+body.mal-chat-mode #msgs.chat{background-color:#fbf6f8!important;background-image:radial-gradient(ellipse at 12% 8%,rgba(235,190,210,.22),transparent 34%),radial-gradient(ellipse at 92% 88%,rgba(220,170,192,.17),transparent 32%),radial-gradient(rgba(171,117,145,.09) .7px,transparent .7px)!important;background-size:auto,auto,22px 22px!important}
+body.mal-chat-mode #msgs .m{border-radius:19px!important;box-shadow:0 5px 18px rgba(79,35,57,.075)!important}
+body.mal-chat-mode #msgs .m.in{border-color:#eadde4!important;background:linear-gradient(145deg,#fff 0%,#fffafd 100%)!important}
+body.mal-chat-mode #msgs .m.out{border-color:#e6c3d2!important;background:linear-gradient(145deg,#fbeef3 0%,#f1d9e4 100%)!important;box-shadow:0 5px 18px rgba(153,62,101,.11)!important}
+body.mal-chat-mode #msgs .m .tm{font-weight:650!important;letter-spacing:.01em!important}
+body.mal-chat-mode .sendbar{border-top:1px solid #e9d9e2!important;background:linear-gradient(180deg,rgba(255,255,255,.99),rgba(255,249,252,.99))!important}
+body.mal-chat-mode .sendbar .chat-composer>input#mi{background:#fff!important;border-color:#e7d5df!important;box-shadow:0 2px 8px rgba(90,35,63,.04)!important}
+body.mal-chat-mode .sendbar .chat-composer>button.chat-tool{background:#fff!important;border-color:#ead9e2!important;color:#9c4b70!important}
+body.mal-chat-mode .sendbar .chat-composer>button.chat-send{background:linear-gradient(145deg,#d34d83,#922c5d)!important;box-shadow:0 6px 16px rgba(158,43,91,.28)!important}
+body.mal-chat-mode .mal-call-head{width:40px!important;height:40px!important;border:1px solid #edcfdd!important;background:linear-gradient(145deg,#fff,#fceaf1)!important;box-shadow:0 3px 10px rgba(140,52,90,.10)!important}
+@media(max-width:420px){body.mal-chat-mode .chtop{padding-top:14px!important}body.mal-chat-mode .chtop:before{height:4px}}
 </style>
 </body>
 </html>
