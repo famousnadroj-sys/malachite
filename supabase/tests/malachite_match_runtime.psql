@@ -83,7 +83,7 @@ values ('00000000-0000-0000-0000-000000000013', now() + interval '2 days');
 
 \ir ../migrations/202611220001_malachite_match_likes.sql
 
-do $$$
+do $$
 declare
   i integer;
   target_id uuid;
