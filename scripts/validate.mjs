@@ -509,7 +509,11 @@ for (const item of [
   'data-place="lounge"',
   'data-place="live"',
   'base=firstPerson?yaw:0',
-  'Prototype local',
+  'Démo visuelle',
+  'function makeAvatar()',
+  'new THREE.MeshPhysicalMaterial',
+  'Direction artistique v2',
+  'IMMERSIVE PREVIEW',
 ]) {
   if (!world.includes(item)) throw new Error('MALACHITE WORLD prototype requirement missing: ' + item);
 }
