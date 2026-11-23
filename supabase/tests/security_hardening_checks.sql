@@ -166,3 +166,51 @@ begin
   end if;
 end
 $$;
+
+
+-- 10) Server-only operational tables must stay inaccessible to client roles.
+-- RLS without policies is intentional here: these records are accessed only
+-- through trusted server functions using the service role. Keep this assertion
+-- so a future grant cannot silently expose queues, audit logs, AI controls,
+-- referrals, or the founder ledger through the Data API.
+do $$
+declare
+  v_item record;
+  v_table regclass;
+begin
+  for v_item in
+    select * from (values
+      ('private','admins'),
+      ('private','founder_finance_ledger'),
+      ('public','admin_push_queue'),
+      ('public','admin_push_subscriptions'),
+      ('public','ai_manager_audit'),
+      ('public','ai_ops_runs'),
+      ('public','malachite_ai_alerts'),
+      ('public','malachite_ai_review_queue'),
+      ('public','malachite_ai_settings'),
+      ('public','malachite_referrals')
+    ) as protected(schema_name, table_name)
+  loop
+    v_table := to_regclass(format('%I.%I',v_item.schema_name,v_item.table_name));
+    if v_table is null then
+      raise exception 'server_only_table_missing: %.%',v_item.schema_name,v_item.table_name;
+    end if;
+
+    if not (select c.relrowsecurity from pg_class c where c.oid=v_table) then
+      raise exception 'server_only_table_rls_disabled: %.%',v_item.schema_name,v_item.table_name;
+    end if;
+
+    if has_table_privilege('anon',v_table,'SELECT')
+       or has_table_privilege('anon',v_table,'INSERT')
+       or has_table_privilege('anon',v_table,'UPDATE')
+       or has_table_privilege('anon',v_table,'DELETE')
+       or has_table_privilege('authenticated',v_table,'SELECT')
+       or has_table_privilege('authenticated',v_table,'INSERT')
+       or has_table_privilege('authenticated',v_table,'UPDATE')
+       or has_table_privilege('authenticated',v_table,'DELETE') then
+      raise exception 'server_only_table_client_grant_detected: %.%',v_item.schema_name,v_item.table_name;
+    end if;
+  end loop;
+end
+$$;
