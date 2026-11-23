@@ -143,3 +143,37 @@ https://supabase.com/docs/guides/auth/password-security
 - Ne pas passer au plan Pro uniquement pour faire disparaître l'alerte sans décision explicite sur le budget.
 - Si un passage au plan Pro est approuvé ultérieurement, activer l'option dans les paramètres Auth, puis tester inscription, connexion et changement de mot de passe.
 - Ne pas confondre cette protection avec une réinitialisation des mots de passe existants.
+
+
+## 12. Recontrôle du 23 novembre 2026 — CI, RPC et worker IA
+
+### CI des Pull Requests
+Vérification directe des workflows GitHub associés aux derniers commits observés :
+- PR #69, commit `902f198b121117423ce1ec54a3d4b645cd6b9140` : workflow `Malachite validation`, exécution #814, terminée avec succès.
+- PR #70, commit `5872fe9d36e6e923b78acc9788a9b1b6137936d4` : workflow `Malachite validation`, exécution #819, terminée avec succès.
+- PR #54, commit `d6cb185878533ef46ad945b83a92e5aa6b387012` : aucun workflow PR retourné et aucun statut combiné enregistré. Ne pas considérer le correctif Match comme validé par CI.
+
+Ces résultats concernent exactement les SHA indiqués ; toute nouvelle modification nécessite une nouvelle vérification.
+
+### Revue des avertissements Supabase SECURITY DEFINER
+Les avertissements du conseiller ont été examinés dans les définitions SQL de production :
+- `admin_malachite_referrals`, `founder_business_overview` et `founder_finance_summary` exigent un utilisateur connecté et `private.is_admin()`. Leur `search_path` est fixé à vide.
+- `start_call_session` exige `auth.uid()`, valide l'éligibilité Appels/Premium, le blocage, le match réciproque et l'expiration. L'accès `authenticated` est cohérent avec son usage RPC.
+- `get_malachite_referrer_preview` est accessible à `anon`, mais ne renvoie que le prénom et le nom d'utilisateur d'un profil dont `profile_private=false`. C'est une exposition publique limitée aux profils publics, à surveiller si le besoin produit change.
+- Les alertes « RLS activé sans policy » portent notamment sur des tables internes/serveur. L'absence de policy n'est pas à elle seule une preuve de fuite ; il faut aussi vérifier les privilèges SQL et les accès des rôles exposés. Aucune permission n'a été modifiée pendant cet audit.
+- L'alerte HaveIBeenPwned reste une limite du plan Free, comme indiqué plus haut.
+
+### Vérification de l'authentification du worker IA
+Le worker de production est actif en version 14 et `verify_jwt=false`. Cela ne signifie pas qu'il accepte librement les appels : le code exige une signature HMAC courte durée via les en-têtes `x-mal-timestamp` et `x-mal-signature`, puis appelle `verify_malachite_ai_worker_signature`. Cette RPC :
+- utilise un secret conservé dans Supabase Vault ;
+- vérifie un timestamp à 10 chiffres avec une fenêtre de 300 secondes ;
+- vérifie une signature HMAC-SHA256 sur timestamp + corps ;
+- refuse par défaut en cas d'erreur ;
+- n'est exécutable que par `service_role` (ni `anon`, ni `authenticated`).
+
+La garde d'authentification est donc présente dans le code et la permission SQL vérifiée. Aucun appel manuel du worker n'a été déclenché.
+
+### Écart de code du worker — portée précise
+La comparaison ligne à ligne du fichier déployé avec `main` confirme un seul bloc fonctionnel différent : le code de `main` conserve les champs existants de `current.automation` avant d'ajouter les nouvelles métadonnées de préparation ; la version production remplace cet objet `automation` sans fusionner ses champs précédents. Cela peut écraser des métadonnées imbriquées préexistantes dans les tâches en attente. Aucun élément ne prouve qu'une donnée utilisateur a déjà été perdue.
+
+**Décision :** ne pas redéployer avant sauvegarde restaurable et test staging qui prouve la conservation des métadonnées. Aucun déploiement, changement de permission, changement Auth, paiement ou export de données privées n'a été effectué pendant ce contrôle.
