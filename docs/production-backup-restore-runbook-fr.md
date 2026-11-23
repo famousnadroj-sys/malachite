@@ -131,11 +131,15 @@ La CI du nouveau commit n'est pas encore confirmée. La PR #54 reste en brouillo
 
 Ces essais ne remplacent pas les tests d'appels entre deux téléphones réels.
 
-## 11. Configuration Auth à finaliser
+## 11. Protection des mots de passe compromis — limite du plan
 
-Le conseiller de sécurité Supabase signale que la protection contre les mots de passe compromis (vérification HaveIBeenPwned) est désactivée en production.
+Le conseiller de sécurité Supabase signale que la protection contre les mots de passe compromis (HaveIBeenPwned) est désactivée en production.
 
-- Aucun changement de configuration Auth n'a été effectué.
-- Cette option doit être activée dans les paramètres Auth du projet après vérification de l'impact sur les inscriptions et changements de mot de passe.
-- Refaire ensuite le contrôle de sécurité Supabase et tester inscription, connexion et changement de mot de passe.
-- Ne pas confondre ce réglage avec une réinitialisation des mots de passe existants.
+La documentation officielle Supabase précise que cette fonctionnalité est disponible uniquement sur les plans **Pro et supérieurs** :
+https://supabase.com/docs/guides/auth/password-security
+
+- Le projet est actuellement sur le plan Free ; cette alerte ne peut donc pas être corrigée dans le cadre du plan actuel.
+- Aucun changement Auth ni changement de plan n'a été effectué.
+- Ne pas passer au plan Pro uniquement pour faire disparaître l'alerte sans décision explicite sur le budget.
+- Si un passage au plan Pro est approuvé ultérieurement, activer l'option dans les paramètres Auth, puis tester inscription, connexion et changement de mot de passe.
+- Ne pas confondre cette protection avec une réinitialisation des mots de passe existants.
