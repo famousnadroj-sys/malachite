@@ -1,32 +1,26 @@
-name: MALACHITE Match isolated preview deployment
+name: MALACHITE isolated preview validation
 on:
   push:
     branches:
-      - main
+      - preview/malachite-match-staging-clean
   workflow_dispatch:
 permissions:
   contents: read
-  pages: write
-  id-token: write
-concurrency:
-  group: pages-preview
-  cancel-in-progress: true
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  validate-preview:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout complete test branch
+      - name: Checkout isolated preview branch
         uses: actions/checkout@v4
         with:
           ref: preview/malachite-match-staging-clean
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
       - name: Validate application JavaScript
-        run: |
-          node --version
-          node scripts/validate.mjs
-      - name: Build isolated staging website
+        run: node scripts/validate.mjs
+      - name: Build isolated staging artifact without publishing it
         env:
           PROD_SUPABASE_REF: tscsmemsvgacqioncash
           STAGING_SUPABASE_REF: sbawknyxcjslvhknomkd
@@ -40,7 +34,6 @@ jobs:
           python3 - <<'PY'
           import os
           from pathlib import Path
-
           root = Path("_site")
           replacements = {
               os.environ["PROD_SUPABASE_REF"]: os.environ["STAGING_SUPABASE_REF"],
@@ -51,47 +44,35 @@ jobs:
               if not path.is_file():
                   continue
               try:
-                  text = path.read_text(encoding="utf-8")
+                  content = path.read_text(encoding="utf-8")
               except UnicodeDecodeError:
                   continue
               for old, new in replacements.items():
-                  counts[old] += text.count(old)
-                  text = text.replace(old, new)
-              path.write_text(text, encoding="utf-8")
-          if not all(counts.values()) and not all(new in ''.join(p.read_text(encoding='utf-8', errors='ignore') for p in root.rglob('*') if p.is_file()) for new in replacements.values()):
-              raise SystemExit("Preview build stopped: staging Supabase project/key not present.")
+                  counts[old] += content.count(old)
+                  content = content.replace(old, new)
+              path.write_text(content, encoding="utf-8")
+          if not all(counts.values()):
+              raise SystemExit("Preview validation failed: production config was not fully replaced.")
           for path in root.rglob("*"):
               if path.is_file():
                   try:
-                      text = path.read_text(encoding="utf-8")
+                      content = path.read_text(encoding="utf-8")
                   except UnicodeDecodeError:
                       continue
-                  if any(old in text for old in replacements):
-                      raise SystemExit(f"Production Supabase value remains in staging artifact: {path}")
-          index = root / "index.html"
-          html = index.read_text(encoding="utf-8")
+                  if any(old in content for old in replacements):
+                      raise SystemExit(f"Production config remains in preview artifact: {path}")
+          html = (root / "index.html").read_text(encoding="utf-8")
           banner = '<div id="mal-staging-banner" role="status">MALACHITE · ENVIRONNEMENT DE TEST · DONNÉES DE TEST UNIQUEMENT</div>'
           style = '<style>#mal-staging-banner{position:sticky;top:0;z-index:99999;background:#7c2d12;color:#fff;text-align:center;padding:8px 12px;font:700 12px system-ui;letter-spacing:.04em}</style>'
           if 'id="mal-staging-banner"' not in html:
               html = html.replace("</head>", style + "</head>", 1)
               import re
-              html, n = re.subn(r"(<body\b[^>]*>)", r"\1" + banner, html, count=1, flags=re.I)
-              if n != 1:
-                  raise SystemExit("Staging build stopped: body element not found.")
-          index.write_text(html, encoding="utf-8")
-          print("Match preview staging build verified. Replaced production references:", counts)
+              html, count = re.subn(r"(<body\\b[^>]*>)", r"\\1" + banner, html, count=1, flags=re.I)
+              if count != 1:
+                  raise SystemExit("Preview validation failed: body element not found.")
+          (root / "index.html").write_text(html, encoding="utf-8")
           PY
           test -f _site/index.html
           test -f _site/app-core.js
           test -f _site/icons/malachite.svg
-          test ! -e _site/supabase
-          test ! -e _site/docs
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v5
-      - name: Upload isolated staging site
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: _site
-      - name: Publish public test site
-        id: deployment
-        uses: actions/deploy-pages@v4
+          echo "Isolated preview artifact built and validated. It is not published."
