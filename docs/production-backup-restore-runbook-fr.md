@@ -114,7 +114,7 @@ Ces tests ne créent pas de sauvegarde et ne démontrent pas encore une restaura
 
 Le contrôle de la politique RLS `public.avis_match` sur le projet isolé a montré que le membre peut modifier sa propre ligne et changer `autre` (destinataire). Le trigger de quota initial ne comptait pas ce changement comme un nouveau like : un contournement du quota était donc possible.
 
-Correctif préparé dans la PR Match #54 :
+Correctif initial préparé dans la PR Match #54, puis isolé sur une branche basée sur `main` dans la PR #71 :
 - un like actif dont le destinataire change consomme désormais une entrée de quota ;
 - un test runtime PostgreSQL vérifie qu'un like suivi d'un changement de destinataire compte deux événements ;
 - le test ciblé a été exécuté dans une transaction sur le staging isolé avec des identifiants synthétiques ; l'assertion de deux événements a réussi ;
@@ -190,8 +190,8 @@ Le workflow `.github/workflows/validate.yml` de `main` déclare bien un déclenc
 
 ## 14. Vérification finale des PR et tests automatisés — 23 novembre 2026
 
-- PR #70 (documentation), commit de tête `0df4a284ded2988a0e37389951234e62757f5495` : workflow GitHub `Malachite validation`, exécution #45262344305, terminé avec succès. La CI valide ce commit documentaire précis.
-- PR #71 (correctif isolé du quota Match), commit de tête `c7111df34cb357671b8e335394285cf1949bcef5` : workflow `Match isolated PostgreSQL runtime`, exécution #45262999711, terminé avec succès. Le job a exécuté la migration et le script runtime sur un PostgreSQL 17 jetable ; toutes les étapes ont réussi.
+- PR #70 (documentation), commit de tête `385ea866179a6d9e97d9329ae9c2ee4aeabd9c41` : workflow GitHub `Malachite validation`, exécution #45263560081 (run #823), terminé avec succès. La CI valide ce commit documentaire précis.
+- PR #71 (correctif isolé du quota Match), commit de tête `c7111df34cb357671b8e335394285cf1949bcef5` : workflow standard `Malachite validation`, exécution #45263030527 (run #822), et workflow `Match isolated PostgreSQL runtime`, exécution #45262999711 (run #1), tous deux terminés avec succès. Le job runtime a exécuté la migration et le script sur un PostgreSQL 17 jetable ; toutes les étapes ont réussi.
 - PR #71 est basée directement sur `main`, sans embarquer les 45 commits en avance et 19 en retard de l'ancienne branche Match. Elle reste en brouillon et n'est pas fusionnée.
 - La réussite de ce test jetable ne prouve pas à elle seule que la migration est compatible avec l'état exact de la base de production. Revue de compatibilité, sauvegarde complète restaurable et plan de déploiement restent requis.
 - PR #69 : le workflow #814 avait réussi sur le SHA alors contrôlé ; toute révision ultérieure doit être vérifiée séparément.
