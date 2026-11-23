@@ -75,7 +75,7 @@ jobs:
           if 'id="mal-staging-banner"' not in html:
               html = html.replace("</head>", style + "</head>", 1)
               import re
-              html, n = re.subn(r"(<body\\b[^>]*>)", r"\\1" + banner, html, count=1, flags=re.I)
+              html, n = re.subn(r"(<body\b[^>]*>)", r"\1" + banner, html, count=1, flags=re.I)
               if n != 1:
                   raise SystemExit("Staging build stopped: body element not found.")
           index.write_text(html, encoding="utf-8")
