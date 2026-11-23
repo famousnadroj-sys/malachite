@@ -65,7 +65,7 @@
           '<button class="b1 big" style="width:100%;margin-top:12px" onclick="malFounderFinanceRefresh()">Actualiser les chiffres</button>' +
           '<div id="malFounderFinanceResults" aria-live="polite" style="margin-top:14px"><p class="note">Chargement des données sécurisées…</p></div>' +
         '</section>' +
-        '<p class="note" style="text-align:center;margin:14px 0">Registre financier de test · aucune activation de paiement réel · aucune modification de la production.</p>';
+        '<p class="note" style="text-align:center;margin:14px 0">Registre financier sécurisé · aucun paiement ni transfert réel n’est activé depuis cet écran.</p>';
     };
 
     window.malFounderFinanceRefresh = async function () {
