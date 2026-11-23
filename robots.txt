@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://famousnadroj-sys.github.io/malachite/sitemap.xml
