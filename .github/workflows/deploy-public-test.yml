@@ -1,4 +1,4 @@
-name: Malachite public test deployment
+name: MALACHITE Match isolated preview deployment
 on:
   push:
     branches:
@@ -21,7 +21,7 @@ jobs:
       - name: Checkout complete test branch
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: preview/malachite-match-staging-clean
       - name: Validate application JavaScript
         run: |
           node --version
@@ -58,8 +58,8 @@ jobs:
                   counts[old] += text.count(old)
                   text = text.replace(old, new)
               path.write_text(text, encoding="utf-8")
-          if not all(counts.values()):
-              raise SystemExit("Staging build stopped: expected production Supabase references were not found.")
+          if not all(counts.values()) and not all(new in ''.join(p.read_text(encoding='utf-8', errors='ignore') for p in root.rglob('*') if p.is_file()) for new in replacements.values()):
+              raise SystemExit("Preview build stopped: staging Supabase project/key not present.")
           for path in root.rglob("*"):
               if path.is_file():
                   try:
@@ -79,7 +79,7 @@ jobs:
               if n != 1:
                   raise SystemExit("Staging build stopped: body element not found.")
           index.write_text(html, encoding="utf-8")
-          print("Staging build verified. Replaced references:", counts)
+          print("Match preview staging build verified. Replaced production references:", counts)
           PY
           test -f _site/index.html
           test -f _site/app-core.js
