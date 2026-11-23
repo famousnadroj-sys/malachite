@@ -97,3 +97,14 @@ Comparaison en lecture seule entre les six fonctions actives en production et le
 
 **Décision de sécurité :** ne pas déployer aveuglément. Le correctif du dépôt n'a pas été poussé en production. Avant toute mise à jour, préparer un test staging avec une tâche contenant des métadonnées existantes, vérifier qu'elles sont conservées, puis réaliser un appel worker signé de bout en bout. La restauration complète et le contrôle du backup restent des prérequis avant une mise à jour de production.
 
+
+
+## 8. Vérifications complémentaires du 23 novembre 2026
+
+- Le script `supabase/tests/security_hardening_checks.sql` a été exécuté en lecture seule sur la base de production. Toutes ses assertions ont abouti sans exception : RLS des tables publiques, restrictions des privilèges directs, permissions des RPC de paiement/appel et contrôles administrateur.
+- Le même script a été exécuté sur staging. Les assertions de protection des tables serveur ont également réussi.
+- Les contrôles de structure Match (`supabase/tests/malachite_match_checks.sql`) ont réussi sur staging.
+- La branche Match est divergente par rapport à `main` : 43 commits en avance et 19 en retard au moment de la comparaison. Elle ne doit pas être fusionnée telle quelle. La CI de sa dernière révision connue est verte, mais cela ne remplace ni le rebase/review ni les essais réels sur deux comptes et deux téléphones.
+- Les PR #69 (tests de non-régression) et #70 (documentation de sauvegarde) ont passé leur workflow de validation GitHub. Elles restent non fusionnées afin d'éviter un redéploiement inutile du site pendant la phase de sécurisation.
+
+Ces tests ne créent pas de sauvegarde et ne démontrent pas encore une restauration complète.
