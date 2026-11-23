@@ -54,7 +54,8 @@
         if (document.getElementById("malFounderFinancePanel")) window.malFounderFinanceRefresh();
       }, 0);
 
-      return '<section class="ml-search-intro"><span class="ml-auth-kicker">ESPACE FONDATEUR · PRIVÉ</span><h2>Finances MALACHITE</h2><p>Vue interne des déclarations de paiement et des recettes confirmées.</p></section>' +
+      return '<section class="ml-search-intro"><span class="ml-auth-kicker">ESPACE FONDATEUR · PRIVÉ</span><h2>Pilotage MALACHITE</h2><p>Suivi du site et vue interne des déclarations de paiement et des recettes confirmées.</p></section>' +
+        '<section class="card" style="margin:12px 0"><b>État de la production</b><p class="note">Le site public continue de fonctionner sur sa configuration actuelle. Cette préparation reste isolée dans une branche GitHub et n’a pas été fusionnée. Aucune migration financière ni aucun paiement réel n’a été activé.</p><p><a href="https://famousnadroj-sys.github.io/malachite/" target="_blank" rel="noopener">Ouvrir le site public</a> · <a href="https://github.com/famousnadroj-sys/malachite/pull/58" target="_blank" rel="noopener">Voir la revue technique n°58</a></p></section>' +
         '<section class="card" style="margin:12px 0"><b>Accès protégé</b><p class="note">Les chiffres sont demandés au serveur. Seul un compte administrateur autorisé peut les consulter. Aucune donnée financière n’est écrite depuis cet écran.</p></section>' +
         '<section class="card" id="malFounderFinancePanel">' +
           '<h3 style="margin:0">Période d’analyse</h3>' +
