@@ -104,7 +104,7 @@ Comparaison en lecture seule entre les six fonctions actives en production et le
 - Le script `supabase/tests/security_hardening_checks.sql` a été exécuté en lecture seule sur la base de production. Toutes ses assertions ont abouti sans exception : RLS des tables publiques, restrictions des privilèges directs, permissions des RPC de paiement/appel et contrôles administrateur.
 - Le même script a été exécuté sur staging. Les assertions de protection des tables serveur ont également réussi.
 - Les contrôles de structure Match (`supabase/tests/malachite_match_checks.sql`) ont réussi sur staging.
-- La branche Match est divergente par rapport à `main` : 43 commits en avance et 19 en retard au moment de la comparaison. Elle ne doit pas être fusionnée telle quelle. La CI de sa dernière révision connue est verte, mais cela ne remplace ni le rebase/review ni les essais réels sur deux comptes et deux téléphones.
+- La branche Match est divergente par rapport à `main` : 45 commits en avance et 19 en retard au moment de la comparaison. Elle ne doit pas être fusionnée telle quelle. La CI de sa dernière révision connue est verte, mais cela ne remplace ni le rebase/review ni les essais réels sur deux comptes et deux téléphones.
 - Les PR #69 (tests de non-régression) et #70 (documentation de sauvegarde) ont passé leur workflow de validation GitHub. Elles restent non fusionnées afin d'éviter un redéploiement inutile du site pendant la phase de sécurisation.
 
 Ces tests ne créent pas de sauvegarde et ne démontrent pas encore une restauration complète.
@@ -177,3 +177,12 @@ La garde d'authentification est donc présente dans le code et la permission SQL
 La comparaison ligne à ligne du fichier déployé avec `main` confirme un seul bloc fonctionnel différent : le code de `main` conserve les champs existants de `current.automation` avant d'ajouter les nouvelles métadonnées de préparation ; la version production remplace cet objet `automation` sans fusionner ses champs précédents. Cela peut écraser des métadonnées imbriquées préexistantes dans les tâches en attente. Aucun élément ne prouve qu'une donnée utilisateur a déjà été perdue.
 
 **Décision :** ne pas redéployer avant sauvegarde restaurable et test staging qui prouve la conservation des métadonnées. Aucun déploiement, changement de permission, changement Auth, paiement ou export de données privées n'a été effectué pendant ce contrôle.
+
+
+## 13. Mise à jour du statut Match — comparaison du 23 novembre 2026
+
+La comparaison actuelle de `feature/match-experience-2026-11-22` avec `main` donne **45 commits en avance et 19 en retard** (branche divergente). La branche modifie aussi des fichiers de l'application, le service worker et le workflow CI, en plus d'ajouter la migration et les tests Match. Une fusion directe serait donc imprudente.
+
+Le workflow `.github/workflows/validate.yml` de `main` déclare bien un déclenchement sur les pull requests ciblant `main`, mais GitHub ne retourne toujours aucune exécution ni aucun statut pour le SHA actuel de la PR #54. Le test runtime contient le nouveau scénario de changement de destinataire ; il n'a pas été exécuté par une CI GitHub confirmée pour ce SHA.
+
+**Action retenue :** garder la PR #54 en brouillon. La prochaine intégration doit se faire sur une branche de réconciliation dédiée, en reprenant uniquement les changements Match nécessaires après comparaison fichier par fichier avec `main`, puis en obtenant une CI réellement exécutée. Ne pas fusionner la branche divergente en bloc.
