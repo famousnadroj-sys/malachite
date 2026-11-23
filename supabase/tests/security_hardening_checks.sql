@@ -94,3 +94,75 @@ begin
   end if;
 end
 $$;
+
+
+-- 7) Founder/admin SECURITY DEFINER RPCs must reject anon and check admin identity.
+do $$
+declare
+  v_oid oid;
+  v_def text;
+begin
+  if has_function_privilege('anon','private.is_admin()','EXECUTE')
+     or not has_function_privilege('authenticated','private.is_admin()','EXECUTE') then
+    raise exception 'private_is_admin_grants_invalid';
+  end if;
+
+  foreach v_oid in array array[
+    'public.admin_malachite_referrals()'::regprocedure::oid,
+    'public.founder_business_overview(timestamptz,timestamptz)'::regprocedure::oid,
+    'public.founder_finance_summary(timestamptz,timestamptz)'::regprocedure::oid
+  ] loop
+    if has_function_privilege('anon',v_oid,'EXECUTE')
+       or not has_function_privilege('authenticated',v_oid,'EXECUTE') then
+      raise exception 'founder_admin_rpc_grants_invalid: %', v_oid::regprocedure;
+    end if;
+    select lower(pg_get_functiondef(v_oid)) into v_def;
+    if position('auth.uid()' in v_def)=0
+       or position('private.is_admin()' in v_def)=0
+       or position('search_path to ''''' in v_def)=0 then
+      raise exception 'founder_admin_rpc_guard_missing: %', v_oid::regprocedure;
+    end if;
+  end loop;
+end
+$$;
+
+-- 8) The referral preview is intentionally public, but must return only public
+-- profile fields and hide profiles marked private.
+do $$
+declare v_def text;
+begin
+  if not has_function_privilege('anon','public.get_malachite_referrer_preview(uuid)','EXECUTE') then
+    raise exception 'public_referrer_preview_grant_missing';
+  end if;
+  select lower(pg_get_functiondef('public.get_malachite_referrer_preview(uuid)'::regprocedure))
+    into v_def;
+  if position('profile_private' in v_def)=0
+     or position('false' in v_def)=0
+     or position('p.prenom' in v_def)=0
+     or position('p.username' in v_def)=0
+     or position('security definer' in v_def)=0
+     or position('search_path to ''''' in v_def)=0 then
+    raise exception 'public_referrer_preview_privacy_guard_missing';
+  end if;
+end
+$$;
+
+-- 9) Call-session entrypoint must remain authenticated, short-lived, mutual-match
+-- gated, entitlement-gated, block-aware and serialized against active calls.
+do $$
+declare v_def text;
+begin
+  select lower(pg_get_functiondef(
+    'public.start_call_session(uuid,uuid,text,text,timestamptz)'::regprocedure
+  )) into v_def;
+  if position('auth.uid()' in v_def)=0
+     or position('mutual_match_required' in v_def)=0
+     or position('call_entitlement_required' in v_def)=0
+     or position('call_already_active' in v_def)=0
+     or position('is_blocked_with' in v_def)=0
+     or position('security definer' in v_def)=0
+     or position('search_path to ''''' in v_def)=0 then
+    raise exception 'call_session_security_guard_missing';
+  end if;
+end
+$$;
