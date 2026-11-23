@@ -2,7 +2,7 @@ name: Malachite public test deployment
 on:
   push:
     branches:
-      - main
+      - preview/malachite-match-staging-clean
   workflow_dispatch:
 permissions:
   contents: read
@@ -18,10 +18,10 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout complete test branch
+      - name: Checkout the test branch
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: preview/malachite-match-staging-clean
       - name: Validate application JavaScript
         run: |
           node --version
