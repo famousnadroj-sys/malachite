@@ -85,3 +85,15 @@ Le CLI exige une liaison au projet et un accès à la base. Le dump par défaut 
 - [ ] Restauration complète testée sur un environnement isolé.
 
 **Statut : NON PRÊT POUR RESTAURATION.** Aucun test de restauration ni aucune sauvegarde complète ne doit être revendiqué avant la clôture des éléments ci-dessus.
+
+
+## 7. Cohérence du code Edge Functions — point de vigilance
+
+Comparaison en lecture seule entre les six fonctions actives en production et leurs fichiers sur `main` :
+
+- 5 fonctions sur 6 correspondent exactement au code déployé.
+- `malachite-ai-worker` ne correspond pas : la production est en version 14 (dernière mise à jour observée le 21 novembre 2026 à 06:54 UTC), tandis que `main` contient une modification ultérieure issue de la PR #52 fusionnée le 21 novembre à 18:08 UTC.
+- Cette modification conserve les champs précédents de `details.automation` lors de la préparation des tâches de support. La version déployée remplace cet objet sans conserver ses anciens champs. Cela peut faire perdre des métadonnées déjà placées dans cet objet, notamment des résultats d'analyse de reçus si ceux-ci y sont enregistrés.
+
+**Décision de sécurité :** ne pas déployer aveuglément. Le correctif du dépôt n'a pas été poussé en production. Avant toute mise à jour, préparer un test staging avec une tâche contenant des métadonnées existantes, vérifier qu'elles sont conservées, puis réaliser un appel worker signé de bout en bout. La restauration complète et le contrôle du backup restent des prérequis avant une mise à jour de production.
+
