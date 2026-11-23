@@ -431,6 +431,10 @@ const aiWorker = fs.readFileSync('supabase/functions/malachite-ai-worker/index.t
 if (!aiWorker.includes('CONFIGURED_MODEL.startsWith("gemini-2.5-") ? "gemini-3.5-flash-lite"') || !aiWorker.includes('(CONFIGURED_MODEL || "gemini-3.5-flash-lite")')) {
   throw new Error('AI worker must use the verified Gemini model fallback.');
 }
+if (!aiWorker.includes('const previousAutomation = current.automation && typeof current.automation === "object" ? current.automation : {};') ||
+    !aiWorker.includes('const automation = { ...previousAutomation, prepared_at: new Date().toISOString(), recommendation, response_draft: draft')) {
+  throw new Error('AI worker must preserve existing review-task automation metadata when preparing drafts.');
+}
 
 const privilegeMigration = fs.readFileSync('supabase/migrations/20261120223753_revoke_authenticated_table_bypass_privileges.sql', 'utf8').toLowerCase();
 for (const item of ['revoke truncate, references, trigger on all tables in schema public from authenticated', 'alter default privileges for role postgres in schema public', 'revoke all on tables from anon', 'revoke all on sequences from anon']) {
