@@ -186,3 +186,14 @@ La comparaison actuelle de `feature/match-experience-2026-11-22` avec `main` don
 Le workflow `.github/workflows/validate.yml` de `main` déclare bien un déclenchement sur les pull requests ciblant `main`, mais GitHub ne retourne toujours aucune exécution ni aucun statut pour le SHA actuel de la PR #54. Le test runtime contient le nouveau scénario de changement de destinataire ; il n'a pas été exécuté par une CI GitHub confirmée pour ce SHA.
 
 **Action retenue :** garder la PR #54 en brouillon. La prochaine intégration doit se faire sur une branche de réconciliation dédiée, en reprenant uniquement les changements Match nécessaires après comparaison fichier par fichier avec `main`, puis en obtenant une CI réellement exécutée. Ne pas fusionner la branche divergente en bloc.
+
+
+## 14. Vérification finale des PR et tests automatisés — 23 novembre 2026
+
+- PR #70 (documentation), commit de tête `0df4a284ded2988a0e37389951234e62757f5495` : workflow GitHub `Malachite validation`, exécution #45262344305, terminé avec succès. La CI valide ce commit documentaire précis.
+- PR #71 (correctif isolé du quota Match), commit de tête `c7111df34cb357671b8e335394285cf1949bcef5` : workflow `Match isolated PostgreSQL runtime`, exécution #45262999711, terminé avec succès. Le job a exécuté la migration et le script runtime sur un PostgreSQL 17 jetable ; toutes les étapes ont réussi.
+- PR #71 est basée directement sur `main`, sans embarquer les 45 commits en avance et 19 en retard de l'ancienne branche Match. Elle reste en brouillon et n'est pas fusionnée.
+- La réussite de ce test jetable ne prouve pas à elle seule que la migration est compatible avec l'état exact de la base de production. Revue de compatibilité, sauvegarde complète restaurable et plan de déploiement restent requis.
+- PR #69 : le workflow #814 avait réussi sur le SHA alors contrôlé ; toute révision ultérieure doit être vérifiée séparément.
+
+Aucun de ces tests n'a modifié la base de production, les paiements ou les données privées.
