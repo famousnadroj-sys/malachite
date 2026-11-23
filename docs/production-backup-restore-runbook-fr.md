@@ -22,8 +22,9 @@ Références officielles :
 2. Ne jamais stocker les mots de passe de base, jetons Supabase, clés API, reçus ou médias privés dans GitHub.
 3. Conserver les fichiers de sauvegarde hors du dépôt, dans un emplacement chiffré et contrôlé.
 4. Une exportation SQL seule n'est **pas** une sauvegarde complète de MALACHITE.
-5. Ne pas activer de plan payant, PITR, service externe ou stockage facturé dans le cadre de cette procédure sans autorisation explicite.
-6. Toute restauration de production exige une validation humaine, une fenêtre de maintenance et une sauvegarde récente vérifiée.
+5. Les exports doivent être écrits hors du dépôt Git, dans un dossier à accès utilisateur restreint, puis chiffrés avant toute copie ou conservation longue durée.
+6. Ne pas activer de plan payant, PITR, service externe ou stockage facturé dans le cadre de cette procédure sans autorisation explicite.
+7. Toute restauration de production exige une validation humaine, une fenêtre de maintenance et une sauvegarde récente vérifiée.
 
 ## 3. Export logique PostgreSQL — préparation
 
@@ -32,10 +33,14 @@ Références officielles :
 ```bash
 supabase login
 supabase link --project-ref "$PROJECT_REF"
-mkdir -p backups
-supabase db dump --linked -f backups/01-schema.sql
-supabase db dump --linked --data-only --use-copy -f backups/02-data.sql
-supabase db dump --linked --role-only -f backups/03-roles.sql
+umask 077
+BACKUP_DIR="$HOME/malachite-backups/$(date +%F)"
+mkdir -p "$BACKUP_DIR"
+chmod 700 "$HOME/malachite-backups" "$BACKUP_DIR"
+# Exécuter depuis un répertoire de travail séparé du dépôt Git.
+supabase db dump --linked -f "$BACKUP_DIR/01-schema.sql"
+supabase db dump --linked --data-only --use-copy -f "$BACKUP_DIR/02-data.sql"
+supabase db dump --linked --role-only -f "$BACKUP_DIR/03-roles.sql"
 ```
 
 Le CLI exige une liaison au projet et un accès à la base. Le dump par défaut ne contient ni les données ni les rôles personnalisés ; les options dédiées sont donc séparées ci-dessus.
