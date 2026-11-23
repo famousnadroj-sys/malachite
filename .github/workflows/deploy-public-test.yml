@@ -26,12 +26,72 @@ jobs:
         run: |
           node --version
           node scripts/validate.mjs
+      - name: Build isolated staging website
+        env:
+          PROD_SUPABASE_REF: tscsmemsvgacqioncash
+          STAGING_SUPABASE_REF: sbawknyxcjslvhknomkd
+          PROD_PUBLISHABLE_KEY: sb_publishable_XDpqSzsPNeVduv6aGyjuoA_suakeFN0
+          STAGING_PUBLISHABLE_KEY: sb_publishable_rXT4ztk4NLX-PeK2spwzqg_UcKMnRD5
+        run: |
+          set -euo pipefail
+          mkdir -p _site/icons
+          cp index.html *.js *.html manifest.webmanifest sw.js .nojekyll _site/
+          cp icons/malachite.svg _site/icons/
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          root = Path("_site")
+          replacements = {
+              os.environ["PROD_SUPABASE_REF"]: os.environ["STAGING_SUPABASE_REF"],
+              os.environ["PROD_PUBLISHABLE_KEY"]: os.environ["STAGING_PUBLISHABLE_KEY"],
+          }
+          counts = {old: 0 for old in replacements}
+          for path in root.rglob("*"):
+              if not path.is_file():
+                  continue
+              try:
+                  text = path.read_text(encoding="utf-8")
+              except UnicodeDecodeError:
+                  continue
+              for old, new in replacements.items():
+                  counts[old] += text.count(old)
+                  text = text.replace(old, new)
+              path.write_text(text, encoding="utf-8")
+          if not all(counts.values()):
+              raise SystemExit("Staging build stopped: expected production Supabase references were not found.")
+          for path in root.rglob("*"):
+              if path.is_file():
+                  try:
+                      text = path.read_text(encoding="utf-8")
+                  except UnicodeDecodeError:
+                      continue
+                  if any(old in text for old in replacements):
+                      raise SystemExit(f"Production Supabase value remains in staging artifact: {path}")
+          index = root / "index.html"
+          html = index.read_text(encoding="utf-8")
+          banner = '<div id="mal-staging-banner" role="status">MALACHITE · ENVIRONNEMENT DE TEST · DONNÉES DE TEST UNIQUEMENT</div>'
+          style = '<style>#mal-staging-banner{position:sticky;top:0;z-index:99999;background:#7c2d12;color:#fff;text-align:center;padding:8px 12px;font:700 12px system-ui;letter-spacing:.04em}</style>'
+          if 'id="mal-staging-banner"' not in html:
+              html = html.replace("</head>", style + "</head>", 1)
+              import re
+              html, n = re.subn(r"(<body\\b[^>]*>)", r"\\1" + banner, html, count=1, flags=re.I)
+              if n != 1:
+                  raise SystemExit("Staging build stopped: body element not found.")
+          index.write_text(html, encoding="utf-8")
+          print("Staging build verified. Replaced references:", counts)
+          PY
+          test -f _site/index.html
+          test -f _site/app-core.js
+          test -f _site/icons/malachite.svg
+          test ! -e _site/supabase
+          test ! -e _site/docs
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
-      - name: Upload site
+      - name: Upload isolated staging site
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: _site
       - name: Publish public test site
         id: deployment
         uses: actions/deploy-pages@v4
