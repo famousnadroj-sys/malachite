@@ -718,9 +718,9 @@ async function uploadChatAsset(path,file,forcedType){
  if(sessionResult.error||!session||!session.access_token)throw new Error('Session expirée. Reconnecte-toi puis réessaie.');
  return await new Promise(function(resolve,reject){
   var upload=new window.tus.Upload(file,{
-   endpoint:'https://tscsmemsvgacqioncash.storage.supabase.co/storage/v1/upload/resumable',
+   endpoint:'https://sbawknyxcjslvhknomkd.storage.supabase.co/storage/v1/upload/resumable',
    retryDelays:[0,1000,3000,5000,10000],
-   headers:{authorization:'Bearer '+session.access_token,apikey:'sb_publishable_XDpqSzsPNeVduv6aGyjuoA_suakeFN0'},
+   headers:{authorization:'Bearer '+session.access_token,apikey:'sb_publishable_rXT4ztk4NLX-PeK2spwzqg_UcKMnRD5'},
    uploadDataDuringCreation:true,removeFingerprintOnSuccess:true,chunkSize:6*1024*1024,
    metadata:{bucketName:'chat-media',objectName:path,contentType:forcedType||file.type||'application/octet-stream',cacheControl:'31536000'},
    onError:function(error){reject(error)},
