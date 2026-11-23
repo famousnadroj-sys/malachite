@@ -108,3 +108,34 @@ Comparaison en lecture seule entre les six fonctions actives en production et le
 - Les PR #69 (tests de non-régression) et #70 (documentation de sauvegarde) ont passé leur workflow de validation GitHub. Elles restent non fusionnées afin d'éviter un redéploiement inutile du site pendant la phase de sécurisation.
 
 Ces tests ne créent pas de sauvegarde et ne démontrent pas encore une restauration complète.
+
+
+## 9. Audit complémentaire Match — quota de likes
+
+Le contrôle de la politique RLS `public.avis_match` sur le projet isolé a montré que le membre peut modifier sa propre ligne et changer `autre` (destinataire). Le trigger de quota initial ne comptait pas ce changement comme un nouveau like : un contournement du quota était donc possible.
+
+Correctif préparé dans la PR Match #54 :
+- un like actif dont le destinataire change consomme désormais une entrée de quota ;
+- un test runtime PostgreSQL vérifie qu'un like suivi d'un changement de destinataire compte deux événements ;
+- le test ciblé a été exécuté dans une transaction sur le staging isolé avec des identifiants synthétiques ; l'assertion de deux événements a réussi ;
+- la transaction a été annulée ; une vérification post-test a confirmé zéro utilisateur, zéro like et zéro événement de quota résiduel pour les identifiants de test.
+
+La CI du nouveau commit n'est pas encore confirmée. La PR #54 reste en brouillon et divergente de `main`. Ne pas fusionner ni déployer.
+
+## 10. Audit complémentaire des appels
+
+- La fonction `private.guard_call_session_update()` protège les identifiants, le destinataire, la salle, le mode et l'heure de création contre les modifications ; elle impose aussi des transitions d'état.
+- Une tentative contrôlée de modification isolée de `expires_at` sur un appel en attente a été rejetée par le trigger (`invalid_call_transition`), et la transaction a échoué sans conserver de fixture.
+- Une tentative de créer deux appels directs avec un compte de test synthétique, en contournant la RPC et en utilisant le rôle `authenticated`, a été rejetée par la politique RLS. Après l'échec, le contrôle a confirmé zéro compte et zéro appel de test résiduel.
+- La RPC `start_call_session` reste protégée par authentification, entitlement Premium/Pass Appels, match réciproque, blocage, expiration courte et vérification de session active.
+
+Ces essais ne remplacent pas les tests d'appels entre deux téléphones réels.
+
+## 11. Configuration Auth à finaliser
+
+Le conseiller de sécurité Supabase signale que la protection contre les mots de passe compromis (vérification HaveIBeenPwned) est désactivée en production.
+
+- Aucun changement de configuration Auth n'a été effectué.
+- Cette option doit être activée dans les paramètres Auth du projet après vérification de l'impact sur les inscriptions et changements de mot de passe.
+- Refaire ensuite le contrôle de sécurité Supabase et tester inscription, connexion et changement de mot de passe.
+- Ne pas confondre ce réglage avec une réinitialisation des mots de passe existants.
