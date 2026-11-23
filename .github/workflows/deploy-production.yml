@@ -1,0 +1,73 @@
+name: MALACHITE production site deployment
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages-production
+  cancel-in-progress: false
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout production main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate application JavaScript
+        run: node scripts/validate.mjs
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Type-check Edge Functions
+        run: |
+          deno check supabase/functions/admin-user-moderation/index.ts
+          deno check supabase/functions/malachite-ai-manager/index.ts
+          deno check supabase/functions/malachite-ai-worker/index.ts
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Parse SQL migrations
+        run: |
+          python -m pip install --disable-pip-version-check pglast
+          python scripts/validate_sql.py
+      - name: Build production website without rewriting configuration
+        run: |
+          set -euo pipefail
+          mkdir -p _site/icons
+          cp index.html *.js *.html manifest.webmanifest sw.js .nojekyll _site/
+          cp icons/malachite.svg _site/icons/
+          test -f _site/index.html
+          test -f _site/app-core.js
+          test -f _site/malachite-founder-finance.js
+          test -f _site/icons/malachite.svg
+          grep -Fq 'https://tscsmemsvgacqioncash.supabase.co' _site/app-core.js
+          grep -Fq 'sb_publishable_XDpqSzsPNeVduv6aGyjuoA_suakeFN0' _site/app-core.js
+          if grep -R -E 'sbawknyxcjslvhknomkd|sb_publishable_rXT4ztk4NLX-PeK2spwzqg_UcKMnRD5|MALACHITE · ENVIRONNEMENT DE TEST' _site; then
+            echo "Staging configuration found in production artifact."
+            exit 1
+          fi
+          echo "Production artifact validated with production Supabase configuration."
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+      - name: Upload production website artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - name: Publish production website
+        id: deployment
+        uses: actions/deploy-pages@v4
