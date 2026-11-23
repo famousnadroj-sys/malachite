@@ -45,7 +45,8 @@ begin
   if tg_op = 'INSERT' then
     v_new_like := coalesce(new.ok, false);
   else
-    v_new_like := coalesce(new.ok, false) and not coalesce(old.ok, false);
+    v_new_like := coalesce(new.ok, false)
+      and (not coalesce(old.ok, false) or new.autre is distinct from old.autre);
   end if;
 
   if v_new_like then
