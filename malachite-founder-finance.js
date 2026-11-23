@@ -102,10 +102,11 @@
         var financeHtml = finance.length ? finance.map(function (row) {
           return '<article class="card" style="margin-top:8px"><b>' + escapeHtml(row.currency || "Devise inconnue") + '</b>' +
             '<div class="g2" style="margin-top:8px">' +
-              '<div><span class="note">Brut confirmé</span><br><b>' + formatAmount(row.gross, row.currency) + '</b></div>' +
+              '<div><span class="note">Encaissements bruts</span><br><b>' + formatAmount(row.gross_inflow, row.currency) + '</b></div>' +
+              '<div><span class="note">Sorties confirmées</span><br><b>' + formatAmount(row.gross_outflow, row.currency) + '</b></div>' +
               '<div><span class="note">Frais</span><br><b>' + formatAmount(row.fees, row.currency) + '</b></div>' +
               '<div><span class="note">Commissions</span><br><b>' + formatAmount(row.commissions, row.currency) + '</b></div>' +
-              '<div><span class="note">Net confirmé</span><br><b>' + formatAmount(row.net, row.currency) + '</b></div>' +
+              '<div><span class="note">Flux net confirmé</span><br><b>' + formatAmount(row.net, row.currency) + '</b></div>' +
             '</div><p class="note">' + escapeHtml(row.events || 0) + ' événement(s) confirmé(s)</p></article>';
         }).join("") : '<p class="note">Aucune recette confirmée n’est encore inscrite dans le registre financier de cet environnement.</p>';
 
