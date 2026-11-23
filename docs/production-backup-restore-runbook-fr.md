@@ -197,3 +197,21 @@ Le workflow `.github/workflows/validate.yml` de `main` déclare bien un déclenc
 - PR #69 : le workflow #814 avait réussi sur le SHA alors contrôlé ; toute révision ultérieure doit être vérifiée séparément.
 
 Aucun de ces tests n'a modifié la base de production, les paiements ou les données privées.
+
+
+## 15. Contrôle de compatibilité Match sur la production — 23 novembre 2026
+
+Contrôles en lecture seule sur la base de production :
+- La table `public.avis_match` existe avec les colonnes `user_id`, `autre` et `ok` attendues.
+- Les dépendances appelées par la migration existent : schéma `private`, `profiles.profile_private`, `prives.prefs`, `private.is_suspended(uuid)`, `private.is_blocked_with(uuid)` et `private.est_premium(uuid)`.
+- La table `private.match_daily_like_events` n'existe pas encore et aucun trigger utilisateur n'est actuellement attaché à `public.avis_match`.
+- La migration Match n'apparaît pas dans l'historique des migrations de production. Aucune migration n'a été appliquée.
+
+**Limite d'intégration détectée :** le `app-core.js` de `main` ne contient pas encore les appels RPC `match_like_quota`, `match_received_likes` et `match_relation_compatible_ids` ni l'interface Match correspondante présente sur la branche fonctionnelle. La migration backend ne doit donc pas être appliquée isolément : elle doit être intégrée avec les changements frontend revus, puis testée de bout en bout.
+
+### Clarification sur l'export Auth Supabase
+La référence CLI officielle `supabase db dump` indique que les schémas gérés `auth` et `storage` sont exclus. Un autre guide Supabase de restauration vers un environnement auto-hébergé indique que `auth.users` figure dans le dump. Ces indications documentaires ne concordent pas. Pour MALACHITE, ne pas considérer les comptes Auth comme sauvegardés tant que le contenu réel d'un export de test n'a pas été vérifié et qu'une restauration isolée n'a pas confirmé leur présence et leur utilisabilité. Les objets binaires Storage restent à sauvegarder séparément.
+
+Références Supabase consultées :
+- https://supabase.com/docs/reference/cli/supabase-db-dump
+- https://supabase.com/docs/guides/self-hosting/restore-from-platform
