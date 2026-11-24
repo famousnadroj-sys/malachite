@@ -66,7 +66,7 @@ jobs:
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261124120000_account_deletion_fk_cleanup.sql
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/account_deletion_fk_checks.sql
 
-  private-profile-projection:
+  private-profile-access:
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -85,42 +85,14 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install PostgreSQL client
         run: sudo apt-get update && sudo apt-get install -y postgresql-client
-      - name: Apply private-profile fixture, migration and assertions
+      - name: Apply owner-only profile and photo access migration and assertions
         env:
           PGPASSWORD: postgres
         run: |
           set -euo pipefail
-          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/private_profile_projection_fixture.sql
-          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261124140129_enforce_private_profile_public_projection.sql
-          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/private_profile_projection_checks.sql
-
-  profile-photo-visibility:
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:17
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: malachite_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres -d malachite_test"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install PostgreSQL client
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client
-      - name: Apply isolated photo visibility fixture, migration and assertions
-        env:
-          PGPASSWORD: postgres
-        run: |
-          set -euo pipefail
-          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/profile_photo_visibility_fixture.sql
-          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261124142000_restrict_private_profile_photo_reads.sql
-          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/profile_photo_visibility_checks.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/private_profile_access_fixture.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261124150000_secure_private_profile_access.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/private_profile_access_checks.sql
 
   call-session-expiry:
     runs-on: ubuntu-latest
