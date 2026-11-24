@@ -135,6 +135,13 @@ if (!calls.includes("select('id,offre,statut,created_at,reviewed_at,admin_reason
 for (const item of ['online(targetProfile)', 'malAcceptCall', 'malRejectCall', "executeCommand('toggleAudio')", "executeCommand('toggleVideo')", 'setAudioOutputDevice', 'startInbox']) {
   if (!calls.includes(item)) throw new Error('Call feature requirement missing: ' + item);
 }
+if (!calls.includes("createSignedUrls(batch,300)") ||
+    calls.includes("createSignedUrls(batch,3600)") ||
+    !calls.includes("uid+'|'+bucket+'|'+path") ||
+    !calls.includes("exp:now+270000") ||
+    !calls.includes("if(!me||me.id!==uid)return")) {
+  throw new Error('Call-module profile photo URLs must be short-lived, user-scoped and discarded after account changes.');
+}
 
 const manifest = JSON.parse(fs.readFileSync('manifest.webmanifest', 'utf8'));
 if (manifest.start_url !== './' || manifest.scope !== './' || manifest.display !== 'standalone') {
