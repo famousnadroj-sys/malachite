@@ -310,7 +310,7 @@
       '<p class="note">Les notifications restent dans ton historique jusqu’à ce que tu les consultes.</p></section>';
     if (isAdmin()) {
       html += '<section class="mal-announcement-composer"><h3>Publier une annonce</h3>' +
-        '<label>Type<select id="malAnnouncementCategory"><option value="news">Actualité</option><option value="alert">Alerte importante</option><option value="promotion">Publicité / promotion</option><option value="system">Information générale</option></select></label>' +
+        '<label>Type<select id="malAnnouncementCategory"><option value="news">Actualité</option><option value="alert">Alerte importante</option><option value="system">Information générale</option></select></label>' +
         '<label>Titre<input id="malAnnouncementTitle" maxlength="90" placeholder="Titre court"></label>' +
         '<label>Message<textarea id="malAnnouncementBody" maxlength="500" rows="3" placeholder="Un message clair et utile pour les membres…"></textarea></label>' +
         '<button type="button" class="mal-announcement-publish" data-action="publish">Publier aux membres</button><p id="malAnnouncementStatus" class="note" aria-live="polite"></p></section>';
@@ -327,7 +327,7 @@
     var body = '';
     if (inbox.tab === 'notifications') {
       body = '<div class="mal-notif-filters">' +
-        [['all','Toutes'],['message','Messages'],['news','Actualités'],['alert','Alertes'],['promotion','Publicités'],['system','Infos']].map(function (item) {
+        [['all','Toutes'],['message','Messages'],['news','Actualités'],['alert','Alertes'],['system','Infos']].map(function (item) {
           return '<button type="button" data-filter="' + item[0] + '" class="' + (inbox.filter === item[0] ? 'active' : '') + '">' + item[1] + '</button>';
         }).join('') + '</div>' +
         '<div class="mal-notif-toolbar"><span>' + inbox.unread + ' non lue(s)</span><button type="button" data-action="mark-all" ' + (inbox.unread ? '' : 'disabled') + '>Tout marquer comme lu</button></div>' +
