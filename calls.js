@@ -227,13 +227,13 @@
   sb.from('statuts').select('premium_until').eq('user_id',uid).maybeSingle().then(function(r){
    if(r.error)throw r.error;
    if(!me||me.id!==uid)return;
-   st[uid]=r.data||{};offerStatusFor=uid;
+   var ownStatus=st[uid]||{};ownStatus.premium_active=!!(r.data&&r.data.premium_until&&new Date(r.data.premium_until).getTime()>Date.now());st[uid]=ownStatus;offerStatusFor=uid;
    if(tab==='offres'&&typeof draw==='function')draw(true);
   }).catch(function(e){console.warn('Vérification Premium pour les offres',e)}).finally(function(){offerStatusPending=false});
  }
  window.offres=function(){
   refreshOfferPremiumStatus();
-  var premiumActive=!!(me&&st[me.id]&&st[me.id].premium_until&&new Date(st[me.id].premium_until).getTime()>Date.now());
+  var premiumActive=!!(me&&st[me.id]&&st[me.id].premium_active);
   var callsCard=premiumActive?'<div class="plan" style="border:2px solid var(--pink)"><h3>📞 Appels audio + vidéo</h3><p>Inclus dans ton Premium actif : aucun paiement supplémentaire pour les appels.</p></div>':'<div class="plan"><h3>📞 Pass Appels audio + vidéo <span>1 $ / 7 jours</span></h3><p>Appels audio et vidéo avec tes matchs pendant 7 jours après validation. Si tu passes à Premium, ce pass n’est plus nécessaire : les appels sont inclus.</p></div>';
   var callOption=premiumActive?'':'<option value="Appels">Pass Appels audio + vidéo — 1 USD / 7 jours</option>';
   var airtelNumber=NUM?'<div class="card"><b>Numéro Airtel Money destinataire</b><div style="font-size:20px;font-weight:800;letter-spacing:1px">'+esc(NUM)+'</div></div>':'<p class="note">Numéro Airtel Money non configuré.</p>';var orangeNumber=ORANGE?'<div class="card"><b>Numéro Orange Money destinataire</b><div style="font-size:20px;font-weight:800;letter-spacing:1px">'+esc(ORANGE)+'</div></div>':'<p class="note">Numéro Orange Money non configuré.</p>';
