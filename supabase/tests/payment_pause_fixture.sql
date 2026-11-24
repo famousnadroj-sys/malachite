@@ -30,6 +30,13 @@ using (user_id=(select auth.uid()));
 insert into public.paiements(user_id,offre,code,operateur,receipt_path)
 values('50000000-0000-0000-0000-000000000001','Premium','OLD-REF-1234','airtel','50000000-0000-0000-0000-000000000001/old-receipt.png');
 
+create table public.config(cle text primary key,valeur text);
+grant select,insert,update,delete on public.config to authenticated;
+alter table public.config enable row level security;
+create policy "voir config" on public.config
+for select to authenticated using (true);
+insert into public.config(cle,valeur) values ('airtel','TEST-DESTINATION-NOT-REAL');
+
 create schema storage;
 create table storage.objects(bucket_id text not null,name text not null);
 grant select,insert,delete on storage.objects to authenticated;
