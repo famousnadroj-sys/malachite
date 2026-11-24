@@ -1,0 +1,394 @@
+-- Isolated PostgreSQL integration test for MALACHITE Match.
+-- Runs only in GitHub Actions against an ephemeral PostgreSQL service.
+\set ON_ERROR_STOP on
+
+create role anon nologin;
+create role authenticated nologin;
+create schema auth;
+create schema private;
+grant usage on schema auth to authenticated;
+
+create table auth.users (id uuid primary key);
+create or replace function auth.uid()
+returns uuid language sql stable
+as $$
+  select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid
+$$;
+
+create table public.profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  prenom text not null,
+  profile_private boolean not null default false
+);
+create table public.prives (
+  id uuid primary key references auth.users(id) on delete cascade,
+  prefs jsonb not null default '{}'::jsonb
+);
+create table public.statuts (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  premium_until timestamptz
+);
+create table public.blocages (user_id uuid not null, cible uuid not null);
+create table public.suspensions (user_id uuid primary key);
+create table public.avis_match (
+  user_id uuid not null default auth.uid() references auth.users(id),
+  autre uuid not null references auth.users(id),
+  ok boolean not null,
+  primary key (user_id, autre)
+);
+
+create or replace function private.is_suspended(p_user uuid)
+returns boolean language sql stable security definer set search_path = ''
+as $$
+  select exists(select 1 from public.suspensions where user_id = p_user)
+$$;
+create or replace function private.is_blocked_with(p_other uuid)
+returns boolean language sql stable security definer set search_path = ''
+as $$
+  select exists (
+    select 1 from public.blocages b
+    where (b.user_id = auth.uid() and b.cible = p_other)
+       or (b.user_id = p_other and b.cible = auth.uid())
+  )
+$$;
+create or replace function private.est_premium(u uuid)
+returns boolean language sql stable security definer set search_path = ''
+as $$
+  select auth.uid() is not null and u = auth.uid()
+     and coalesce((select s.premium_until > now() from public.statuts s where s.user_id = auth.uid()), false)
+$$;
+create or replace function private.est_match(p_autre uuid)
+returns boolean language sql stable security definer set search_path = ''
+as $$
+  select auth.uid() is not null and p_autre <> auth.uid()
+    and exists(select 1 from public.avis_match x where x.user_id=auth.uid() and x.autre=p_autre and x.ok)
+    and exists(select 1 from public.avis_match y where y.user_id=p_autre and y.autre=auth.uid() and y.ok)
+$$;
+create or replace function public.est_match(p_autre uuid)
+returns boolean language sql stable set search_path = ''
+as $$ select private.est_match(p_autre) $$;
+
+insert into auth.users(id)
+select ('00000000-0000-0000-0000-' || lpad(n::text,12,'0'))::uuid
+from generate_series(1,30) n;
+insert into public.profiles(id,prenom)
+select id, 'Membre ' || right(id::text,4) from auth.users;
+insert into public.prives(id,prefs)
+select id,
+  case
+    when id='00000000-0000-0000-0000-000000000001' then '{"rel":[]}'::jsonb
+    when id='00000000-0000-0000-0000-000000000002' then '{"rel":["Relation sérieuse"]}'::jsonb
+    when id='00000000-0000-0000-0000-000000000013' then '{"rel":[]}'::jsonb
+    else '{"rel":["Amitié"]}'::jsonb
+  end
+from auth.users;
+
+-- Fixtures: blocked, suspended and private profiles must not appear in received likes.
+insert into public.suspensions(user_id)
+values ('00000000-0000-0000-0000-000000000005');
+update public.profiles set profile_private=true
+where id='00000000-0000-0000-0000-000000000006';
+update public.profiles set profile_private=true
+where id='00000000-0000-0000-0000-000000000018';
+update public.prives set prefs='{"rel":["Relation sérieuse"]}'::jsonb
+where id='00000000-0000-0000-0000-000000000018';
+
+-- Premium account used for unlimited-like and full received-list checks.
+insert into public.statuts(user_id,premium_until)
+values ('00000000-0000-0000-0000-000000000013', now() + interval '2 days');
+
+\ir ../migrations/202611220001_malachite_match_likes.sql
+
+do $$
+declare
+  i integer;
+  target_id uuid;
+  used_count integer;
+  quota jsonb;
+  received jsonb;
+  compatible uuid[];
+begin
+  -- Ten free likes succeed; the eleventh is rejected atomically.
+  perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000001',true);
+  foreach i in array array[2,3,4,7,8,9,10,11,12,14] loop
+    target_id := ('00000000-0000-0000-0000-' || lpad(i::text,12,'0'))::uuid;
+    insert into public.avis_match(autre,ok) values (target_id,true);
+  end loop;
+  select count(*) into used_count from private.match_daily_like_events
+    where user_id=auth.uid() and liked_on=(now() at time zone 'Africa/Lubumbashi')::date;
+  if used_count <> 10 then raise exception 'expected_10_free_likes_got_%',used_count; end if;
+
+  begin
+    insert into public.avis_match(autre,ok)
+    values ('00000000-0000-0000-0000-000000000015',true);
+    raise exception 'eleventh_free_like_was_not_rejected';
+  exception when others then
+    if sqlerrm not like '%match_like_limit_reached%' then raise; end if;
+  end;
+  select count(*) into used_count from private.match_daily_like_events
+    where user_id=auth.uid() and liked_on=(now() at time zone 'Africa/Lubumbashi')::date;
+  if used_count <> 10 then raise exception 'rejected_like_was_not_rolled_back'; end if;
+
+  -- Unlike then re-like the same target counts only once for that day.
+  update public.avis_match set ok=false
+  where user_id=auth.uid() and autre='00000000-0000-0000-0000-000000000002';
+  update public.avis_match set ok=true
+  where user_id=auth.uid() and autre='00000000-0000-0000-0000-000000000002';
+  select count(*) into used_count from private.match_daily_like_events
+    where user_id=auth.uid() and liked_on=(now() at time zone 'Africa/Lubumbashi')::date;
+  if used_count <> 10 then raise exception 'duplicate_like_counted_twice'; end if;
+
+  -- A reciprocal like makes the existing public Match RPC true.
+  perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000002',true);
+  insert into public.avis_match(autre,ok) values ('00000000-0000-0000-0000-000000000001',true);
+  if not public.est_match('00000000-0000-0000-0000-000000000001') then
+    raise exception 'reciprocal_match_not_detected';
+  end if;
+
+  -- Mutual Match must stop being true when current privacy/safety/compatibility changes.
+  update public.profiles set profile_private=true
+  where id='00000000-0000-0000-0000-000000000001';
+  if public.est_match('00000000-0000-0000-0000-000000000001') then
+    raise exception 'match_remained_true_for_private_target';
+  end if;
+  update public.profiles set profile_private=false
+  where id='00000000-0000-0000-0000-000000000001';
+
+  insert into public.suspensions(user_id)
+  values ('00000000-0000-0000-0000-000000000001');
+  if public.est_match('00000000-0000-0000-0000-000000000001') then
+    raise exception 'match_remained_true_for_suspended_target';
+  end if;
+  delete from public.suspensions
+  where user_id='00000000-0000-0000-0000-000000000001';
+
+  insert into public.blocages(user_id,cible)
+  values ('00000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000001');
+  if public.est_match('00000000-0000-0000-0000-000000000001') then
+    raise exception 'match_remained_true_for_blocked_pair';
+  end if;
+  delete from public.blocages
+  where user_id='00000000-0000-0000-0000-000000000002'
+    and cible='00000000-0000-0000-0000-000000000001';
+
+  update public.prives set prefs='{"rel":["Amitié"]}'::jsonb
+  where id='00000000-0000-0000-0000-000000000001';
+  if public.est_match('00000000-0000-0000-0000-000000000001') then
+    raise exception 'match_remained_true_for_incompatible_intentions';
+  end if;
+  update public.prives set prefs='{"rel":["Relation sérieuse"]}'::jsonb
+  where id='00000000-0000-0000-0000-000000000001';
+
+  update public.profiles set profile_private=true
+  where id='00000000-0000-0000-0000-000000000002';
+  if public.est_match('00000000-0000-0000-0000-000000000001') then
+    raise exception 'match_remained_true_for_private_current_member';
+  end if;
+  update public.profiles set profile_private=false
+  where id='00000000-0000-0000-0000-000000000002';
+
+  -- A pass does not consume a like; changing it to like consumes one.
+  perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000014',true);
+  insert into public.avis_match(autre,ok) values ('00000000-0000-0000-0000-000000000003',false);
+  select count(*) into used_count from private.match_daily_like_events where user_id=auth.uid();
+  if used_count <> 0 then raise exception 'pass_consumed_daily_like'; end if;
+  update public.avis_match set ok=true where user_id=auth.uid(); 
+  select count(*) into used_count from private.match_daily_like_events where user_id=auth.uid();
+  if used_count <> 1 then raise exception 'pass_to_like_not_counted'; end if;
+  -- Server-side eligibility must reject direct likes to private, suspended,
+  -- blocked, or relationship-incompatible profiles; rejected attempts consume no quota.
+  perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000019',true);
+  update public.prives set prefs='{"rel":["Relation sérieuse"]}'::jsonb
+  where id='00000000-0000-0000-0000-000000000019';
+  insert into public.blocages(user_id,cible)
+  values ('00000000-0000-0000-0000-000000000019','00000000-0000-0000-0000-000000000004');
+
+  begin
+    insert into public.avis_match(autre,ok) values ('00000000-0000-0000-0000-000000000006',true);
+    raise exception 'private_target_was_not_rejected';
+  exception when others then
+    if sqlerrm not like '%match_private_target%' then raise; end if;
+  end;
+  begin
+    insert into public.avis_match(autre,ok) values ('00000000-0000-0000-0000-000000000005',true);
+    raise exception 'suspended_target_was_not_rejected';
+  exception when others then
+    if sqlerrm not like '%match_target_suspended%' then raise; end if;
+  end;
+  begin
+    insert into public.avis_match(autre,ok) values ('00000000-0000-0000-0000-000000000004',true);
+    raise exception 'blocked_target_was_not_rejected';
+  exception when others then
+    if sqlerrm not like '%conversation_bloquee%' then raise; end if;
+  end;
+  begin
+    insert into public.avis_match(autre,ok) values ('00000000-0000-0000-0000-000000000003',true);
+    raise exception 'incompatible_target_was_not_rejected';
+  exception when others then
+    if sqlerrm not like '%match_incompatible_target%' then raise; end if;
+  end;
+  select count(*) into used_count from private.match_daily_like_events
+  where user_id=auth.uid();
+  if used_count <> 0 then raise exception 'rejected_ineligible_likes_consumed_quota: %',used_count; end if;
+
+  -- Existing active likes must also be revalidated if the target later becomes private.
+  insert into public.avis_match(autre,ok)
+  values ('00000000-0000-0000-0000-000000000002',true);
+  update public.profiles set profile_private=true
+  where id='00000000-0000-0000-0000-000000000002';
+  begin
+    update public.avis_match set ok=true
+    where user_id=auth.uid()
+      and autre='00000000-0000-0000-0000-000000000002';
+    raise exception 'active_like_to_private_target_was_not_rejected';
+  exception when others then
+    if sqlerrm not like '%match_private_target%' then raise; end if;
+  end;
+  update public.profiles set profile_private=false
+  where id='00000000-0000-0000-0000-000000000002';
+  select count(*) into used_count from private.match_daily_like_events
+  where user_id=auth.uid();
+  if used_count <> 1 then raise exception 'revalidation_update_changed_like_quota: %',used_count; end if;
+
+
+  -- Changing the target of an existing active like is a new like and must
+  -- consume quota; otherwise a client can bypass the daily limit with UPDATE.
+  perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000015',true);
+  insert into public.avis_match(autre,ok)
+  values ('00000000-0000-0000-0000-000000000016',true);
+  update public.avis_match
+  set autre='00000000-0000-0000-0000-000000000017'
+  where user_id=auth.uid()
+    and autre='00000000-0000-0000-0000-000000000016';
+  select count(*) into used_count from private.match_daily_like_events
+  where user_id=auth.uid()
+    and liked_on=(now() at time zone 'Africa/Lubumbashi')::date;
+  if used_count <> 2 then
+    raise exception 'changing_active_like_target_did_not_consume_quota: %',used_count;
+  end if;
+
+  -- Premium likes are unlimited and do not enter the free quota ledger.
+  perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000013',true);
+  foreach i in array array[2,3,4,7,8,9,10,11,12,14,15] loop
+    target_id := ('00000000-0000-0000-0000-' || lpad(i::text,12,'0'))::uuid;
+    insert into public.avis_match(autre,ok) values (target_id,true);
+  end loop;
+  for i in 16..17 loop
+    target_id := ('00000000-0000-0000-0000-' || lpad(i::text,12,'0'))::uuid;
+    insert into public.avis_match(autre,ok) values (target_id,true);
+  end loop;
+  select count(*) into used_count from private.match_daily_like_events where user_id=auth.uid();
+  if used_count <> 0 then raise exception 'premium_likes_entered_free_ledger'; end if;
+  quota := public.match_like_quota();
+  if not (quota->>'premium')::boolean or quota->>'remaining' is not null then
+    raise exception 'premium_quota_response_invalid: %',quota;
+  end if;
+
+  -- Four eligible public likes are counted; only three IDs are revealed to free members.
+  perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000001',true);
+  -- Apply the block after the outgoing quota checks; old likes from blocked users must be hidden.
+  insert into public.blocages(user_id,cible)
+  values ('00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000004');
+
+  -- Seed historical likes before applying block/suspension filtering in the RPC.
+  alter table public.avis_match disable trigger enforce_match_daily_like_limit;
+  insert into public.avis_match(user_id,autre,ok) values
+    ('00000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000001',true),
+    ('00000000-0000-0000-0000-000000000003','00000000-0000-0000-0000-000000000001',true),
+    ('00000000-0000-0000-0000-000000000004','00000000-0000-0000-0000-000000000001',true),
+    ('00000000-0000-0000-0000-000000000005','00000000-0000-0000-0000-000000000001',true),
+    ('00000000-0000-0000-0000-000000000006','00000000-0000-0000-0000-000000000001',true),
+    ('00000000-0000-0000-0000-000000000007','00000000-0000-0000-0000-000000000001',true),
+    ('00000000-0000-0000-0000-000000000008','00000000-0000-0000-0000-000000000001',true)
+  on conflict (user_id,autre) do update set ok=excluded.ok;
+  alter table public.avis_match enable trigger enforce_match_daily_like_limit;
+  received := public.match_received_likes();
+  if (received->>'total')::integer <> 4 then raise exception 'received_like_total_incorrect: %',received; end if;
+  if (received->>'visible')::integer <> 3 or (received->>'locked')::integer <> 1 then
+    raise exception 'free_received_likes_preview_incorrect: %',received;
+  end if;
+  if jsonb_array_length(received->'ids') <> 3 then raise exception 'free_received_ids_not_limited'; end if;
+
+  -- Set member 1's private relation intention for compatibility checks.
+  update public.prives set prefs='{"rel":["Relation sérieuse"]}'::jsonb
+  where id='00000000-0000-0000-0000-000000000001';
+  -- Keep these test-only accounts out of the expected compatibility set.
+  update public.prives set prefs='{"rel":["Amitié"]}'::jsonb
+  where id in ('00000000-0000-0000-0000-000000000013',
+               '00000000-0000-0000-0000-000000000019');
+
+  -- Relationship intentions are compared privately; only compatible IDs leave the database.
+  compatible := public.match_relation_compatible_ids();
+  if compatible <> array['00000000-0000-0000-0000-000000000002'::uuid] then
+    raise exception 'private_relation_compatibility_incorrect: %',compatible;
+  end if;
+
+  -- Premium sees the complete eligible list.
+  perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000013',true);
+  alter table public.avis_match disable trigger enforce_match_daily_like_limit;
+  insert into public.avis_match(user_id,autre,ok) values
+    ('00000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000013',true),
+    ('00000000-0000-0000-0000-000000000003','00000000-0000-0000-0000-000000000013',true),
+    ('00000000-0000-0000-0000-000000000007','00000000-0000-0000-0000-000000000013',true),
+    ('00000000-0000-0000-0000-000000000008','00000000-0000-0000-0000-000000000013',true);
+  alter table public.avis_match enable trigger enforce_match_daily_like_limit;
+  received := public.match_received_likes();
+  if (received->>'total')::integer <> 4 or (received->>'visible')::integer <> 4 then
+    raise exception 'premium_received_likes_not_complete: %',received;
+  end if;
+
+  -- RPCs must not be executable by anon and must be available to authenticated.
+  if has_function_privilege('anon','public.match_like_quota()','EXECUTE')
+     or has_function_privilege('anon','public.match_received_likes()','EXECUTE')
+     or has_function_privilege('anon','public.match_relation_compatible_ids()','EXECUTE')
+     or has_function_privilege('anon','public.est_match(uuid)','EXECUTE') then
+    raise exception 'anon_can_execute_match_rpc';
+  end if;
+  if has_function_privilege('authenticated','private.match_like_quota()','EXECUTE')
+     or has_function_privilege('authenticated','private.match_received_likes()','EXECUTE')
+     or has_function_privilege('authenticated','private.match_relation_compatible_ids()','EXECUTE')
+     or has_function_privilege('authenticated','private.est_match(uuid)','EXECUTE') then
+    raise exception 'authenticated_can_execute_private_match_helpers';
+  end if;
+  if not has_function_privilege('authenticated','public.match_like_quota()','EXECUTE')
+     or not has_function_privilege('authenticated','public.match_received_likes()','EXECUTE')
+     or not has_function_privilege('authenticated','public.match_relation_compatible_ids()','EXECUTE')
+     or not has_function_privilege('authenticated','public.est_match(uuid)','EXECUTE') then
+    raise exception 'authenticated_cannot_execute_match_rpc';
+  end if;
+end
+$$;
+
+
+-- Exercise the public RPC wrappers as a real authenticated database role,
+-- not only as the migration owner used by the assertions above.
+set role authenticated;
+select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000001',false);
+do $$
+declare
+  quota jsonb;
+  received jsonb;
+  compatible uuid[];
+  match_result boolean;
+begin
+  quota := public.match_like_quota();
+  received := public.match_received_likes();
+  compatible := public.match_relation_compatible_ids();
+  match_result := public.est_match('00000000-0000-0000-0000-000000000002');
+  if (quota->>'remaining')::integer <> 0 then
+    raise exception 'authenticated_quota_rpc_failed: %',quota;
+  end if;
+  if (received->>'total')::integer <> 4 or (received->>'visible')::integer <> 3 then
+    raise exception 'authenticated_received_likes_rpc_failed: %',received;
+  end if;
+  if compatible <> array['00000000-0000-0000-0000-000000000002'::uuid] then
+    raise exception 'authenticated_private_relation_match_failed: %',compatible;
+  end if;
+  if not match_result then
+    raise exception 'authenticated_est_match_rpc_failed';
+  end if;
+end
+$$;
+reset role;
+
+select 'MALACHITE MATCH RUNTIME TESTS PASSED' as result;
