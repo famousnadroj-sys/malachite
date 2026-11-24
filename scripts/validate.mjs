@@ -123,10 +123,11 @@ if (!calls.includes('Les appels sécurisés seront réactivés après leur mise 
   throw new Error('Mutual-match call actions must replace the legacy disabled call button.');
 }
 for (const item of [
-  "Premium <span>2 $ / 30 jours</span>",
-  "Premium — 2 USD / 30 jours (appels inclus)",
-  'id="malReceipt"',
+  "Paiements temporairement désactivés",
+  "Tarif à confirmer",
+  'id="malPaymentHistory"',
   "malSubmitPayment({offer:offer.value,code:code,operator:network,file:proof.files[0]})",
+  "if(window.MAL_PAYMENTS_ENABLED!==true)",
 ]) {
   if (!calls.includes(item)) throw new Error('Secure calls/payment override requirement missing: ' + item);
 }
@@ -134,6 +135,23 @@ if (calls.includes("Premium <span>3 $ / 30 jours</span>") ||
     calls.includes("Premium — 3 USD / 30 jours") ||
     calls.includes("sb.from('paiements').insert(payload)")) {
   throw new Error('Calls offer override must not show the old price or bypass the shared receipt workflow.');
+}
+if (calls.includes("Premium <span>2 $ / 30 jours</span>") ||
+    calls.includes("Premium — 2 USD / 30 jours") ||
+    calls.includes("Boost <span>0,50 $ / 24 h</span>") ||
+    calls.includes("Boost — 0,50 USD / 24 heures") ||
+    calls.includes("Numéro Airtel Money destinataire") ||
+    calls.includes("Numéro Orange Money destinataire")) {
+  throw new Error('Unapproved prices or old payment destinations must not appear in the offers UI.');
+}
+const paymentUi = fs.readFileSync('malachite-avatar-ui.js', 'utf8');
+if (!paymentUi.includes("var MAL_PAYMENTS_ENABLED=false;") ||
+    !paymentUi.includes("if(!MAL_PAYMENTS_ENABLED)") ||
+    paymentUi.includes("+243 993 315 532") ||
+    paymentUi.includes("+243 848 775 992") ||
+    paymentUi.includes("Premium : 2 USD / 30 jours") ||
+    paymentUi.includes("Boost : 0,50 USD / 24 h")) {
+  throw new Error('Legacy payment destinations and unapproved prices must remain hidden while payment intake is paused.');
 }
 if (!calls.includes("select('id,offre,statut,created_at,reviewed_at,admin_reason,operateur')") ||
     calls.includes('au plus tard sous 2 heures') ||
