@@ -4,7 +4,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 const html = fs.readFileSync('index.html', 'utf8');
-const frontendFiles = ['app-core.js', 'malachite-avatar-ui.js', 'malachite-chat-ui.js', 'malachite-avatar-helper.js', 'malachite-living-engine.js', 'malachite-premium-profiles.js'];
+const frontendFiles = ['app-core.js', 'malachite-avatar-ui.js', 'malachite-chat-ui.js', 'malachite-avatar-helper.js', 'malachite-living-engine.js', 'malachite-premium-profiles.js', 'malachite-user-experience.js'];
 const frontendScripts = frontendFiles.map((file) => fs.readFileSync(file, 'utf8'));
 const frontend = [html, ...frontendScripts].join('\n');
 const serviceWorker = fs.readFileSync('sw.js', 'utf8');
@@ -423,7 +423,7 @@ for (const item of [
   if (!frontend.includes(item)) throw new Error('Launch payment safety requirement missing: ' + item);
 }
 if (!frontend.includes("if(!MAL_PAYMENTS_ENABLED)") ||
-    !frontend.includes("if(window.MAL_PAYMENTS_ENABLED!==true)") ||
+    !calls.includes("if(window.MAL_PAYMENTS_ENABLED!==true)") ||
     !frontend.includes("var payload={offre:data.offer,code:data.code,operateur:data.operator,receipt_path:receipt.path}") ||
     !frontend.includes("sb.from('paiements').insert(payload)")) {
   throw new Error('Payment UI and client submission must fail closed while preserving the reviewed future receipt workflow.');
