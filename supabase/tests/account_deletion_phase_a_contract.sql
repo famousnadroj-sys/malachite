@@ -1,5 +1,7 @@
 -- Assertions for docs/ACCOUNT_DELETION_PHASE_A_MIGRATION_DRAFT.sql.
 -- Run only after account_deletion_phase_a_fixture.sql and the draft migration.
+-- Keep request.jwt.claim.sub settings transaction-local across each test case.
+begin;
 do $$
 begin
   if (select count(*) from public.conversation_threads) <> 3 then
@@ -143,3 +145,4 @@ begin
   end if;
 end $$;
 
+rollback;
