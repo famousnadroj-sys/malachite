@@ -46,6 +46,8 @@ jobs:
           grep -Fq 'function matchPage()' app-core.js
           grep -Fq 'match:matchPage' app-core.js
           grep -Fq "['match','💗','Match']" app-core.js
+          grep -Fq 'const CACHE = "malachite-match-preview-static-v1";' sw.js
+          grep -Fq 'key.startsWith("malachite-match-preview-static-")' sw.js
           echo "Dedicated Match screen validated."
       - name: Set up Deno
         uses: denoland/setup-deno@v2
