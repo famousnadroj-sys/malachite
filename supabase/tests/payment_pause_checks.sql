@@ -16,6 +16,24 @@ begin
     raise exception 'existing_payment_history_must_remain_readable';
   end if;
 
+  if has_table_privilege('authenticated','public.config','SELECT')
+     or has_table_privilege('authenticated','public.config','INSERT')
+     or has_table_privilege('authenticated','public.config','UPDATE')
+     or has_table_privilege('authenticated','public.config','DELETE') then
+    raise exception 'payment_destination_config_must_not_be_client_accessible';
+  end if;
+
+  if exists (
+    select 1 from pg_policies
+    where schemaname='public' and tablename='config' and policyname='voir config'
+  ) then
+    raise exception 'public_config_read_policy_must_be_removed';
+  end if;
+
+  if (select count(*) from public.config) <> 1 then
+    raise exception 'payment_destination_config_must_be_preserved_for_admin_reconfiguration';
+  end if;
+
   if exists (
     select 1 from pg_policies
     where schemaname='public' and tablename='paiements'
@@ -60,6 +78,17 @@ begin
   end if;
 end
 $history_read$;
+
+do $config_read$
+begin
+  begin
+    perform cle from public.config;
+    raise exception 'client_config_read_was_accepted';
+  exception when insufficient_privilege then
+    null;
+  end;
+end
+$config_read$;
 
 reset role;
 rollback;
