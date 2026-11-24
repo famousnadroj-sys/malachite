@@ -78,6 +78,7 @@ select id,
   case
     when id='00000000-0000-0000-0000-000000000001' then '{"rel":[]}'::jsonb
     when id='00000000-0000-0000-0000-000000000002' then '{"rel":["Relation sérieuse"]}'::jsonb
+    when id='00000000-0000-0000-0000-000000000013' then '{"rel":[]}'::jsonb
     else '{"rel":["Amitié"]}'::jsonb
   end
 from auth.users;
@@ -146,10 +147,10 @@ begin
 
   -- A pass does not consume a like; changing it to like consumes one.
   perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000014',true);
-  insert into public.avis_match(autre,ok) values ('00000000-0000-0000-0000-000000000002',false);
+  insert into public.avis_match(autre,ok) values ('00000000-0000-0000-0000-000000000003',false);
   select count(*) into used_count from private.match_daily_like_events where user_id=auth.uid();
   if used_count <> 0 then raise exception 'pass_consumed_daily_like'; end if;
-  update public.avis_match set ok=true where user_id=auth.uid();
+  update public.avis_match set ok=true where user_id=auth.uid(); 
   select count(*) into used_count from private.match_daily_like_events where user_id=auth.uid();
   if used_count <> 1 then raise exception 'pass_to_like_not_counted'; end if;
   -- Server-side eligibility must reject direct likes to private, suspended,
