@@ -1,4 +1,5 @@
 name: MALACHITE production and isolated Match preview
+# Rebuild production and the Match preview from their separate source branches.
 on:
   push:
     branches:
@@ -35,6 +36,15 @@ jobs:
       - name: Validate production application JavaScript
         working-directory: production-source
         run: node scripts/validate.mjs
+      - name: Validate isolated Match frontend
+        working-directory: preview-source
+        run: |
+          set -euo pipefail
+          node scripts/validate.mjs
+          grep -Fq 'function matchPage()' app-core.js
+          grep -Fq 'match:matchPage' app-core.js
+          grep -Fq "['match','💗','Match']" app-core.js
+          echo "Dedicated Match screen validated."
       - name: Set up Deno
         uses: denoland/setup-deno@v2
         with:
