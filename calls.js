@@ -279,7 +279,11 @@
   alert(ok?'Paiement validé. L’avantage correspondant est activé.':'Paiement refusé. Le membre recevra le motif.');
   if(typeof loadAdm==='function')await loadAdm();
  };
- var adminPaymentChannel=null,userNotificationChannel=null,seenNotificationIds=Object.create(null);
+ var adminPaymentChannel=null,adminPaymentUserId=null,adminPaymentPendingFor=null,userNotificationChannel=null,seenNotificationIds=Object.create(null);
+ function stopPaymentRealtime(){
+  if(adminPaymentChannel){try{sb.removeChannel(adminPaymentChannel)}catch(e){}}
+  adminPaymentChannel=null;adminPaymentUserId=null;adminPaymentPendingFor=null;
+ }
  function showUserNotification(row){
   if(!row||!row.id||seenNotificationIds[row.id])return;
   seenNotificationIds[row.id]=true;
@@ -296,15 +300,30 @@
    userNotificationChannel=sb.channel('mal-user-notifications-'+me.id).on('postgres_changes',{event:'INSERT',schema:'public',table:'user_notifications',filter:'user_id=eq.'+me.id},function(ev){showUserNotification(ev&&ev.new)}).subscribe(function(status){if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED')userNotificationChannel=null});
   }
  }
- function startPaymentRealtime(){
+ async function startPaymentRealtime(){
   if(!me)return;
-  if(me.email==='famousnadroj@gmail.com'&&!adminPaymentChannel){
-   adminPaymentChannel=sb.channel('mal-admin-payment-inbox').on('postgres_changes',{event:'INSERT',schema:'public',table:'paiements'},function(ev){
-    var row=ev&&ev.new;if(!row)return;
+  var uid=me.id;
+  if(adminPaymentChannel&&adminPaymentUserId===uid)return;
+  if(adminPaymentChannel&&adminPaymentUserId!==uid)stopPaymentRealtime();
+  if(adminPaymentPendingFor===uid)return;
+  adminPaymentPendingFor=uid;
+  try{
+   var access=await sb.rpc('malachite_ai_manager_is_admin');
+   if(!me||me.id!==uid||access.error||access.data!==true)return;
+   if(adminPaymentChannel&&adminPaymentUserId===uid)return;
+   var channel=sb.channel('mal-admin-payment-inbox-'+uid).on('postgres_changes',{event:'INSERT',schema:'public',table:'paiements'},function(ev){
+    var row=ev&&ev.new;if(!row||!me||me.id!==uid)return;
     notify('💳 Nouvelle demande de paiement',row.offre+' · Code : '+row.code,'adm','payment-'+row.id);
     if(tab==='adm'&&typeof loadAdm==='function')loadAdm();
-   }).subscribe(function(status){if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED')adminPaymentChannel=null});
-  }
+   });
+   adminPaymentChannel=channel;adminPaymentUserId=uid;
+   channel.subscribe(function(status){
+    if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED'){
+     if(adminPaymentChannel===channel){adminPaymentChannel=null;adminPaymentUserId=null}
+    }
+   });
+  }catch(e){console.warn('Notifications administrateur des paiements indisponibles',e)}
+  finally{if(adminPaymentPendingFor===uid)adminPaymentPendingFor=null}
  }
  var originalSub=window.sub;
  if(typeof originalSub==='function')window.sub=function(){originalSub();startInbox();startPaymentRealtime();startUserNotifications()};
@@ -315,10 +334,12 @@
  sb.auth.onAuthStateChange(function(event,session){
   var next=session&&session.user?session.user:null;
   if(callInboxUserId&&(!next||next.id!==callInboxUserId))stopCallInbox();
+  if(adminPaymentUserId&&(!next||next.id!==adminPaymentUserId))stopPaymentRealtime();
   if(!next&&callState)finishCall(true);
   if(next&&callInboxUserId!==next.id)startInbox();
+  if(next)startPaymentRealtime();
  });
- window.addEventListener('online',function(){if(me)startInbox()});
- document.addEventListener('visibilitychange',function(){if(!document.hidden&&me)startInbox()});
- if(me)startInbox();
+ window.addEventListener('online',function(){if(me){startInbox();startPaymentRealtime()}});
+ document.addEventListener('visibilitychange',function(){if(!document.hidden&&me){startInbox();startPaymentRealtime()}});
+ if(me){startInbox();startPaymentRealtime()};
 })();
