@@ -406,6 +406,10 @@ for (const item of [
 ]) {
   if (!configStatusMutationMigration.includes(item)) throw new Error('Authenticated clients must not directly mutate config or entitlement status records.');
 }
+const publicConfigMigration = fs.readFileSync('supabase/migrations/20261124181403_limit_public_config_reads_to_payment_operators.sql', 'utf8').toLowerCase();
+for (const item of ['drop policy if exists "voir config" on public.config', "using (cle in ('airtel','orange'))"]) {
+  if (!publicConfigMigration.includes(item)) throw new Error('Public configuration reads must be restricted to payment-operator keys.');
+}
 const directPaymentMutationMigration = fs.readFileSync('supabase/migrations/20261124230000_restrict_direct_payment_mutations.sql', 'utf8').toLowerCase();
 if (!directPaymentMutationMigration.includes('revoke update, delete on table public.paiements from authenticated')) {
   throw new Error('Authenticated clients must not directly update or delete payment records.');
