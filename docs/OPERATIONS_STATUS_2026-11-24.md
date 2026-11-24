@@ -40,22 +40,28 @@ Vérifications en lecture seule :
 
 Cette vérification confirme le fonctionnement périodique actuel, pas une garantie de disponibilité continue ni un test de bout en bout de chaque action.
 
-## 4. Avis Supabase — sécurité
+## 4. Site de production — déploiement
+
+- Le workflow `.github/workflows/deploy-production.yml` publie uniquement sur un `push` vers `main` ou un lancement manuel. Les PR #72 et #73 sont en brouillon et n'ont pas déclenché de déploiement.
+- URL configurée dans le dépôt : `https://famousnadroj-sys.github.io/malachite/`.
+- La vérification HTTP directe du site n'a pas pu être menée depuis cet environnement de consultation; l'état live du site n'est donc pas certifié par cette revue.
+
+## 5. Avis Supabase — sécurité
 
 Contrôle en lecture seule du 24 novembre :
 - 10 tables avec RLS activé sans politique : principalement tables administratives/privées. Contrôle SQL complémentaire : `anon` et `authenticated` n'ont aucun privilège direct SELECT/INSERT sur ces 10 tables ; l'alerte est donc informative et le refus par défaut est confirmé.
 - Alerte `anon_security_definer_function_executable` sur `public.get_malachite_referrer_preview(uuid)` : c'est la seule des 5 fonctions examinées exécutable par `anon`. Elle renvoie seulement le prénom et le nom d'utilisateur d'un profil non privé, ce qui semble correspondre à l'aperçu public de parrainage. Le risque est limité aux champs publics, mais la fonction doit rester minimaliste et son intention doit être confirmée.
-- 5 fonctions `SECURITY DEFINER` sont exécutables par `authenticated` ; aucun accès `anon` pour les 4 autres : `admin_malachite_referrals`, `founder_business_overview`, `founder_finance_summary`, `start_call_session`. Les définitions examinées vérifient les permissions administrateur pour les RPC admin/finance ; `start_call_session` vérifie l'identité, l'abonnement, le blocage et le match mutuel. Ne pas supprimer ces contrôles ni changer en `SECURITY INVOKER` sans tests inter-comptes.
+- 5 fonctions `SECURITY DEFINER` sont exécutables par `authenticated` ; aucun accès `anon` pour les 4 autres : `admin_malachite_referrals`, `founder_business_overview`, `founder_finance_summary`, `start_call_session`. Les définitions examinées vérifient les permissions administrateur pour les RPC admin/finance. `start_call_session` vérifie l'identité, l'abonnement, le blocage et le match réciproque; toutefois, la fonction `private.est_match` actuelle en production ne vérifie que les likes réciproques. La revalidation privacy/suspension/compatibilité ajoutée à la PR #72 n'est pas déployée. Ne pas supprimer les contrôles existants ni changer en `SECURITY INVOKER` sans tests inter-comptes.
 - Aucun DDL de production n'a été appliqué pendant cet audit.
 
-## 5. Suite recommandée
+## 6. Suite recommandée
 
 1. Réaliser et tester la sauvegarde complète selon le runbook.
-2. Terminer les tests Match avec deux comptes dans l'environnement de test et corriger la validation serveur.
+2. Terminer les tests Match avec deux comptes/appareils réels en environnement isolé; la validation serveur et les tests SQL sont déjà corrigés et passés dans la PR #72.
 3. Faire la revue ciblée des RPC `SECURITY DEFINER` et documenter les décisions sur les alertes.
 4. Vérifier la restauration et les parcours de base sur staging.
 5. Seulement ensuite demander une approbation explicite pour fusion/déploiement.
 
-## Limites de cette revue
+## 7. Limites de cette revue
 
 Les contrôles Supabase étaient en lecture seule. Aucun backup binaire complet n'a été téléchargé, aucun fichier Storage n'a été copié, aucune restauration n'a été exécutée, aucun changement de paiement/secret/fonction Edge n'a été déployé.
