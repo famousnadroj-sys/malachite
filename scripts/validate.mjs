@@ -7,6 +7,10 @@ const html = fs.readFileSync('index.html', 'utf8');
 const frontendFiles = ['app-core.js', 'malachite-avatar-ui.js', 'malachite-chat-ui.js', 'malachite-avatar-helper.js', 'malachite-living-engine.js', 'malachite-premium-profiles.js'];
 const frontendScripts = frontendFiles.map((file) => fs.readFileSync(file, 'utf8'));
 const frontend = [html, ...frontendScripts].join('\n');
+const serviceWorker = fs.readFileSync('sw.js', 'utf8');
+if (frontend.includes('loadPublicCampaigns') || serviceWorker.includes('malachite-campaigns.js') || serviceWorker.includes('malachite-ad-studio.js')) {
+  throw new Error('Advertising surfaces must remain retired at launch.');
+}
 for (const [index, source] of frontendScripts.entries()) {
   const temp = path.join(os.tmpdir(), 'malachite-deferred-' + index + '.js');
   fs.writeFileSync(temp, source);
