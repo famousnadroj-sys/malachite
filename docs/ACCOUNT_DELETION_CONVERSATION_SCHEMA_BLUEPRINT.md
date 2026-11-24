@@ -166,6 +166,10 @@ Le dossier `supabase/functions` de la branche contient une fonction `admin-user-
 
 Aucune Edge Function dédiée à la suppression de compte n'a été trouvée dans le dossier des fonctions versionnées consulté. Il faut donc concevoir et tester une nouvelle fonction dédiée, idempotente, authentifiée et auditée, plutôt que réutiliser la fonction de modération. Cette conclusion porte sur le code de la branche inspectée ; elle ne prouve pas l'absence de scripts ou d'automatisations externes non versionnés.
 
+## 6 ter. Inventaire frontend
+
+L'inventaire ligne par ligne du client actuel est consigné dans [ACCOUNT_DELETION_FRONTEND_DEPENDENCY_INVENTORY.md](./ACCOUNT_DELETION_FRONTEND_DEPENDENCY_INVENTORY.md). Il confirme que les dépendances à `de/a` ne se limitent pas à la requête de chargement : elles couvrent la pagination, la liste des conversations, les messages liés, les reçus, le polling, Realtime, les canaux de saisie et les chemins Storage. Aucun changement frontend n'a encore été effectué ; le document fixe l'ordre de migration obligatoire.
+
 ## 7. Garde-fous
 
 - Ce document n'exécute aucune commande SQL et ne change aucune donnée.
