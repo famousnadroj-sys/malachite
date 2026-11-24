@@ -79,8 +79,25 @@ do $call$ begin
   raise exception 'suspended_recipient_appointment_allowed';
  exception when others then if sqlerrm='suspended_recipient_appointment_allowed' then raise; end if; end;
 end $call$;
+reset role;
+update private.call_provider_config set enabled=false, updated_at=now() where singleton=true;
+set local role authenticated;
 select set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
-do $$ begin
+do $blockedaccept$
+begin
+  begin
+    update public.call_sessions set status='accepted'
+    where id='90000000-0000-0000-0000-000000000001' and callee_id=auth.uid();
+    raise exception 'disabled_provider_acceptance_allowed';
+  exception when insufficient_privilege then null;
+  end;
+end
+$blockedaccept$;
+reset role;
+update private.call_provider_config set enabled=true, updated_at=now() where singleton=true;
+set local role authenticated;
+select set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
+do $ begin
  if (select count(*) from public.call_sessions)<>1 then raise exception 'callee_cannot_read_call'; end if;
  if has_column_privilege('authenticated','public.call_sessions','caller_id','UPDATE')
     or has_column_privilege('authenticated','public.call_sessions','callee_id','UPDATE')
