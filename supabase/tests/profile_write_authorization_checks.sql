@@ -118,6 +118,9 @@ begin
     raise exception 'private_profile_fields_accepted_by_preferences_rpc';
   exception when others then
     if sqlerrm = 'private_profile_fields_accepted_by_preferences_rpc' then raise; end if;
+    if sqlerrm <> 'Champ de préférence non autorisé' then
+      raise exception 'unexpected_private_preference_error: %', sqlerrm;
+    end if;
   end;
 
   begin
@@ -125,6 +128,19 @@ begin
     raise exception 'underage_preference_was_accepted';
   exception when others then
     if sqlerrm = 'underage_preference_was_accepted' then raise; end if;
+    if sqlerrm <> 'Âge minimum autorisé : 18 à 100 ans' then
+      raise exception 'unexpected_underage_preference_error: %', sqlerrm;
+    end if;
+  end;
+
+  begin
+    perform public.update_my_preferences('{"amin":50}'::jsonb);
+    raise exception 'partial_age_range_bypass_was_accepted';
+  exception when others then
+    if sqlerrm = 'partial_age_range_bypass_was_accepted' then raise; end if;
+    if sqlerrm <> 'La tranche d’âge est invalide' then
+      raise exception 'unexpected_partial_age_range_error: %', sqlerrm;
+    end if;
   end;
 end
 $preference_checks$;
