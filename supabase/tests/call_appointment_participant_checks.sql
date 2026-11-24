@@ -1,5 +1,5 @@
 begin;
-insert into public.profiles values
+insert into public.profiles(id) values
  ('10000000-0000-0000-0000-000000000001'),
  ('20000000-0000-0000-0000-000000000001'),
  ('30000000-0000-0000-0000-000000000001');
@@ -12,7 +12,7 @@ insert into public.avis_match values
  ('30000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001',true);
 set local role authenticated;
 select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000001',true);
-do $ begin
+do $call$ begin
  perform public.start_call_session(
   '90000000-0000-0000-0000-000000000001',
   '20000000-0000-0000-0000-000000000001',
@@ -38,7 +38,7 @@ do $ begin
   values ('10000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000001',now()+interval '1 day','Public place','Meet','attente');
   raise exception 'suspended_recipient_appointment_allowed';
  exception when others then if sqlerrm='suspended_recipient_appointment_allowed' then raise; end if; end;
-end $;
+end $call$;
 select set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
 do $$ begin
  if (select count(*) from public.call_sessions)<>1 then raise exception 'callee_cannot_read_call'; end if;
