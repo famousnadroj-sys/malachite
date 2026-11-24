@@ -144,10 +144,11 @@ function writeChatMediaCache(key,value){
  try{localStorage.setItem('mal_chat_media:'+key,JSON.stringify(value))}catch(e){}
 }
 async function resolveMessagesMedia(rows){
- var groups=Object.create(null),docs=Object.create(null),now=Date.now();
+ var groups=Object.create(null),docs=Object.create(null),now=Date.now(),uid=me&&me.id;
+ if(!uid)return rows;
  (rows||[]).forEach(function(m){
   if(!m||!m.media_url||m.media_type==='call'||m.display_url)return;
-  var loc=messageMediaLocation(m),key=loc.bucket+'|'+loc.path,cached=readChatMediaCache(key,now);
+  var loc=messageMediaLocation(m),key=uid+'|'+loc.bucket+'|'+loc.path,cached=readChatMediaCache(key,now);
   if(cached&&cached.expiresAt>now+30000){m.display_url=cached.url;if(m.media_type==='document'){if(cached.downloadUrl)m.download_url=cached.downloadUrl;else{if(!docs[loc.bucket])docs[loc.bucket]={};if(!docs[loc.bucket][loc.path])docs[loc.bucket][loc.path]=[];docs[loc.bucket][loc.path].push(m)}}return}
   if(!groups[loc.bucket])groups[loc.bucket]={};
   if(!groups[loc.bucket][loc.path])groups[loc.bucket][loc.path]=[];
@@ -158,19 +159,21 @@ async function resolveMessagesMedia(rows){
    var paths=Object.keys(groups[bucket]);if(!paths.length)return;
    var result=await sb.storage.from(bucket).createSignedUrls(paths,300);
    if(result.error)throw result.error;
+   if(!me||me.id!==uid)return;
    (result.data||[]).forEach(function(item,index){
     var path=item.path||paths[index],url=item.signedUrl||'';
     (groups[bucket][path]||[]).forEach(function(m){
-     if(url){m.display_url=url;var key=bucket+'|'+path,cache=chatMediaUrlCache[key]||{};cache.url=url;cache.expiresAt=now+270000;writeChatMediaCache(key,cache)}
+     if(url&&me&&me.id===uid){m.display_url=url;var key=uid+'|'+bucket+'|'+path,cache=chatMediaUrlCache[key]||{};cache.url=url;cache.expiresAt=now+270000;writeChatMediaCache(key,cache)}
     });
    });
    var docPaths=Array.from(new Set(paths.filter(function(path){return (groups[bucket][path]||[]).some(function(m){return m.media_type==='document'})}).concat(Object.keys(docs[bucket]||{}))));
    if(docPaths.length){
     var downloads=await sb.storage.from(bucket).createSignedUrls(docPaths,300,{download:true});
     if(downloads.error)throw downloads.error;
+    if(!me||me.id!==uid)return;
     (downloads.data||[]).forEach(function(item,index){
      var path=item.path||docPaths[index],url=item.signedUrl||'';
-     (groups[bucket][path]||[]).concat(docs[bucket]&&docs[bucket][path]||[]).forEach(function(m){if(m.media_type==='document'&&url){m.download_url=url;var key=bucket+'|'+path,cache=chatMediaUrlCache[key]||{};cache.downloadUrl=url;cache.expiresAt=now+3500000;chatMediaUrlCache[key]=cache}});
+     (groups[bucket][path]||[]).concat(docs[bucket]&&docs[bucket][path]||[]).forEach(function(m){if(m.media_type==='document'&&url&&me&&me.id===uid){m.download_url=url;var key=uid+'|'+bucket+'|'+path,cache=chatMediaUrlCache[key]||{};cache.downloadUrl=url;cache.expiresAt=now+270000;writeChatMediaCache(key,cache)}});
     });
    }
   }catch(error){console.warn('Signature des médias de la conversation ('+bucket+')',error)}
