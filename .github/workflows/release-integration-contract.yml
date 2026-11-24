@@ -33,23 +33,46 @@ jobs:
           path: preview-source
 
       - name: Assemble non-deployable release artifact
+        env:
+          PROD_SUPABASE_REF: tscsmemsvgacqioncash
+          STAGING_SUPABASE_REF: sbawknyxcjslvhknomkd
+          PROD_PUBLISHABLE_KEY: sb_publishable_XDpqSzsPNeVduv6aGyjuoA_suakeFN0
+          STAGING_PUBLISHABLE_KEY: sb_publishable_rXT4ztk4NLX-PeK2spwzqg_UcKMnRD5
         run: |
           set -euo pipefail
-          mkdir -p _site/preview
-          find app-source -maxdepth 1 -type f \
-            \( -name '*.html' -o -name '*.js' -o -name '*.css' \) \
-            -exec cp {} _site/ \
-            ;
-          cp app-source/manifest.webmanifest app-source/sw.js _site/
-          cp -r app-source/assets _site/assets
+          mkdir -p _site/icons _site/preview/icons
+          cp app-source/index.html app-source/*.js app-source/*.html app-source/manifest.webmanifest app-source/sw.js app-source/.nojekyll _site/
+          cp app-source/icons/malachite.svg _site/icons/
           cp public-source/index.html public-source/decouvrir.html public-source/404.html _site/
           cp public-source/robots.txt public-source/sitemap.xml _site/
           rm -f _site/partenaires.html
-          cp -r preview-source/. _site/preview/
+          cp preview-source/index.html preview-source/*.js preview-source/*.html preview-source/manifest.webmanifest preview-source/sw.js preview-source/.nojekyll _site/preview/
+          cp preview-source/icons/malachite.svg _site/preview/icons/
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          root = Path("_site/preview")
+          replacements = {
+              os.environ["PROD_SUPABASE_REF"]: os.environ["STAGING_SUPABASE_REF"],
+              os.environ["PROD_PUBLISHABLE_KEY"]: os.environ["STAGING_PUBLISHABLE_KEY"],
+          }
+          for path in root.rglob("*"):
+              if not path.is_file():
+                  continue
+              try:
+                  content = path.read_text(encoding="utf-8")
+              except UnicodeDecodeError:
+                  continue
+              for old, new in replacements.items():
+                  content = content.replace(old, new)
+              path.write_text(content, encoding="utf-8")
+          PY
           touch _site/.nojekyll
           test -f _site/index.html
           test -f _site/decouvrir.html
+          test -f _site/icons/malachite.svg
           test -f _site/preview/index.html
+          test -f _site/preview/icons/malachite.svg
 
       - name: Smoke-test the assembled artifact without publishing
         working-directory: public-source
