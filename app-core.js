@@ -2,7 +2,7 @@
 var malFounderLandingDone=false;
 var sb=supabase.createClient('https://tscsmemsvgacqioncash.supabase.co','sb_publishable_XDpqSzsPNeVduv6aGyjuoA_suakeFN0',{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storage:window.localStorage}});
 var malReferralId=(function(){try{var v=new URLSearchParams(window.location.search).get('ref')||'';return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v)?v:null}catch(e){return null}})(),malReferralPreviewStarted=false;
-var malStartupPending=true,malStartupMessage='',malAvatarTouched=false,malAvatar3dDraft=null,profilesLoadedAt=0,me=null,mine=null,profileDraft={},signupDraft={},signupStep=1,pendingSignupAvatar=null,pendingSignupPhoto=null,pendingSignupPreview='',pendingSignupEmail='',loginPrefillEmail='',phUrls=[],loadSeq=0,loadedUid=null,profileEditing=false,pendingProfileFile=null,pendingProfilePreview='',profileSaving=false,privLoadFailed=false,admSuspensions=[],ADM='famousnadroj@gmail.com',av2=null,mutual=false,ct=null,lastSig='',rdvFor=null,fresh=false,adm=[],admPage=0,admTotal=0,admSearch='',admPaymentStatus='attente',admPaymentPeriod='today',sigs=[],referralRows=[],blocked=[],blockedProfiles=[],matchNoticeChecked={},blockedCurrent=false,blockedCheckedFor=null,NUM='',ORANGE='',rdvs=[],pos='',priv={},profs=[],st={},tab='home',open=null,msgs=[],convs=[],chatCursor=null,chatCursorId=0,chatCursorFor=null,chatLoadBusy=false,chatLoadQueued=false,chatSending=false,chatBeforeId=0,chatHasOlder=false,chatOlderBusy=false,chatInitialLoading=false,chatLoadBusyKeys=Object.create(null),chatLoadQueuedKeys=Object.create(null),msgRealtimeReady=false,chatMediaUrlCache=Object.create(null),receiptByMessage=Object.create(null),msgChannel=null,subUserId=null,backgroundTimersStarted=false,presenceChannel=null,presenceUserId=null,presenceReady=false,onlineIds=Object.create(null),typingChannel=null,typingTarget=null,typingStopTimer=null,typingHideTimer=null,typingActive=false,ph=[],msg='',F={g:'',c:'',a:18,b:99},timer,mode='in';
+var malStartupPending=true,malStartupMessage='',malAvatarTouched=false,malAvatar3dDraft=null,profilesLoadedAt=0,me=null,mine=null,profileDraft={},signupDraft={},signupStep=1,pendingSignupAvatar=null,pendingSignupPhoto=null,pendingSignupPreview='',pendingSignupEmail='',loginPrefillEmail='',phUrls=[],loadSeq=0,loadedUid=null,profileEditing=false,pendingProfileFile=null,pendingProfilePreview='',profileSaving=false,privLoadFailed=false,admSuspensions=[],malAdminAuthorized=false,malAdminCheckedFor=null,malAdminCheckPromise=null,malAdminCheckFor=null,av2=null,mutual=false,ct=null,lastSig='',rdvFor=null,fresh=false,adm=[],admPage=0,admTotal=0,admSearch='',admPaymentStatus='attente',admPaymentPeriod='today',sigs=[],referralRows=[],blocked=[],blockedProfiles=[],matchNoticeChecked={},blockedCurrent=false,blockedCheckedFor=null,NUM='',ORANGE='',rdvs=[],pos='',priv={},profs=[],st={},tab='home',open=null,msgs=[],convs=[],chatCursor=null,chatCursorId=0,chatCursorFor=null,chatLoadBusy=false,chatLoadQueued=false,chatSending=false,chatBeforeId=0,chatHasOlder=false,chatOlderBusy=false,chatInitialLoading=false,chatLoadBusyKeys=Object.create(null),chatLoadQueuedKeys=Object.create(null),msgRealtimeReady=false,chatMediaUrlCache=Object.create(null),receiptByMessage=Object.create(null),msgChannel=null,subUserId=null,backgroundTimersStarted=false,presenceChannel=null,presenceUserId=null,presenceReady=false,onlineIds=Object.create(null),typingChannel=null,typingTarget=null,typingStopTimer=null,typingHideTimer=null,typingActive=false,ph=[],msg='',F={g:'',c:'',a:18,b:99},timer,mode='in';
 var $=function(i){return document.getElementById(i)};
 if(malReferralId){mode='up';signupStep=1;}
 function malTogglePassword(button){var input=button&&button.previousElementSibling;if(!input)return;var show=input.type==='password';input.type=show?'text':'password';button.textContent=show?'Masquer':'Afficher';button.setAttribute('aria-label',show?'Masquer le mot de passe':'Afficher le mot de passe')}
@@ -750,14 +750,36 @@ async function sendImg(el){
 function banner(){if(!me)return '';var nb=(tab=='home'&&'Notification' in window&&Notification.permission=='default')?'<div class="wall pop">🔔 <b>Active les notifications</b> pour ne rater aucun message ni rendez-vous.<button class="b1" style="width:100%;margin-top:8px" onclick="askNotif()">Activer</button></div>':'';var t=new Date().toDateString();return nb+rdvs.filter(function(x){return x.statut=='confirme'&&new Date(x.quand).toDateString()==t}).map(function(x){var p=prof(x.de==me.id?x.a:x.de)||{};return '<div class="wall pop">🔔 <b>Aujourd’hui</b> : rendez-vous avec '+esc(p.prenom||'ton match')+' à '+new Date(x.quand).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+' · '+esc(x.lieu)+'</div>'}).join('')}
 function ics(id){var x=rdvs.filter(function(y){return y.id==id})[0];if(!x)return;var d=new Date(x.quand),e=new Date(+d+36e5),f=function(z){return z.toISOString().replace(/[-:]/g,'').split('.')[0]+'Z'};var t='BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:malachite-'+id+'@malachite\r\nDTSTAMP:'+f(new Date())+'\r\nDTSTART:'+f(d)+'\r\nDTEND:'+f(e)+'\r\nSUMMARY:Rendez-vous Malachite\r\nLOCATION:'+String(x.lieu).replace(/[,;\r\n]/g,' ')+'\r\nBEGIN:VALARM\r\nTRIGGER:-PT2H\r\nACTION:DISPLAY\r\nDESCRIPTION:Rendez-vous Malachite\r\nEND:VALARM\r\nEND:VEVENT\r\nEND:VCALENDAR';var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/calendar'}));a.download='rendez-vous.ics';a.click()}
 var admLoadPromise=null,admLoadQueued=false,admLoadedFor=null;
+async function malCheckAdminAccess(){
+ if(!me)return false;
+ var uid=me.id;
+ if(malAdminCheckedFor===uid)return malAdminAuthorized;
+ if(malAdminCheckPromise&&malAdminCheckFor===uid)return malAdminCheckPromise;
+ malAdminCheckFor=uid;
+ var pending=(async function(){
+  var result=await sb.rpc('malachite_ai_manager_is_admin');
+  var allowed=!result.error&&result.data===true;
+  if(me&&me.id===uid){
+   malAdminAuthorized=allowed;malAdminCheckedFor=uid;
+   if(!allowed&&(tab==='adm'||tab==='founder'))tab='home';
+   if(!malStartupPending)draw(true);
+  }
+  return !!(me&&me.id===uid&&allowed);
+ })().catch(function(error){
+  if(me&&me.id===uid){malAdminAuthorized=false;malAdminCheckedFor=uid;if(tab==='adm'||tab==='founder')tab='home';console.warn('Vérification du rôle administrateur impossible',error);if(!malStartupPending)draw(true)}
+  return false;
+ }).finally(function(){if(malAdminCheckPromise===pending){malAdminCheckPromise=null;malAdminCheckFor=null}});
+ malAdminCheckPromise=pending;return pending;
+}
 async function loadAdm(){
- if(!me||me.email!==ADM||tab!=='adm'||document.hidden)return;
+ if(!me||tab!=='adm'||document.hidden)return;
+ if(!await malCheckAdminAccess())return;
  if(admLoadPromise){admLoadQueued=true;return admLoadPromise}
  var uid=me.id;
  admLoadPromise=(async function(){
   do{
    admLoadQueued=false;
-   if(!me||me.id!==uid||me.email!==ADM||tab!=='adm')break;
+   if(!me||me.id!==uid||!malAdminAuthorized||tab!=='adm')break;
    var results=await Promise.all([
     sb.from('paiements').select('*').eq('statut','attente').order('created_at'),
     sb.from('signalements').select('*').order('created_at',{ascending:false}).limit(100),
@@ -765,7 +787,7 @@ async function loadAdm(){
     sb.from('avis_site').select('*').order('created_at',{ascending:false}).limit(50),
     sb.rpc('admin_malachite_referrals')
    ]);
-   if(!me||me.id!==uid||me.email!==ADM||tab!=='adm')break;
+   if(!me||me.id!==uid||!malAdminAuthorized||tab!=='adm')break;
    var labels=['paiements','signalements','suspensions','avis_site','parrainages'];
    results.forEach(function(r,i){if(r.error)console.warn('Chargement admin '+labels[i],r.error)});
    if(!results[0].error)adm=results[0].data||[];
@@ -781,7 +803,7 @@ async function loadAdm(){
  return admLoadPromise;
 }
 async function trt(id,ok){
- if(!me||me.email!==ADM)return;
+ if(!me||!await malCheckAdminAccess())return;
  var reason=null;
  if(ok&&!confirm('As-tu vérifié auprès de l’opérateur que l’argent est réellement arrivé ? Confirmer ce paiement et activer l’offre ?'))return;
  if(!ok){reason=prompt('Motif du refus :');if(reason===null)return;reason=reason.trim();if(!reason||reason.length>500){alert('Le motif est obligatoire (500 caractères maximum).');return}}
@@ -793,8 +815,8 @@ async function trt(id,ok){
   else{if(typeof toast==='function')toast('Paiement refusé.');else alert('Paiement refusé.')}
   await loadAdm();
  }catch(e){alert('Action non effectuée : '+(e.message||'erreur inconnue'));await loadAdm()}
-}async function moderate(id,status){var r=await sb.from('signalements').update({statut:status,traite_par:me.id,traite_le:new Date().toISOString()}).eq('id',id);if(r.error){alert('Impossible de traiter le signalement : '+r.error.message);return}loadAdm()}
-async function suspendMember(id){var reason=prompt('Motif de suspension (300 caractères maximum) :');if(reason===null)return;reason=reason.trim();if(!reason||reason.length>300){alert('Le motif est obligatoire et limité à 300 caractères.');return}if(!confirm('Confirmer la suspension de ce compte ?'))return;var r=await sb.functions.invoke('admin-user-moderation',{body:{user_id:id,action:'suspend',reason:reason}});if(r.error){alert('Suspension impossible : '+(r.data&&r.data.error?r.data.error:r.error.message));return}alert('Suspension enregistrée et transmise à Auth.');await loadAdm()}
+}async function moderate(id,status){if(!me||!await malCheckAdminAccess())return;var r=await sb.from('signalements').update({statut:status,traite_par:me.id,traite_le:new Date().toISOString()}).eq('id',id);if(r.error){alert('Impossible de traiter le signalement : '+r.error.message);return}loadAdm()}
+async function suspendMember(id){if(!me||!await malCheckAdminAccess())return;var reason=prompt('Motif de suspension (300 caractères maximum) :');if(reason===null)return;reason=reason.trim();if(!reason||reason.length>300){alert('Le motif est obligatoire et limité à 300 caractères.');return}if(!confirm('Confirmer la suspension de ce compte ?'))return;var r=await sb.functions.invoke('admin-user-moderation',{body:{user_id:id,action:'suspend',reason:reason}});if(r.error){alert('Suspension impossible : '+(r.data&&r.data.error?r.data.error:r.error.message));return}alert('Suspension enregistrée et transmise à Auth.');await loadAdm()}
 async function toggleBlock(id){var isBlocked=blocked.indexOf(id)>-1;if(!confirm(isBlocked?'Débloquer ce membre ?':'Bloquer ce membre ? Il ne pourra plus voir ton profil ni t’envoyer de messages.'))return;var r=isBlocked?await sb.from('blocages').delete().eq('user_id',me.id).eq('cible',id):await sb.from('blocages').insert({user_id:me.id,cible:id});if(r.error){alert('Action impossible : '+r.error.message);return}await load();if(!isBlocked&&open===id){open=null;go('home')}else{if(open===id){blockedCheckedFor=null;await loadChat()}draw(true)}}
 var payOpen=false,subOn=false;
 function handleOwnMessageEvent(payload){
@@ -1326,7 +1348,7 @@ async function save(){
 function malStartupView(){return '<section class="mal-startup-screen" aria-label="Chargement de Malachite"><img class="mal-startup-logo" src="icons/malachite.svg" alt="Malachite"></section>'}
 async function malRetrySession(){malStartupMessage='Vérification de ta session…';draw();try{var r=await sb.auth.getSession();if(r.error)throw r.error;me=r.data&&r.data.session?r.data.session.user:null;if(!me){malStartupPending=false;malStartupMessage='';malAuthBooted=true;draw();return}restoreMalView();await load();malStartupPending=false;malStartupMessage='';malAuthBooted=true;if(tab==='chat')await loadChat();draw(true)}catch(e){malStartupPending=true;malStartupMessage='Connexion non vérifiée. Vérifie Internet puis réessaie.';draw()}}
 function founderDashboard(){
- if(!me||me.email!==ADM)return '<section class="card"><h2>Accès réservé</h2><p class="note">Cet espace est privé.</p></section>';
+ if(!me||!malAdminAuthorized)return '<section class="card"><h2>Accès réservé</h2><p class="note">Cet espace est privé.</p></section>';
  return '<section class="ml-search-intro"><span class="ml-auth-kicker">ESPACE FONDATEUR · PRIVÉ</span><h2>Suivi du projet MALACHITE</h2><p>État des travaux et accès à l’environnement de test Match.</p></section>'+
  '<section class="card" style="margin:12px 0;border-left:4px solid #2e9d68"><b>✓ Site public préservé</b><p class="note">La version publique continue d’utiliser la base de production. Aucun changement Match n’a été appliqué à la base de production.</p></section>'+
  '<h2>Match · environnement de test</h2><div class="list">'+
@@ -1338,7 +1360,7 @@ function founderDashboard(){
  '<h2>Décision de sécurité</h2><div class="card"><b>Pas de fusion ni de migration en production pour le moment.</b><p class="note">Les tests automatisés sont réussis, mais le parcours complet avec un utilisateur connecté n’a pas encore été validé dans un navigateur. La version Match n’est donc pas annoncée comme prête au lancement.</p></div>'+
  '<p class="note" style="text-align:center;margin:16px 0">Dernière actualisation du tableau : 22 novembre 2026 · État basé sur les vérifications GitHub et Supabase réalisées.</p>';
 }
-function draw(keep){if(!me)malFounderLandingDone=false;if(me&&me.email===ADM&&!malFounderLandingDone){tab='founder';malFounderLandingDone=true;}if(!me&&malReferralId)malLoadReferralPreview();if(malStartupPending){document.body.classList.remove('mal-chat-mode');var root=$('v'),nav=$('nav');if(root)root.innerHTML=malStartupView();if(nav)nav.innerHTML='';return}var oldMsgs=$('msgs'),nearBottom=!oldMsgs||oldMsgs.scrollHeight-oldMsgs.scrollTop-oldMsgs.clientHeight<140,oldTop=oldMsgs?oldMsgs.scrollTop:0;document.body.classList.toggle('mal-chat-mode',!!(me&&tab==='chat'&&open));var y=scrollY,tv=$('mi')?$('mi').value:'';$('v').innerHTML=!me?authView():((tab==='chat'&&open)?'':banner())+{home:home,match:matchPage,search:search,chat:chat,rdv:rdv,offres:offres,me:moi,adm:admin,founder:founderDashboard}[tab]();if(me&&tab=='search'){fqr();res()}if(tv&&$('mi'))$('mi').value=tv;if(me&&tab=='home')bindDrag();if(tab=='chat'&&open&&$('msgs'))$('msgs').scrollTop=nearBottom?$('msgs').scrollHeight:oldTop;$('nav').innerHTML=me?[['home','💘','Découvrir'],['match','💗','Match'],['search','🔍','Recherche'],['chat','💬','Messages'],['rdv','📅','RDV'],['offres','⭐','Offres'],['me','👤','Moi']].concat(me.email==ADM?[['adm','🛠','Admin'],['founder','📊','Projet']]:[]).map(function(x){return '<button data-k="'+x[0]+'" class="'+(tab==x[0]?'on':'')+'" onclick="goTab(\''+x[0]+'\')"><span>'+ico(x[0])+bdg(x[0])+'</span>'+x[2]+'</button>'}).join(''):'';if(!(tab=='chat'&&open))scrollTo(0,keep?y:0)}
+function draw(keep){if(!me){malFounderLandingDone=false;malAdminAuthorized=false;malAdminCheckedFor=null;}else if(malAdminCheckedFor!==me.id){malAdminAuthorized=false;if(!malAdminCheckPromise||malAdminCheckFor!==me.id)malCheckAdminAccess()}if(me&&malAdminAuthorized&&!malFounderLandingDone){tab='founder';malFounderLandingDone=true;}if(!me&&malReferralId)malLoadReferralPreview();if(malStartupPending){document.body.classList.remove('mal-chat-mode');var root=$('v'),nav=$('nav');if(root)root.innerHTML=malStartupView();if(nav)nav.innerHTML='';return}var oldMsgs=$('msgs'),nearBottom=!oldMsgs||oldMsgs.scrollHeight-oldMsgs.scrollTop-oldMsgs.clientHeight<140,oldTop=oldMsgs?oldMsgs.scrollTop:0;document.body.classList.toggle('mal-chat-mode',!!(me&&tab==='chat'&&open));var y=scrollY,tv=$('mi')?$('mi').value:'';$('v').innerHTML=!me?authView():((tab==='chat'&&open)?'':banner())+{home:home,match:matchPage,search:search,chat:chat,rdv:rdv,offres:offres,me:moi,adm:admin,founder:founderDashboard}[tab]();if(me&&tab=='search'){fqr();res()}if(tv&&$('mi'))$('mi').value=tv;if(me&&tab=='home')bindDrag();if(tab=='chat'&&open&&$('msgs'))$('msgs').scrollTop=nearBottom?$('msgs').scrollHeight:oldTop;$('nav').innerHTML=me?[['home','💘','Découvrir'],['match','💗','Match'],['search','🔍','Recherche'],['chat','💬','Messages'],['rdv','📅','RDV'],['offres','⭐','Offres'],['me','👤','Moi']].concat(malAdminAuthorized?[['adm','🛠','Admin'],['founder','📊','Projet']]:[]).map(function(x){return '<button data-k="'+x[0]+'" class="'+(tab==x[0]?'on':'')+'" onclick="goTab(\''+x[0]+'\')"><span>'+ico(x[0])+bdg(x[0])+'</span>'+x[2]+'</button>'}).join(''):'';if(!(tab=='chat'&&open))scrollTo(0,keep?y:0)}
 function go(t){if(t!=='chat')closeTypingChannel();document.querySelectorAll('.sheetbg,.viewer,.lbx').forEach(function(e){e.remove()});tab=t;msg='';lastSig='';clearInterval(timer);if(t=='chat'){loadChat();timer=setInterval(function(){if(tab==='chat'&&!document.hidden&&!msgRealtimeReady)loadChat()},20000);if(open)return}else if(t=='home'||t=='search'||t=='match'){load().then(draw)}else if(t=='rdv'){loadRdv().then(draw)}else if(t=='adm'){loadAdm()}draw();/* Les photos personnelles sont déjà résolues une seule fois par load(). Ne pas relancer ici une seconde signature Storage concurrente à l’ouverture de Moi. */}
 sb.auth.onAuthStateChange(function(e,s){if(e==='INITIAL_SESSION')return;var previousId=me&&me.id,nextUser=s?s.user:null;if(previousId&&(!nextUser||previousId!==nextUser.id)){stopPresence();closeTypingChannel()}me=nextUser;if(!me){if(e==='SIGNED_OUT'||!s){malStartupPending=false;malAuthBooted=true;open=null;msgs=[];chatCursor=null;chatCursorId=0;chatCursorFor=null;lastSig='';draw()}return}var identityChanged=previousId!==me.id;if(e==='SIGNED_IN'&&identityChanged){malStartupPending=false;malAuthBooted=true;restoreMalView();if(loadedUid===me.id&&profs.length&&Date.now()-profilesLoadedAt<300000)draw(true);load().then(async function(){try{await malAttachPendingSignupAvatar()}catch(e){console.warn('Pending signup avatar could not be attached',e)}if(tab==='chat')loadChat();else draw(true);if(fresh)fresh=false}).catch(function(error){console.warn('Malachite sign-in profile load failed',error);draw(true)});return}if(identityChanged||e==='USER_UPDATED'){load().then(function(){if(tab==='chat')loadChat();else draw(true)})}});
 var malResumeBusy=false,malResumeAt=0;
