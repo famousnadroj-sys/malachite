@@ -76,7 +76,7 @@ select id, 'Membre ' || right(id::text,4) from auth.users;
 insert into public.prives(id,prefs)
 select id,
   case
-    when id='00000000-0000-0000-0000-000000000001' then '{"rel":["Relation sérieuse"]}'::jsonb
+    when id='00000000-0000-0000-0000-000000000001' then '{"rel":[]}'::jsonb
     when id='00000000-0000-0000-0000-000000000002' then '{"rel":["Relation sérieuse"]}'::jsonb
     else '{"rel":["Amitié"]}'::jsonb
   end
@@ -109,7 +109,7 @@ declare
 begin
   -- Ten free likes succeed; the eleventh is rejected atomically.
   perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000001',true);
-  for i in 2..11 loop
+  foreach i in array array[2,3,4,7,8,9,10,11,12,14] loop
     target_id := ('00000000-0000-0000-0000-' || lpad(i::text,12,'0'))::uuid;
     insert into public.avis_match(autre,ok) values (target_id,true);
   end loop;
@@ -119,7 +119,7 @@ begin
 
   begin
     insert into public.avis_match(autre,ok)
-    values ('00000000-0000-0000-0000-000000000012',true);
+    values ('00000000-0000-0000-0000-000000000015',true);
     raise exception 'eleventh_free_like_was_not_rejected';
   exception when others then
     if sqlerrm not like '%match_like_limit_reached%' then raise; end if;
@@ -152,6 +152,42 @@ begin
   update public.avis_match set ok=true where user_id=auth.uid();
   select count(*) into used_count from private.match_daily_like_events where user_id=auth.uid();
   if used_count <> 1 then raise exception 'pass_to_like_not_counted'; end if;
+  -- Server-side eligibility must reject direct likes to private, suspended,
+  -- blocked, or relationship-incompatible profiles; rejected attempts consume no quota.
+  perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000019',true);
+  update public.prives set prefs='{"rel":["Relation sérieuse"]}'::jsonb
+  where id='00000000-0000-0000-0000-000000000019';
+  insert into public.blocages(user_id,cible)
+  values ('00000000-0000-0000-0000-000000000019','00000000-0000-0000-0000-000000000004');
+
+  begin
+    insert into public.avis_match(autre,ok) values ('00000000-0000-0000-0000-000000000006',true);
+    raise exception 'private_target_was_not_rejected';
+  exception when others then
+    if sqlerrm not like '%match_private_target%' then raise; end if;
+  end;
+  begin
+    insert into public.avis_match(autre,ok) values ('00000000-0000-0000-0000-000000000005',true);
+    raise exception 'suspended_target_was_not_rejected';
+  exception when others then
+    if sqlerrm not like '%match_target_suspended%' then raise; end if;
+  end;
+  begin
+    insert into public.avis_match(autre,ok) values ('00000000-0000-0000-0000-000000000004',true);
+    raise exception 'blocked_target_was_not_rejected';
+  exception when others then
+    if sqlerrm not like '%conversation_bloquee%' then raise; end if;
+  end;
+  begin
+    insert into public.avis_match(autre,ok) values ('00000000-0000-0000-0000-000000000003',true);
+    raise exception 'incompatible_target_was_not_rejected';
+  exception when others then
+    if sqlerrm not like '%match_incompatible_target%' then raise; end if;
+  end;
+  select count(*) into used_count from private.match_daily_like_events
+  where user_id=auth.uid();
+  if used_count <> 0 then raise exception 'rejected_ineligible_likes_consumed_quota: %',used_count; end if;
+
 
   -- Changing the target of an existing active like is a new like and must
   -- consume quota; otherwise a client can bypass the daily limit with UPDATE.
@@ -171,11 +207,11 @@ begin
 
   -- Premium likes are unlimited and do not enter the free quota ledger.
   perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000013',true);
-  for i in 2..12 loop
+  foreach i in array array[2,3,4,7,8,9,10,11,12,14,15] loop
     target_id := ('00000000-0000-0000-0000-' || lpad(i::text,12,'0'))::uuid;
     insert into public.avis_match(autre,ok) values (target_id,true);
   end loop;
-  for i in 14..17 loop
+  for i in 16..17 loop
     target_id := ('00000000-0000-0000-0000-' || lpad(i::text,12,'0'))::uuid;
     insert into public.avis_match(autre,ok) values (target_id,true);
   end loop;
@@ -210,6 +246,10 @@ begin
     raise exception 'free_received_likes_preview_incorrect: %',received;
   end if;
   if jsonb_array_length(received->'ids') <> 3 then raise exception 'free_received_ids_not_limited'; end if;
+
+  -- Set member 1's private relation intention for compatibility checks.
+  update public.prives set prefs='{"rel":["Relation sérieuse"]}'::jsonb
+  where id='00000000-0000-0000-0000-000000000001';
 
   -- Relationship intentions are compared privately; only compatible IDs leave the database.
   compatible := public.match_relation_compatible_ids();
