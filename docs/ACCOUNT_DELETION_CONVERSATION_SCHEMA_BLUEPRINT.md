@@ -122,6 +122,12 @@ Scénarios minimum :
 - Le code frontend complet et toutes les Edge Functions/tâches planifiées qui touchent `messages` et `message_receipts` doivent être inventoriés.
 - Les différences entre la branche de travail et l'historique réel des migrations de production doivent être réconciliées.
 
+## 6 bis. Vérification du code serveur existant
+
+Le dossier `supabase/functions` de la branche contient une fonction `admin-user-moderation` pour suspendre/réactiver un compte. Elle appelle la RPC `moderate_user` puis synchronise le ban Auth. Cette fonction ne réalise pas de suppression de compte, ne révoque pas un workflow de suppression, ne purge pas les objets Storage et ne traite pas la conservation des messages.
+
+Aucune Edge Function dédiée à la suppression de compte n'a été trouvée dans le dossier des fonctions versionnées consulté. Il faut donc concevoir et tester une nouvelle fonction dédiée, idempotente, authentifiée et auditée, plutôt que réutiliser la fonction de modération. Cette conclusion porte sur le code de la branche inspectée ; elle ne prouve pas l'absence de scripts ou d'automatisations externes non versionnés.
+
 ## 7. Garde-fous
 
 - Ce document n'exécute aucune commande SQL et ne change aucune donnée.
