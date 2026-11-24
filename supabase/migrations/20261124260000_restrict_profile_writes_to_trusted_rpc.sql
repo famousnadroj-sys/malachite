@@ -25,6 +25,8 @@ as $malachite_preferences$
 declare
   v_uid uuid := auth.uid();
   v_prefs jsonb;
+  v_existing_prefs jsonb;
+  v_merged_prefs jsonb;
   v_amin integer;
   v_amax integer;
   v_key text;
@@ -45,27 +47,43 @@ begin
     raise exception 'Préférence de genre invalide';
   end if;
 
-  if p_preferences ? 'amin' then
-    if jsonb_typeof(p_preferences->'amin') <> 'number' then
+  select coalesce(prefs, '{}'::jsonb)
+  into v_existing_prefs
+  from public.prives
+  where id = v_uid
+  for update;
+
+  if not found then
+    raise exception 'Profil privé introuvable';
+  end if;
+
+  v_merged_prefs := v_existing_prefs || p_preferences;
+
+  if v_merged_prefs ? 'amin' then
+    if jsonb_typeof(v_merged_prefs->'amin') <> 'number' then
       raise exception 'Âge minimum invalide';
     end if;
-    v_amin := (p_preferences->>'amin')::integer;
-    if v_amin < 18 or v_amin > 100 then
-      raise exception 'Âge minimum autorisé : 18 à 100 ans';
-    end if;
+    v_amin := (v_merged_prefs->>'amin')::integer;
+  else
+    v_amin := 18;
   end if;
 
-  if p_preferences ? 'amax' then
-    if jsonb_typeof(p_preferences->'amax') <> 'number' then
+  if v_merged_prefs ? 'amax' then
+    if jsonb_typeof(v_merged_prefs->'amax') <> 'number' then
       raise exception 'Âge maximum invalide';
     end if;
-    v_amax := (p_preferences->>'amax')::integer;
-    if v_amax < 18 or v_amax > 100 then
-      raise exception 'Âge maximum autorisé : 18 à 100 ans';
-    end if;
+    v_amax := (v_merged_prefs->>'amax')::integer;
+  else
+    v_amax := 100;
   end if;
 
-  if p_preferences ? 'amin' and p_preferences ? 'amax' and v_amin > v_amax then
+  if v_amin < 18 or v_amin > 100 then
+    raise exception 'Âge minimum autorisé : 18 à 100 ans';
+  end if;
+  if v_amax < 18 or v_amax > 100 then
+    raise exception 'Âge maximum autorisé : 18 à 100 ans';
+  end if;
+  if v_amin > v_amax then
     raise exception 'La tranche d’âge est invalide';
   end if;
 
@@ -92,13 +110,9 @@ begin
   end if;
 
   update public.prives
-  set prefs = coalesce(prefs, '{}'::jsonb) || p_preferences
+  set prefs = v_merged_prefs
   where id = v_uid
   returning prefs into v_prefs;
-
-  if not found then
-    raise exception 'Profil privé introuvable';
-  end if;
 
   return v_prefs;
 end;
