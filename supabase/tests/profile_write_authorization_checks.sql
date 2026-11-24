@@ -17,7 +17,7 @@ begin
     raise exception 'direct_profile_identity_write_still_granted';
   end if;
 
-  if not has_column_privilege('authenticated','public.profiles','avatar','UPDATE')
+  if has_column_privilege('authenticated','public.profiles','avatar','UPDATE')
      or not has_column_privilege('authenticated','public.profiles','derniere_vue','UPDATE') then
     raise exception 'narrow_profile_client_updates_missing';
   end if;
@@ -34,7 +34,9 @@ begin
   if not has_function_privilege('authenticated','public.save_my_profile(jsonb,jsonb)','EXECUTE')
      or has_function_privilege('anon','public.save_my_profile(jsonb,jsonb)','EXECUTE')
      or not has_function_privilege('authenticated','public.update_my_preferences(jsonb)','EXECUTE')
-     or has_function_privilege('anon','public.update_my_preferences(jsonb)','EXECUTE') then
+     or has_function_privilege('anon','public.update_my_preferences(jsonb)','EXECUTE')
+     or not has_function_privilege('authenticated','public.update_my_avatar(jsonb)','EXECUTE')
+     or has_function_privilege('anon','public.update_my_avatar(jsonb)','EXECUTE') then
     raise exception 'trusted_rpc_execute_grants_invalid';
   end if;
 end
@@ -66,6 +68,14 @@ begin
   end;
 
   begin
+    update public.profiles set avatar='{"type":"pro-vector","version":3,"config":{}}'::jsonb
+    where id='30000000-0000-0000-0000-000000000001';
+    raise exception 'direct_avatar_update_was_accepted';
+  exception when insufficient_privilege then
+    null;
+  end;
+
+  begin
     insert into public.login_names(user_id,username)
     values('30000000-0000-0000-0000-000000000001','bypass_user');
     raise exception 'direct_login_name_insert_was_accepted';
@@ -75,11 +85,17 @@ begin
 end
 $direct_profile_update$;
 
--- Avatar and last-seen are the only direct profile updates retained for the
--- existing frontend. They cannot change age, privacy or personal fields.
+-- Avatar writes go through an owner-scoped validator; only last-seen
+-- remains a narrow direct update for the existing frontend.
+select public.update_my_avatar(
+  '{"type":"pro-vector","version":3,"config":{"style":"clean"}}'::jsonb
+);
+select public.update_my_avatar(
+  '{"type":"humanforge-3d","version":1,"config":{"style":"3d"},"imagePath":"30000000-0000-0000-0000-000000000001/avatar-12345.png"}'::jsonb
+);
+
 update public.profiles
-set avatar='{"kind":"test"}'::jsonb,
-    derniere_vue=now()
+set derniere_vue=now()
 where id='30000000-0000-0000-0000-000000000001';
 
 do $narrow_update$
@@ -87,11 +103,25 @@ begin
   if not exists (
     select 1 from public.profiles
     where id='30000000-0000-0000-0000-000000000001'
-      and age=25 and avatar='{"kind":"test"}'::jsonb
+      and age=25
+      and avatar->>'type'='humanforge-3d'
+      and avatar->>'imagePath'='30000000-0000-0000-0000-000000000001/avatar-12345.png'
       and derniere_vue is not null
   ) then
     raise exception 'narrow_avatar_presence_update_failed';
   end if;
+
+  begin
+    perform public.update_my_avatar(
+      '{"type":"humanforge-3d","version":1,"config":{},"imagePath":"40000000-0000-0000-0000-000000000001/avatar-12345.png"}'::jsonb
+    );
+    raise exception 'foreign_avatar_path_was_accepted';
+  exception when others then
+    if sqlerrm = 'foreign_avatar_path_was_accepted' then raise; end if;
+    if sqlerrm <> 'Fichier ou configuration d’avatar non autorisé' then
+      raise exception 'unexpected_foreign_avatar_path_error: %', sqlerrm;
+    end if;
+  end;
 end
 $narrow_update$;
 
