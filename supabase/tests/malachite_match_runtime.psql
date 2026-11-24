@@ -340,17 +340,20 @@ begin
   -- RPCs must not be executable by anon and must be available to authenticated.
   if has_function_privilege('anon','public.match_like_quota()','EXECUTE')
      or has_function_privilege('anon','public.match_received_likes()','EXECUTE')
-     or has_function_privilege('anon','public.match_relation_compatible_ids()','EXECUTE') then
+     or has_function_privilege('anon','public.match_relation_compatible_ids()','EXECUTE')
+     or has_function_privilege('anon','public.est_match(uuid)','EXECUTE') then
     raise exception 'anon_can_execute_match_rpc';
   end if;
   if has_function_privilege('authenticated','private.match_like_quota()','EXECUTE')
      or has_function_privilege('authenticated','private.match_received_likes()','EXECUTE')
-     or has_function_privilege('authenticated','private.match_relation_compatible_ids()','EXECUTE') then
+     or has_function_privilege('authenticated','private.match_relation_compatible_ids()','EXECUTE')
+     or has_function_privilege('authenticated','private.est_match(uuid)','EXECUTE') then
     raise exception 'authenticated_can_execute_private_match_helpers';
   end if;
   if not has_function_privilege('authenticated','public.match_like_quota()','EXECUTE')
      or not has_function_privilege('authenticated','public.match_received_likes()','EXECUTE')
-     or not has_function_privilege('authenticated','public.match_relation_compatible_ids()','EXECUTE') then
+     or not has_function_privilege('authenticated','public.match_relation_compatible_ids()','EXECUTE')
+     or not has_function_privilege('authenticated','public.est_match(uuid)','EXECUTE') then
     raise exception 'authenticated_cannot_execute_match_rpc';
   end if;
 end
@@ -366,10 +369,12 @@ declare
   quota jsonb;
   received jsonb;
   compatible uuid[];
+  match_result boolean;
 begin
   quota := public.match_like_quota();
   received := public.match_received_likes();
   compatible := public.match_relation_compatible_ids();
+  match_result := public.est_match('00000000-0000-0000-0000-000000000002');
   if (quota->>'remaining')::integer <> 0 then
     raise exception 'authenticated_quota_rpc_failed: %',quota;
   end if;
@@ -378,6 +383,9 @@ begin
   end if;
   if compatible <> array['00000000-0000-0000-0000-000000000002'::uuid] then
     raise exception 'authenticated_private_relation_match_failed: %',compatible;
+  end if;
+  if not match_result then
+    raise exception 'authenticated_est_match_rpc_failed';
   end if;
 end
 $$;
