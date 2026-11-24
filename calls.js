@@ -14,12 +14,14 @@
  function writePhotoCache(key,value){photoCache[key]=value;try{localStorage.setItem('mal_photo_cache:'+key,JSON.stringify(value))}catch(e){}}
  async function resolveProfilesPhotosFast(list){
   list=list||[];
+  var uid=me&&me.id;
+  if(!uid)return list;
   var groups=Object.create(null),resolved=Object.create(null),refs=[],now=Date.now();
   list.forEach(function(p){
    if(!p)return;p.photoUrls=[];
    (p.photos||[]).filter(Boolean).forEach(function(raw,index){
     var s=String(raw),bucket=s.indexOf('/storage/v1/object/public/photos/')>=0?'photos':'profile-photos';
-    var path=storagePath(bucket,raw),key=bucket+'|'+path,item={p:p,index:index,key:key,bucket:bucket,path:path};
+    var path=storagePath(bucket,raw),key=uid+'|'+bucket+'|'+path,item={p:p,index:index,key:key,bucket:bucket,path:path};
     refs.push(item);
     var cached=readPhotoCache(key,now);
     if(cached)resolved[key]=cached.url;
@@ -31,16 +33,18 @@
    for(var offset=0;offset<paths.length;offset+=100){
     var batch=paths.slice(offset,offset+100);
     try{
-     var result=await sb.storage.from(bucket).createSignedUrls(batch,3600);
+     var result=await sb.storage.from(bucket).createSignedUrls(batch,300);
      if(result.error)throw result.error;
+     if(!me||me.id!==uid)return;
      (result.data||[]).forEach(function(value,index){
       var path=value.path||batch[index],url=value.signedUrl||'';
       if(!url)return;
-      var key=bucket+'|'+path;resolved[key]=url;writePhotoCache(key,{url:url,exp:now+3500000});
+      var key=uid+'|'+bucket+'|'+path;resolved[key]=url;writePhotoCache(key,{url:url,exp:now+270000});
      });
     }catch(error){console.warn('Photos profil: signature groupée impossible',error)}
    }
   }));
+  if(!me||me.id!==uid)return list;
   refs.forEach(function(item){var url=resolved[item.key];if(url)item.p.photoUrls.push(url)});
   return list;
  }
