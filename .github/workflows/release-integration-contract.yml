@@ -57,6 +57,7 @@ jobs:
               os.environ["PROD_SUPABASE_REF"]: os.environ["STAGING_SUPABASE_REF"],
               os.environ["PROD_PUBLISHABLE_KEY"]: os.environ["STAGING_PUBLISHABLE_KEY"],
           }
+          counts = {old: 0 for old in replacements}
           for path in root.rglob("*"):
               if not path.is_file():
                   continue
@@ -65,8 +66,20 @@ jobs:
               except UnicodeDecodeError:
                   continue
               for old, new in replacements.items():
+                  counts[old] += content.count(old)
                   content = content.replace(old, new)
               path.write_text(content, encoding="utf-8")
+          if not all(counts.values()):
+              raise SystemExit("Preview build failed: production Supabase configuration was not fully replaced.")
+          for path in root.rglob("*"):
+              if not path.is_file():
+                  continue
+              try:
+                  content = path.read_text(encoding="utf-8")
+              except UnicodeDecodeError:
+                  continue
+              if any(old in content for old in replacements):
+                  raise SystemExit(f"Production Supabase configuration remains in preview: {path}")
           html_path = root / "index.html"
           html = html_path.read_text(encoding="utf-8")
           banner = '<div id="mal-staging-banner" role="status">MALACHITE · ENVIRONNEMENT DE TEST · DONNÉES DE TEST UNIQUEMENT</div>'
