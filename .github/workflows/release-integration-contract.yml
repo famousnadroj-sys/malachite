@@ -71,13 +71,13 @@ jobs:
           html = html_path.read_text(encoding="utf-8")
           banner = '<div id="mal-staging-banner" role="status">MALACHITE · ENVIRONNEMENT DE TEST · DONNÉES DE TEST UNIQUEMENT</div>'
           style = '<style>#mal-staging-banner{position:sticky;top:0;z-index:99999;background:#7c2d12;color:#fff;text-align:center;padding:8px 12px;font:700 12px system-ui;letter-spacing:.04em}</style>'
-          if "</head>" not in html or not re.search(r"<body\\b[^>]*>", html, flags=re.I):
+          if "</head>" not in html or not re.search(r"<body\b[^>]*>", html, flags=re.I):
               raise SystemExit("Preview build failed: expected HTML head/body elements were not found.")
-          if not re.search(r'<meta\\s+name=["\\']robots["\\']', html, flags=re.I):
+          if not re.search(r'<meta\s+name=["\']robots["\']', html, flags=re.I):
               html = html.replace("</head>", '<meta name="robots" content="noindex,nofollow"></head>', 1)
           if 'id="mal-staging-banner"' not in html:
               html = html.replace("</head>", style + "</head>", 1)
-              html, count = re.subn(r"(<body\\b[^>]*>)", lambda match: match.group(1) + banner, html, count=1, flags=re.I)
+              html, count = re.subn(r"(<body\b[^>]*>)", lambda match: match.group(1) + banner, html, count=1, flags=re.I)
               if count != 1:
                   raise SystemExit("Preview build failed: could not insert staging banner.")
           if 'name="robots" content="noindex,nofollow"' not in html:
