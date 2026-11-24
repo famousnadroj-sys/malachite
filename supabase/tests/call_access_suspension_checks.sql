@@ -11,6 +11,24 @@ insert into public.avis_match(user_id,autre,ok) values
  ('20000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001',true),
  ('10000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000001',true),
  ('40000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001',true);
+set local role anon;
+do $anonpreview$
+begin
+  if exists(select 1 from public.get_malachite_referrer_preview('20000000-0000-0000-0000-000000000001')) then
+    raise exception 'anon_suspended_referrer_preview_leaked';
+  end if;
+  if exists(select 1 from public.get_malachite_referrer_preview('30000000-0000-0000-0000-000000000001')) then
+    raise exception 'anon_private_referrer_preview_leaked';
+  end if;
+  if not exists(
+    select 1 from public.get_malachite_referrer_preview('40000000-0000-0000-0000-000000000001')
+    where prenom='Available' and username='available_user'
+  ) then
+    raise exception 'anon_public_referrer_preview_missing';
+  end if;
+end
+$anonpreview$;
+reset role;
 do $provider$
 begin
   if public.call_provider_is_enabled() then
