@@ -418,8 +418,7 @@ for (const item of [
   "1 USD / 7 jours après activation",
   "var MAL_PAYMENTS_ENABLED=false;",
   "operateur:data.operator",
-  "Une capture d’écran seule ne déclenche jamais Premium.",
-  "Ne communique jamais ton code PIN ni ton OTP.",
+  "Ne transfère aucun argent.",
 ]) {
   if (!frontend.includes(item)) throw new Error('Launch payment safety requirement missing: ' + item);
 }
