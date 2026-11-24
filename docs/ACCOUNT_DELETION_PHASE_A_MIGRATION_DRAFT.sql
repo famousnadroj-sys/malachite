@@ -30,7 +30,7 @@ create table if not exists public.conversation_members (
   left_at timestamptz,
   primary key (conversation_id, user_id),
   constraint conversation_members_active_left_consistency
-    check ((active and left_at is null) or (not active))
+    check ((active and left_at is null) or (not active and left_at is not null))
 );
 
 create table if not exists public.conversation_migration_quarantine (
@@ -95,6 +95,15 @@ grant select on public.conversation_members to authenticated;
 -- Idempotent backfill: self-addressed rows are deliberately not mapped.
 -- Auth users without a profiles row remain eligible; profile presence is not
 -- the identity authority. Rows with missing Auth identities are not guessed.
+delete from public.conversation_migration_quarantine q
+using public.messages m
+where q.message_id = m.id
+  and m.de is not null
+  and m.a is not null
+  and m.de <> m.a
+  and exists (select 1 from auth.users u where u.id = m.de)
+  and exists (select 1 from auth.users u where u.id = m.a);
+
 insert into public.conversation_migration_quarantine(message_id,reason)
 select m.id,
        case
