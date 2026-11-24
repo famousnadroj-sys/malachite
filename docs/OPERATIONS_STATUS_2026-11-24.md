@@ -19,6 +19,7 @@ Production Supabase : `tscsmemsvgacqioncash`
 - GitHub Actions sur ce commit : `validate` et `match-runtime` tous deux terminés avec succès; le test runtime utilise un PostgreSQL 17 jetable.
 - Correction ajoutée dans la branche : le trigger serveur vérifie l'éligibilité (profil public, non suspendu, non bloqué, intentions compatibles) avant d'enregistrer un like.
 - Test runtime ajouté : tentatives directes vers profil privé, suspendu, bloqué et incompatible refusées; le quota reste inchangé. Ces tests sont des tests SQL isolés, pas encore des essais REST sur deux comptes réels.
+- Contrôle SQL en lecture seule de la production : la migration `202611220001` n'est pas enregistrée dans `supabase_migrations.schema_migrations`; la correction reste uniquement dans la branche GitHub. La politique RLS actuelle autorise un membre authentifié à INSERT/UPDATE son avis après contrôles de blocage/suspension, mais ne vérifie pas la confidentialité/compatibilité du destinataire; le trigger ajouté dans la PR est donc important.
 - Tests réels à deux comptes/appareils non effectués. PR toujours brouillon et non fusionnée.
 - Ne pas fusionner / déployer avant sauvegarde restaurable, tests réels, revue finale et autorisation.
 
