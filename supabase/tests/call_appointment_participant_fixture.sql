@@ -1,6 +1,6 @@
 create schema if not exists auth;
 create schema if not exists private;
-do $ begin if not exists(select 1 from pg_roles where rolname='anon') then create role anon nologin; end if; if not exists(select 1 from pg_roles where rolname='authenticated') then create role authenticated nologin; end if; end $;
+do $roles$ begin if not exists(select 1 from pg_roles where rolname='anon') then create role anon nologin; end if; if not exists(select 1 from pg_roles where rolname='authenticated') then create role authenticated nologin; end if; end $roles$;
 create table public.profiles(id uuid primary key, prenom text, username text, profile_private boolean default false);
 create table public.suspensions(user_id uuid primary key);
 create table public.blocages(user_id uuid not null,cible uuid not null);
