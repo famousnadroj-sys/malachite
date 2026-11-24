@@ -122,6 +122,16 @@ begin
       raise exception 'unexpected_foreign_avatar_path_error: %', sqlerrm;
     end if;
   end;
+
+  begin
+    perform public.update_my_avatar('{}'::jsonb);
+    raise exception 'empty_avatar_payload_was_accepted';
+  exception when others then
+    if sqlerrm = 'empty_avatar_payload_was_accepted' then raise; end if;
+    if sqlerrm <> 'Type ou configuration d’avatar invalide' then
+      raise exception 'unexpected_empty_avatar_error: %', sqlerrm;
+    end if;
+  end;
 end
 $narrow_update$;
 
