@@ -177,3 +177,31 @@ jobs:
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/chat_message_media_fixture.sql
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261124180000_secure_chat_message_and_media_access.sql
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/chat_message_media_checks.sql
+
+  call-appointment-participant-access:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: malachite_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d malachite_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Apply isolated call and appointment fixture, migration and assertions
+        env:
+          PGPASSWORD: postgres
+        run: |
+          set -euo pipefail
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/call_appointment_participant_fixture.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261124190000_harden_call_and_appointment_participant_access.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/call_appointment_participant_checks.sql
