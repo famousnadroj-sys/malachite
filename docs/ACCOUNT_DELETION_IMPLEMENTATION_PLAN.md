@@ -155,6 +155,8 @@ Dans une transaction annulée, le test a utilisé des comptes synthétiques A/B/
 
 **Limites :** ce test valide le schéma réel de ce projet de test et ses migrations déjà appliquées ; il ne charge pas l'intégralité de la production, ne valide pas tous les objets Storage ni les Edge Functions, et ne constitue pas une autorisation de déploiement production.
 
+**Mise à jour de portée :** le test du projet dédié précède l'ajout de la table `conversation_migration_quarantine` et de ses assertions. Cette extension du brouillon est actuellement vérifiée par le contrat PostgreSQL 17 jetable ; elle n'a pas encore été réappliquée au projet de test Supabase dédié.
+
 L'historique de production contient 65 migrations et sa dernière version enregistrée est `20261124122733`. Vingt-quatre migrations plus récentes de la branche ne sont pas enregistrées comme appliquées en production. Elles doivent être auditées et testées dans l'ordre ; ne pas supposer que les protections de ces fichiers sont déjà actives.
 
 Les reçus `message_receipts` ont des FK Auth `ON DELETE CASCADE` sur `sender_id` et `recipient_id`. Le comportement actuel est donc leur suppression quand l'un des participants est supprimé. Si le produit doit conserver des états de livraison/lecture anonymisés, une phase dédiée devra changer ces dépendances avant suppression Auth.
