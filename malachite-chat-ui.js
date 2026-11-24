@@ -4,9 +4,8 @@ function matchBox(){
  if(av2===null)return '<div class="mrow pop"><span>Vous avez bien discuté ?</span><button class="b1" onclick="avis(true)">💗 Ça match</button><button onclick="avis(false)">Pas pour moi</button></div>';
  if(av2===false)return '<div class="mrow"><span class="note">Tu as répondu « Pas pour moi ».</span><button onclick="avis(true)">Changer d’avis</button></div>';
  if(!mutual)return '<div class="mrow pop"><span>💗 Ton « Ça match » est envoyé. On attend l’autre personne.</span></div>';
- var h='<div class="mrow pop"><b>🎉 Match !</b><button class="b1" onclick="rdvFor=\''+open+'\';go(\'rdv\')">📅 Rendez-vous</button><button disabled>📹 Appels sécurisés indisponibles</button>'+(ct?'':'<button onclick="payOpen=!payOpen;lastSig=\'\';loadChat()">🔓 Contact 1 $</button>')+'</div>';
+ var h='<div class="mrow pop"><b>🎉 Match !</b><button class="b1" onclick="rdvFor=\''+open+'\';go(\'rdv\')">📅 Rendez-vous</button><span class="note">Continuez à discuter ici en toute simplicité.</span></div>';
  if(ct)h+='<div class="mrow">📞 <b>'+esc(ct.nom||'')+'</b> · <a href="tel:'+esc(ct.tel||'')+'">'+esc(ct.tel||'pas de numéro')+'</a></div>';
- else if(payOpen)h+='<div class="mrow" style="display:block">Choisis l’opérateur, envoie 1 USD, saisis la référence et joins le reçu.<select id="malContactOperator"><option value="airtel">Airtel Money · +243 993 315 532</option><option value="orange">Orange Money · +243 848 775 992</option></select><div class="send"><input id="uc" maxlength="100" placeholder="Référence de transaction"></div><label>Capture du reçu (JPEG, PNG ou WebP, 5 Mo max)<input id="ucProof" type="file" accept="image/jpeg,image/png,image/webp"></label><button onclick="payC()">Soumettre</button><div id="um" class="note"></div></div>'
  return h
 }
 function admin0(){

@@ -366,7 +366,6 @@ for (const item of [
   "sb.storage.from('payment-receipts').upload",
   "createSignedUrl(x.receipt_path,300)",
   "id=\"malReceipt\"",
-  "id=\"ucProof\"",
   "receipt_path:receipt.path",
 ]) {
   if (!frontend.includes(item)) throw new Error('Payment receipt workflow missing: ' + item);
