@@ -56,6 +56,7 @@ for (const retiredValue of ["2 $", "0,50 $", "1 $", "Pour 30 jours", "Pour 24 he
     throw new Error(`Un tarif ou une durée non approuvés sont encore publiés : ${retiredValue}`);
   }
 }
+await get("404.html", "ERREUR 404");
 const sitemap = await get("sitemap.xml", "<urlset");
 if (sitemap.includes("partenaires.html")) {
   throw new Error("La page Partenaires retirée est encore présente dans le sitemap public.");
