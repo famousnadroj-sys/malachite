@@ -330,7 +330,7 @@ const profileResolverStart = profilePhotoSigningSource.indexOf('async function r
 const profileResolverEnd = profilePhotoSigningSource.indexOf('function messageMediaLocation', profileResolverStart);
 const profileResolvers = profilePhotoSigningSource.slice(profileResolverStart, profileResolverEnd);
 if (!profilePhotoSigningSource.includes("bucket==='profile-photos'?300:3600") ||
-    (profileResolvers.match(/createSignedUrls\\(paths,300\\)/g) || []).length !== 2 ||
+    (profileResolvers.match(/createSignedUrls\(paths,300\)/g) || []).length !== 2 ||
     profileResolvers.includes('createSignedUrls(paths,3600)') ||
     !profileResolvers.includes('expiresAt:now+270000')) {
   throw new Error('Profile photo signed URLs must expire quickly and use a matching short client cache.');
