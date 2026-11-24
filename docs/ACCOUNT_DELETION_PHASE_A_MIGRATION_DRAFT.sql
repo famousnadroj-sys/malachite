@@ -33,6 +33,12 @@ create table if not exists public.conversation_members (
     check ((active and left_at is null) or (not active))
 );
 
+create table if not exists public.conversation_migration_quarantine (
+  message_id bigint primary key references public.messages(id) on delete cascade,
+  reason text not null check (reason in ('self_addressed','missing_auth_participant')),
+  quarantined_at timestamptz not null default now()
+);
+
 alter table public.messages
   add column if not exists conversation_id uuid
     references public.conversation_threads(id) on delete restrict;
@@ -52,6 +58,7 @@ create index if not exists conversation_pair_index_conversation_idx
 alter table public.conversation_threads enable row level security;
 alter table public.conversation_pair_index enable row level security;
 alter table public.conversation_members enable row level security;
+alter table public.conversation_migration_quarantine enable row level security;
 
 drop policy if exists "conversation threads read by active members"
   on public.conversation_threads;
@@ -88,6 +95,20 @@ grant select on public.conversation_members to authenticated;
 -- Idempotent backfill: self-addressed rows are deliberately not mapped.
 -- Auth users without a profiles row remain eligible; profile presence is not
 -- the identity authority. Rows with missing Auth identities are not guessed.
+insert into public.conversation_migration_quarantine(message_id,reason)
+select m.id,
+       case
+         when m.de = m.a then 'self_addressed'
+         else 'missing_auth_participant'
+       end
+from public.messages m
+where m.de is null
+   or m.a is null
+   or m.de = m.a
+   or not exists (select 1 from auth.users u where u.id = m.de)
+   or not exists (select 1 from auth.users u where u.id = m.a)
+on conflict (message_id) do nothing;
+
 do $backfill$
 declare
   pair_row record;
@@ -98,7 +119,9 @@ begin
     select distinct least(m.de, m.a) as member_low,
                     greatest(m.de, m.a) as member_high
     from public.messages m
-    where m.de <> m.a
+    where m.de is not null
+      and m.a is not null
+      and m.de <> m.a
       and exists (select 1 from auth.users u where u.id = m.de)
       and exists (select 1 from auth.users u where u.id = m.a)
   loop
@@ -153,12 +176,27 @@ do $verify$
 begin
   if exists (
     select 1 from public.messages m
-    where m.de <> m.a
+    where m.de is not null
+      and m.a is not null
+      and m.de <> m.a
       and exists (select 1 from auth.users u where u.id = m.de)
       and exists (select 1 from auth.users u where u.id = m.a)
       and (m.conversation_id is null or m.sender_id is null)
   ) then
     raise exception 'phase_a_backfill_incomplete';
+  end if;
+
+  if exists (
+    select 1 from public.messages m
+    where (m.de is null or m.a is null or m.de = m.a
+      or not exists (select 1 from auth.users u where u.id = m.de)
+      or not exists (select 1 from auth.users u where u.id = m.a))
+      and not exists (
+        select 1 from public.conversation_migration_quarantine q
+        where q.message_id = m.id
+      )
+  ) then
+    raise exception 'phase_a_unclassified_legacy_message';
   end if;
 end;
 $verify$;
