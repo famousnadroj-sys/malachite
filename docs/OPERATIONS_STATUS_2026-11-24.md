@@ -16,9 +16,10 @@ Production Supabase : `tscsmemsvgacqioncash`
 - PR #72 ouverte, brouillon, non fusionnée.
 - Branche : `integration/match-frontend-mainline-2026-11-23`.
 - Commit contrôlé : `6d2c2779c1ce1bd465ca15984799a6477f998cc5`.
-- CI `Malachite validation` et runtime PostgreSQL 17 indiqués réussis dans la description de PR.
+- Vérification directe GitHub : checks `validate` et `match-runtime` tous deux terminés avec succès.
 - Tests réels à deux comptes/appareils non effectués.
-- Ne pas fusionner / déployer avant sauvegarde restaurable, revue finale et autorisation.
+- Revue sécurité publiée dans la conversation de PR : la validation d'éligibilité des destinataires doit être faite côté serveur, et testée contre des appels REST directs (profil privé/suspendu/incompatible), pas seulement dans le frontend.
+- Ne pas fusionner / déployer avant sauvegarde restaurable, correction/retest de cette revue, tests réels et autorisation.
 
 ## 3. Worker IA — état actuel (révision du 24 novembre)
 
@@ -45,7 +46,7 @@ Contrôle en lecture seule du 24 novembre :
 ## 5. Suite recommandée
 
 1. Réaliser et tester la sauvegarde complète selon le runbook.
-2. Terminer les tests Match avec deux comptes dans l'environnement de test.
+2. Terminer les tests Match avec deux comptes dans l'environnement de test et corriger la validation serveur.
 3. Faire la revue ciblée des RPC `SECURITY DEFINER` et documenter les décisions sur les alertes.
 4. Vérifier la restauration et les parcours de base sur staging.
 5. Seulement ensuite demander une approbation explicite pour fusion/déploiement.
