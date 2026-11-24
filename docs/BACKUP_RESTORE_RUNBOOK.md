@@ -36,13 +36,32 @@ Ces fichiers sont sensibles : ils peuvent contenir des données personnelles et 
 
 ## 3. Sauvegarder les objets Storage
 
-Lister les buckets et les objets depuis Storage Dashboard / CLI, puis copier chaque bucket vers le dossier de sauvegarde. Exemple pour un bucket, en adaptant le nom :
+Inventaire SQL en lecture seule du 24 novembre 2026 (aucun nom de fichier ni contenu privé consulté) :
+
+| Bucket | Public | Objets | Taille totale |
+|---|---:|---:|---:|
+| `chat-media` | non | 31 | 64 526 647 octets |
+| `payment-receipts` | non | 2 | 541 348 octets |
+| `photos` | non | 9 | 1 159 211 octets |
+| `profile-photos` | non | 24 | 4 114 676 octets |
+| `malachite-campaign-media` | oui | 0 | 0 |
+| `malachite-campaigns` | oui | 0 | 0 |
+
+Total constaté : **66 objets, 70 341 882 octets (~67,1 Mio)**. Les reçus de paiement et médias privés sont sensibles. Cet inventaire peut évoluer; refaire les comptes juste avant la copie.
+
+Copier chaque bucket vers un dossier local chiffré, par exemple :
 
 ```bash
-supabase storage cp "ss:///NOM_DU_BUCKET" "./storage/NOM_DU_BUCKET" --recursive --experimental --remote=tscsmemsvgacqioncash
+supabase storage ls "ss:///chat-media" --recursive --experimental --remote=tscsmemsvgacqioncash
+supabase storage cp "ss:///chat-media" "./storage/chat-media" --recursive --experimental --remote=tscsmemsvgacqioncash
+supabase storage cp "ss:///payment-receipts" "./storage/payment-receipts" --recursive --experimental --remote=tscsmemsvgacqioncash
+supabase storage cp "ss:///photos" "./storage/photos" --recursive --experimental --remote=tscsmemsvgacqioncash
+supabase storage cp "ss:///profile-photos" "./storage/profile-photos" --recursive --experimental --remote=tscsmemsvgacqioncash
+supabase storage cp "ss:///malachite-campaign-media" "./storage/malachite-campaign-media" --recursive --experimental --remote=tscsmemsvgacqioncash
+supabase storage cp "ss:///malachite-campaigns" "./storage/malachite-campaigns" --recursive --experimental --remote=tscsmemsvgacqioncash
 ```
 
-Vérifier que le nombre de fichiers téléchargés correspond au nombre d'objets listés et conserver les métadonnées (bucket, chemin, type MIME, taille). Les buckets actuellement connus dans l'audit sont `chat-media`, `profile-photos` et `photos`; confirmer leur présence actuelle avant export.
+Vérifier le nombre de fichiers téléchargés par bucket et conserver les métadonnées (bucket, chemin, type MIME, taille). Ne pas publier les listes de chemins ni les reçus. La copie des objets ne sauvegarde pas automatiquement les politiques Storage ni tous les paramètres de bucket; documenter/recréer ces réglages séparément.
 
 ## 4. Chiffrement et intégrité
 
@@ -52,17 +71,17 @@ Vérifier que le nombre de fichiers téléchargés correspond au nombre d'objets
 - Ne jamais committer les dumps, les médias, les clés, les tokens ou les chaînes de connexion dans GitHub.
 - Ne pas envoyer les dumps vers un service cloud payant sans validation du coût et du fournisseur.
 
-## 5. Test de restauration — staging seulement
+## 5. Test de restauration — environnement isolé, coût zéro en priorité
 
 **Interdiction de restaurer directement sur la production pour un test.**
 
-1. Créer ou utiliser un projet Supabase de test isolé, après vérification du coût (ne pas créer un projet payant).
-2. Restaurer d'abord le schéma et les données selon la documentation Supabase, avec une revue des privilèges par défaut et des fonctions `SECURITY DEFINER`.
-3. Reconfigurer séparément les paramètres Auth, les secrets, les Edge Functions, les paramètres Realtime et les buckets.
-4. Restaurer les objets Storage dans les buckets correspondants.
-5. Comparer les comptages de tables non sensibles, les migrations, les fonctions/RPC, les politiques RLS, les buckets et un échantillon de fichiers.
-6. Tester l'inscription, la connexion, le profil, l'envoi/réception de messages, la lecture des médias privés, le blocage et les fonctions Match avec deux comptes de test.
-7. Consigner la date, les versions CLI/Postgres, le hash, les écarts et le temps de restauration.
+1. Priorité : démarrer une instance locale Supabase jetable avec Docker sur un ordinateur de confiance (pas sur le téléphone) et vérifier que le coût cloud est nul. Ne créer aucun projet Supabase distant ni branche de développement sans devis et validation explicite du coût.
+2. Restaurer le dump dans cette instance isolée. Les dumps CLI excluent les schémas gérés `auth` et `storage`; ne pas prétendre que les comptes Auth, les paramètres Auth ou les objets Storage sont restaurés par `schema.sql`/`data.sql`. Revoir les rôles par défaut et les fonctions `SECURITY DEFINER` avant de restaurer.
+3. Documenter séparément la récupération des comptes Auth (l'export logique standard ne fournit pas une restauration complète des comptes/mots de passe), des paramètres Auth, des secrets, des Edge Functions, des paramètres Realtime et des buckets/politiques Storage.
+4. Restaurer les objets Storage copiés dans les buckets correspondants et vérifier les nombres/tailles. Tester l'accès privé avec des comptes de test; ne pas rendre les buckets privés publics pour faciliter le test.
+5. Comparer les comptages de tables non sensibles, l'historique des migrations, les fonctions/RPC, les politiques RLS, les buckets et un échantillon de fichiers.
+6. Tester l'inscription, la connexion, le profil, l'envoi/réception de messages, la lecture des médias privés, le blocage et les fonctions Match avec deux comptes de test dans l'environnement isolé.
+7. Consigner la date, les versions CLI/Postgres, le hash, les écarts, les limites Auth/Storage et le temps de restauration.
 
 Une restauration testée signifie que le système de récupération a été vérifié sur l'environnement isolé. Elle ne signifie pas que le site de production a été restauré ou modifié.
 
