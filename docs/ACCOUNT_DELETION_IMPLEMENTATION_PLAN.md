@@ -113,7 +113,21 @@ Utiliser deux comptes synthétiques A et B, deux appareils simulés et des fichi
 - Vérifier les notifications, reçus de lecture, appels et URLs signées.
 - Restaurer une sauvegarde de test et confirmer qu’un compte supprimé ne réapparaît pas.
 
-## 7. Conditions de passage en production
+## 7. État réel des tests préparatoires
+
+Le fichier `supabase/tests/account_deletion_behavior_contract.sql` ajoute un test jetable qui modélise la conservation des messages, l’anonymisation de l’expéditeur, le retrait de son appartenance et l’isolation d’une conversation tierce.
+
+**Limite importante :** ce test est un test de contrat comportemental sur tables temporaires. Il ne valide pas les vrais triggers, les politiques RLS, les politiques Storage, les reçus de lecture, les appels ni le workflow Auth de production. Il n’a pas été exécuté dans cette session : aucun serveur PostgreSQL local/jetable (`psql`, `postgres` ou Docker) n’est disponible ici. Il ne faut donc pas le présenter comme « réussi ».
+
+L’inspection en lecture seule de la base confirme notamment :
+- `messages.de` et `messages.a` sont obligatoires ; le trigger `limite_messages()` rejette un expéditeur différent de `auth.uid()` et construit le chemin média à partir de `de` et `a` ;
+- le trigger de notification utilise `new.de` comme auteur ;
+- les politiques RLS de `messages` et `message_receipts` reposent sur `de` et `a` ;
+- les reçus de lecture exigent encore que le message conserve les identifiants d’origine.
+
+Cela confirme qu’une simple anonymisation de `de` dans la table actuelle casserait les fonctions existantes. Le modèle de conversation stable décrit plus haut est donc nécessaire avant toute suppression effective.
+
+## 8. Conditions de passage en production
 
 Aucun déploiement avant :
 - inventaire exhaustif des tables, fonctions, triggers, politiques RLS, buckets et chemins de fichiers ;
@@ -125,6 +139,6 @@ Aucun déploiement avant :
 - validation juridique et comptable des durées de conservation ;
 - validation explicite avant toute migration de production.
 
-## 8. Hors périmètre de ce commit
+## 9. Hors périmètre de ce commit
 
 Ce document n’ajoute aucune migration SQL, ne change aucun trigger, ne modifie aucune politique RLS, ne déploie aucune Edge Function et ne supprime aucune donnée. La migration existante `20261124120000_account_deletion_fk_cleanup.sql` ne prépare que trois références administratives avec `ON DELETE SET NULL` ; elle ne réalise pas la suppression de compte.
