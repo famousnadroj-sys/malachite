@@ -145,6 +145,48 @@ begin
     raise exception 'reciprocal_match_not_detected';
   end if;
 
+  -- Mutual Match must stop being true when current privacy/safety/compatibility changes.
+  update public.profiles set profile_private=true
+  where id='00000000-0000-0000-0000-000000000001';
+  if public.est_match('00000000-0000-0000-0000-000000000001') then
+    raise exception 'match_remained_true_for_private_target';
+  end if;
+  update public.profiles set profile_private=false
+  where id='00000000-0000-0000-0000-000000000001';
+
+  insert into public.suspensions(user_id)
+  values ('00000000-0000-0000-0000-000000000001');
+  if public.est_match('00000000-0000-0000-0000-000000000001') then
+    raise exception 'match_remained_true_for_suspended_target';
+  end if;
+  delete from public.suspensions
+  where user_id='00000000-0000-0000-0000-000000000001';
+
+  insert into public.blocages(user_id,cible)
+  values ('00000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000001');
+  if public.est_match('00000000-0000-0000-0000-000000000001') then
+    raise exception 'match_remained_true_for_blocked_pair';
+  end if;
+  delete from public.blocages
+  where user_id='00000000-0000-0000-0000-000000000002'
+    and cible='00000000-0000-0000-0000-000000000001';
+
+  update public.prives set prefs='{"rel":["Amitié"]}'::jsonb
+  where id='00000000-0000-0000-0000-000000000001';
+  if public.est_match('00000000-0000-0000-0000-000000000001') then
+    raise exception 'match_remained_true_for_incompatible_intentions';
+  end if;
+  update public.prives set prefs='{"rel":["Relation sérieuse"]}'::jsonb
+  where id='00000000-0000-0000-0000-000000000001';
+
+  update public.profiles set profile_private=true
+  where id='00000000-0000-0000-0000-000000000002';
+  if public.est_match('00000000-0000-0000-0000-000000000001') then
+    raise exception 'match_remained_true_for_private_current_member';
+  end if;
+  update public.profiles set profile_private=false
+  where id='00000000-0000-0000-0000-000000000002';
+
   -- A pass does not consume a like; changing it to like consumes one.
   perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000014',true);
   insert into public.avis_match(autre,ok) values ('00000000-0000-0000-0000-000000000003',false);
