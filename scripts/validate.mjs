@@ -147,6 +147,12 @@ const manifest = JSON.parse(fs.readFileSync('manifest.webmanifest', 'utf8'));
 if (manifest.start_url !== './' || manifest.scope !== './' || manifest.display !== 'standalone') {
   throw new Error('PWA manifest configuration is incomplete.');
 }
+if (frontend.includes("cacheControl:'31536000'") ||
+    (frontend.match(/cacheControl:'300'/g) || []).length < 4 ||
+    avatar.includes("cacheControl:'3600'") ||
+    !avatar.includes("cacheControl:'300'")) {
+  throw new Error('Private chat media, profile photos and payment receipts must use short cache headers.');
+}
 if (!frontend.includes("createSignedUrls(paths,300)") || !frontend.includes("profilePhotoSignedCache") || !frontend.includes("if(tab==='me')draw(true)")) {
   throw new Error('Own profile images must be signed in batches and rendered as soon as the profile is ready.');
 }
