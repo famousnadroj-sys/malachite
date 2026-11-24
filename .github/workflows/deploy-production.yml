@@ -1,5 +1,6 @@
 name: MALACHITE production and isolated Match preview
 # Rebuild production and the Match preview from their separate source branches.
+# Match has its own authenticated in-app screen and staging-only Supabase project.
 on:
   push:
     branches:
