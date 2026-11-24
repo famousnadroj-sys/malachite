@@ -399,6 +399,10 @@ if (frontend.includes('maxlength="120" placeholder="Référence de transaction"'
   throw new Error('Payment reference input exceeds the database limit.');
 }
 
+const directPaymentMutationMigration = fs.readFileSync('supabase/migrations/20261124230000_restrict_direct_payment_mutations.sql', 'utf8').toLowerCase();
+if (!directPaymentMutationMigration.includes('revoke update, delete on table public.paiements from authenticated')) {
+  throw new Error('Authenticated clients must not directly update or delete payment records.');
+}
 const receiptMigration = fs.readFileSync('supabase/migrations/20261120140000_private_payment_receipts.sql', 'utf8');
 for (const item of [
   "values ('payment-receipts', 'payment-receipts', false, 5242880",
