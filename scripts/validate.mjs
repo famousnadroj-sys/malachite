@@ -540,8 +540,9 @@ if (performanceCheck.status !== 0) { process.stderr.write(performanceCheck.stder
 for (const item of ['malachite-performance.js', 'img.loading', 'img.decoding']) {
   if (!performanceModule.includes(item) && !frontend.includes(item)) throw new Error('Mobile performance requirement missing: ' + item);
 }
-if (!sw.includes('./malachite-campaigns.js') || !sw.includes('./malachite-performance.js') || !sw.includes('malachite-static-v88')) {
-  throw new Error('Campaign, performance and payment AI modules must be included in the updated PWA cache.');
+if (sw.includes('./malachite-campaigns.js') || sw.includes('./malachite-ad-studio.js') ||
+    !sw.includes('./malachite-performance.js') || !sw.includes('malachite-static-v88')) {
+  throw new Error('PWA cache must retain performance assets and exclude retired advertising modules.');
 }
 
 const aiManagerModule = fs.readFileSync('malachite-ai.js', 'utf8');
