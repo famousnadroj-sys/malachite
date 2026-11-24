@@ -86,7 +86,11 @@ jobs:
           test -f _site/malachite-founder-finance.js
           test -f _site/icons/malachite.svg
           grep -Fq 'https://famousnadroj-sys.github.io/malachite/sitemap.xml' _site/robots.txt
-          grep -Fq 'https://famousnadroj-sys.github.io/malachite/partenaires.html' _site/sitemap.xml
+          if grep -Fq 'partenaires.html' _site/sitemap.xml; then
+            echo "Retired partner page must not be listed in the public sitemap."
+            exit 1
+          fi
+          test ! -e _site/partenaires.html
           grep -Fq "https://${PROD_SUPABASE_REF}.supabase.co" _site/app-core.js
           grep -Fq "${PROD_PUBLISHABLE_KEY}" _site/app-core.js
           if grep -R -E 'sbawknyxcjslvhknomkd|sb_publishable_rXT4ztk4NLX-PeK2spwzqg_UcKMnRD5|MALACHITE · ENVIRONNEMENT DE TEST' _site --exclude-dir=preview; then
