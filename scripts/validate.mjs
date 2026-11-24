@@ -24,6 +24,7 @@ for (const [index, source] of frontendScripts.entries()) {
 const requiredFrontend = [
   "profiles').select('id,username,prenom,age",
   "rpc('update_my_preferences',{p_preferences:pr})",
+  "rpc('update_my_avatar',{p_avatar:avatar})",
   "from('chat-media').upload",
   "from('profile-photos').upload",
   "createSignedUrl",
@@ -41,6 +42,8 @@ for (const item of requiredFrontend) {
   if (!frontend.includes(item)) throw new Error('Frontend requirement missing: ' + item);
 }
 if (frontend.includes("from('prives').upsert(")) throw new Error('Private preference writes must use the validated RPC.');
+if (frontend.includes("from('profiles').update({avatar:")) throw new Error('Avatar writes must use the owner-scoped avatar RPC.');
+if (frontend.includes("avatar.imageUrl=await signedUrl('profile-photos',path)")) throw new Error('Signed avatar URLs must not be persisted in profile JSON.');
 if (frontend.includes("profiles').select('*')")) throw new Error('Public profile query must not select private columns.');
 if (!frontend.includes("insert({de:me.id,profil:id,motif:motif})")) throw new Error('Report must include the authenticated reporter id.');
 if ((frontend.match(/storage\.from\('photos'\)\.upload/g) || []).length) throw new Error('New uploads must not use the legacy public photos bucket.');
