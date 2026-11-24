@@ -12,7 +12,7 @@ Les alertes ci-dessous proviennent des Security Advisors et Performance Advisors
 
 Supabase Auth signale que la protection contre les mots de passe divulgués (vérification HaveIBeenPwned) est désactivée.
 
-**Décision :** activer ce contrôle dans la configuration Auth après vérification de son impact sur l'inscription et le changement de mot de passe. Cette modification de configuration de production n'a pas été faite dans le cadre de cet audit.
+**Décision :** ne pas tenter de l'activer sur le forfait actuel. La documentation officielle Supabase confirme que cette protection est disponible uniquement sur Pro et supérieur ; l'organisation MALACHITE est sur Free. L'activation nécessiterait donc une montée de forfait payante, qui n'est ni prévue ni autorisée. Conserver cette alerte comme limitation connue, renforcer gratuitement les exigences de longueur/complexité et la limitation des tentatives, puis réévaluer seulement si le propriétaire approuve explicitement un budget.
 
 ### 2. Fonction SECURITY DEFINER accessible à anon — exception limitée à documenter
 
@@ -54,7 +54,7 @@ La revue précédente des privilèges directs avait confirmé l'absence de droit
 
 ## Actions proposées, dans l'ordre
 
-1. Tester puis activer la protection des mots de passe compromis dans Auth.
+1. Sur le forfait Free actuel, ne pas activer la protection HaveIBeenPwned (fonctionnalité Pro+). Renforcer les contrôles Auth disponibles sans surcoût ; réévaluer un éventuel upgrade uniquement après approbation explicite du coût.
 2. Ajouter un test d'intégration qui confirme que l'aperçu parrain ne révèle que les champs publics et ne retourne rien pour un profil privé.
 3. Ajouter des tests négatifs anon/non-admin pour les RPC d'administration et de finance, ainsi que des tests de droits d'appel.
 4. Maintenir les tables sans policies en accès fermé tant qu'aucun besoin fonctionnel validé ne justifie une policy.
