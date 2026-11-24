@@ -1,3 +1,5 @@
+begin;
+
 do $$
 begin
   if has_table_privilege('authenticated','public.paiements','INSERT')
