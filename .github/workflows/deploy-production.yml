@@ -163,3 +163,8 @@ jobs:
         uses: actions/deploy-pages@v4
         with:
           artifact_name: malachite-pages
+      - name: Smoke-test deployed production and isolated Match preview
+        working-directory: production-source
+        env:
+          SITE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: node scripts/smoke-deployed-site.mjs
