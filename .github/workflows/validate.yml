@@ -1,7 +1,7 @@
 name: Malachite validation
 on:
   push:
-    branches: [main, fix/security-hardening]
+    branches: [main, fix/security-hardening, security/account-deletion-design-v1]
   pull_request:
     branches: [main]
 permissions:
