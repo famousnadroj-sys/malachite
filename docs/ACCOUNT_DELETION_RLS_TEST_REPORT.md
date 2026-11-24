@@ -1,8 +1,8 @@
 # MALACHITE — Rapport de test RLS pour la suppression de compte
 
 **Branche :** `security/account-deletion-design-v1`  
-**Commit testé :** `01a7edeb18016c05dab76160804ce02597d67fd0`  
-**Workflow :** [GitHub Actions — run 45500032210](https://github.com/famousnadroj-sys/malachite/actions/runs/45500032210) ; validation générale [run 45500032325](https://github.com/famousnadroj-sys/malachite/actions/runs/45500032325)  
+**Commit testé :** `f172996ede7b304b47eaa784a29af856c6643cf2`  
+**Workflow :** [GitHub Actions — run 45500393670](https://github.com/famousnadroj-sys/malachite/actions/runs/45500393670) ; validation générale [run 45500393662](https://github.com/famousnadroj-sys/malachite/actions/runs/45500393662)  
 **Résultat :** succès sur PostgreSQL 17 jetable.
 
 ## Portée du test
@@ -13,7 +13,7 @@ Le fichier `supabase/tests/account_deletion_rls_contract.sql` crée un schéma i
 - **B (membre restant)** : lit les deux messages conservés dans le fil A-B, dont le message de A avec `sender_id = NULL` et une date d’anonymisation.
 - **C et D (fil indépendant)** : chacun ne lit que le message de son propre fil ; ils ne lisent pas les messages A-B.
 
-Les contrats SQL de comportement, RLS, backfill, forme du schéma de messagerie et migration Phase A s’exécutent dans la même étape GitHub Actions. Le brouillon Phase A est appliqué deux fois de suite dans la base jetable afin de vérifier sa relance sans doublons. Le job `45500032210` est terminé avec `success` ; les 11 jobs du workflow de validation `45500032325` sont également terminés avec `success`.
+Les contrats SQL de comportement, RLS, backfill, forme du schéma de messagerie et migration Phase A s’exécutent dans la même étape GitHub Actions. Le brouillon Phase A est appliqué deux fois de suite dans la base jetable afin de vérifier sa relance sans doublons. Le job `45500393670` est terminé avec `success` ; les 11 jobs du workflow de validation `45500393662` sont également terminés avec `success`.
 
 Le contrat de backfill vérifie également que les messages A→B et B→A sont rattachés au même identifiant de conversation stable, que les participants sont créés une seule fois et que tous les messages historiques du jeu d’essai sont migrés.
 
