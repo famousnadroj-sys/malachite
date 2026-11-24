@@ -131,17 +131,12 @@ with check (
   de = (select auth.uid()) and a <> (select auth.uid())
   and not private.is_blocked_with(a)
   and not private.is_suspended((select auth.uid()))
-  and not private.is_suspended(a)
   and exists (select 1 from public.profiles p where p.id = messages.a)
 );
 create policy "lire ses messages" on public.messages
 for select to authenticated
 using (
   (de = (select auth.uid()) or a = (select auth.uid()))
-  and not private.is_suspended((select auth.uid()))
-  and not private.is_suspended(
-    case when de = (select auth.uid()) then a else de end
-  )
   and not private.is_blocked_with(
     case when de = (select auth.uid()) then a else de end
   )
