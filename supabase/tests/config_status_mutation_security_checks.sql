@@ -24,8 +24,9 @@ begin
     where schemaname='public' and tablename='config'
       and policyname='voir config' and cmd='SELECT'
       and roles @> array['authenticated']::name[]
+      and lower(qual) like '%airtel%' and lower(qual) like '%orange%'
   ) then
-    raise exception 'config_read_policy_missing';
+    raise exception 'config_read_policy_must_be_limited_to_payment_operator_keys';
   end if;
   if not exists (
     select 1 from pg_policies
