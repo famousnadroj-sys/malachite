@@ -12,8 +12,14 @@ insert into public.avis_match values
  ('30000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001',true);
 do $provider$
 begin
-  if (select enabled from private.call_provider_config where singleton=true) then
+  if public.call_provider_is_enabled() then
     raise exception 'call_provider_must_default_to_disabled';
+  end if;
+  if has_function_privilege('anon','public.call_provider_is_enabled()','EXECUTE') then
+    raise exception 'anon_must_not_read_call_provider_state';
+  end if;
+  if not has_function_privilege('authenticated','public.call_provider_is_enabled()','EXECUTE') then
+    raise exception 'authenticated_provider_check_missing';
   end if;
 end
 $provider$;
@@ -21,6 +27,9 @@ set local role authenticated;
 select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000001',true);
 do $disabled$
 begin
+  if public.call_provider_is_enabled() then
+    raise exception 'call_provider_enabled_before_setup';
+  end if;
   begin
     perform * from public.start_call_session(
       '90000000-0000-0000-0000-000000000004',
