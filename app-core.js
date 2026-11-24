@@ -42,9 +42,10 @@ async function malRefreshAvatar(img,userId){if(!img||img.dataset.refreshing==='1
 var profilePhotoSignedCache=Object.create(null);
 async function resolveProfilePhotos(p){
  if(!p)return;
- var now=Date.now(),photos=Array.isArray(p.photos)?p.photos:[],resolved=new Array(photos.length),groups=Object.create(null),avatarPath=p.avatar&&p.avatar.type==='humanforge-3d'&&p.avatar.imagePath?String(p.avatar.imagePath):'';
+ var now=Date.now(),uid=me&&me.id,photos=Array.isArray(p.photos)?p.photos:[],resolved=new Array(photos.length),groups=Object.create(null),avatarPath=p.avatar&&p.avatar.type==='humanforge-3d'&&p.avatar.imagePath?String(p.avatar.imagePath):'';
+ if(!uid)return;
  function add(bucket,path,index){
-  var key=bucket+'|'+path,cached=profilePhotoSignedCache[key];
+  var key=uid+'|'+bucket+'|'+path,cached=profilePhotoSignedCache[key];
   if(cached&&cached.expiresAt>now+30000){if(index==='avatar')p.avatar.imageUrl=cached.url;else resolved[index]=cached.url;return}
   if(!groups[bucket])groups[bucket]=Object.create(null);
   if(!groups[bucket][path])groups[bucket][path]=[];
@@ -55,7 +56,7 @@ async function resolveProfilePhotos(p){
   var str=String(raw),bucket=str.indexOf('/storage/v1/object/public/photos/')>=0?'photos':'profile-photos';
   if(str.indexOf('/storage/v1/object/public/profile-photos/')>=0)bucket='profile-photos';
   var path=storagePath(bucket,raw);
-  if(/^https?:\/\//i.test(str)&&str.indexOf('/storage/v1/object/')<0){resolved[index]=str;return}
+  if(/^https?:\\/\\//i.test(str)&&str.indexOf('/storage/v1/object/')<0){resolved[index]=str;return}
   add(bucket,path,index);
  });
  if(avatarPath)add('profile-photos',avatarPath,'avatar');
@@ -64,30 +65,33 @@ async function resolveProfilePhotos(p){
   try{
    var result=await sb.storage.from(bucket).createSignedUrls(paths,300);
    if(result.error)throw result.error;
+   if(!me||me.id!==uid)return;
    (result.data||[]).forEach(function(item,index){
     var path=item.path||paths[index],url=item.signedUrl||'';
     if(!url)return;
-    profilePhotoSignedCache[bucket+'|'+path]={url:url,expiresAt:now+270000};
+    profilePhotoSignedCache[uid+'|'+bucket+'|'+path]={url:url,expiresAt:now+270000};
     (groups[bucket][path]||[]).forEach(function(slot){
      if(slot==='avatar')p.avatar.imageUrl=url;else resolved[slot]=url;
     });
    });
   }catch(error){console.warn('Chargement groupé des photos de profil ('+bucket+')',error)}
  }));
+ if(!me||me.id!==uid)return;
  p.photoUrls=resolved.filter(Boolean);
  if(avatarPath&&!p.avatar.imageUrl){
-  var cachedAvatar=profilePhotoSignedCache['profile-photos|'+avatarPath];
+  var cachedAvatar=profilePhotoSignedCache[uid+'|profile-photos|'+avatarPath];
   if(cachedAvatar&&cachedAvatar.expiresAt>now+30000)p.avatar.imageUrl=cachedAvatar.url;
  }
 }
 async function resolveProfilePhotosBatch(profiles){
- var now=Date.now(),groups=Object.create(null),jobs=[];
+ var now=Date.now(),uid=me&&me.id,groups=Object.create(null),jobs=[];
+ if(!uid)return;
  (profiles||[]).forEach(function(p){
   if(!p)return;
   var photos=Array.isArray(p.photos)?p.photos:[],resolved=new Array(photos.length),avatarPath=p.avatar&&p.avatar.type==='humanforge-3d'&&p.avatar.imagePath?String(p.avatar.imagePath):'';
   function add(bucket,path,slot){
    if(!path)return;
-   var key=bucket+'|'+path,cached=profilePhotoSignedCache[key];
+   var key=uid+'|'+bucket+'|'+path,cached=profilePhotoSignedCache[key];
    if(cached&&cached.expiresAt>now+30000){if(slot==='avatar')p.avatar.imageUrl=cached.url;else resolved[slot]=cached.url;return}
    if(!groups[bucket])groups[bucket]=Object.create(null);
    if(!groups[bucket][path])groups[bucket][path]=[];
@@ -109,20 +113,22 @@ async function resolveProfilePhotosBatch(profiles){
   try{
    var result=await sb.storage.from(bucket).createSignedUrls(paths,300);
    if(result.error)throw result.error;
+   if(!me||me.id!==uid)return;
    (result.data||[]).forEach(function(item,index){
     var path=item.path||paths[index],url=item.signedUrl||'';
     if(!url)return;
-    profilePhotoSignedCache[bucket+'|'+path]={url:url,expiresAt:now+270000};
+    profilePhotoSignedCache[uid+'|'+bucket+'|'+path]={url:url,expiresAt:now+270000};
     (groups[bucket][path]||[]).forEach(function(job){
      if(job.slot==='avatar')job.profile.avatar.imageUrl=url;else job.resolved[job.slot]=url;
     });
    });
   }catch(error){console.warn('Signature groupée des photos de profil ('+bucket+')',error)}
  }));
+ if(!me||me.id!==uid)return;
  jobs.forEach(function(job){
   job.profile.photoUrls=job.resolved.filter(Boolean);
   if(job.avatarPath&&!job.profile.avatar.imageUrl){
-   var cached=profilePhotoSignedCache['profile-photos|'+job.avatarPath];
+   var cached=profilePhotoSignedCache[uid+'|profile-photos|'+job.avatarPath];
    if(cached&&cached.expiresAt>now+30000)job.profile.avatar.imageUrl=cached.url;
   }
  });
