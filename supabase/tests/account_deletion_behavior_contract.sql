@@ -38,9 +38,15 @@ update test_messages
 set sender_id = null, sender_deleted_at = now()
 where conversation_id = 'ab' and sender_id = 'A';
 
-update test_members
-set active = false
+delete from test_members
 where user_id = 'A';
+
+-- Repeat the same cleanup operation to prove the fixture's transformation
+-- remains safe to retry after a partial workflow retry.
+update test_messages
+set sender_id = null, sender_deleted_at = coalesce(sender_deleted_at, now())
+where conversation_id = 'ab' and sender_id = 'A';
+delete from test_members where user_id = 'A';
 
 do $$
 declare
@@ -57,10 +63,10 @@ begin
     raise exception 'FAIL: recipient B did not retain both messages (count=%)', v_count;
   end if;
 
-  -- The deleted sender must no longer have active membership.
+  -- The deleted sender's membership must be removed entirely.
   select count(*) into v_count
   from test_members
-  where user_id = 'A' and active;
+  where user_id = 'A';
 
   if v_count <> 0 then
     raise exception 'FAIL: deleted member A still has active membership';
