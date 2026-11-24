@@ -675,7 +675,7 @@
         '<tr><td>Rendez-vous</td><td>1 / semaine</td><td class="yes">Illimités</td></tr>' +
         '<tr><td>Appels audio et vidéo</td><td class="no">Pass séparé</td><td class="yes">Inclus</td></tr>' +
         '<tr><td>Boost de visibilité</td><td>Option payante</td><td>Option payante</td></tr>' +
-        '</tbody></table></div><div class="mal-offer-card"><h3>Options à la carte</h3><p>Boost : 0,50 USD / 24 h · Contact : 1 USD / personne · Pass Appels : 1 USD / 7 jours (inutile avec Premium actif).</p></div>' +
+        '</tbody></table></div>' +
         '<button type="button" class="mal-offer-next" onclick="malSetOfferPage(3)">Choisir et payer →</button>';
     } else {
       var callOption = premiumActive ? '' : '<option value="Appels">Pass Appels — 1 USD / 7 jours</option>';
