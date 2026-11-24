@@ -325,6 +325,17 @@ if (privateProfileAccessMigration.includes('new.age := null') ||
   throw new Error('Private profile migration must preserve member data and hide all private photos.');
 }
 
+const profilePhotoSigningSource = fs.readFileSync('app-core.js', 'utf8');
+const profileResolverStart = profilePhotoSigningSource.indexOf('async function resolveProfilePhotos(p)');
+const profileResolverEnd = profilePhotoSigningSource.indexOf('function messageMediaLocation', profileResolverStart);
+const profileResolvers = profilePhotoSigningSource.slice(profileResolverStart, profileResolverEnd);
+if (!profilePhotoSigningSource.includes("bucket==='profile-photos'?300:3600") ||
+    (profileResolvers.match(/createSignedUrls\\(paths,300\\)/g) || []).length !== 2 ||
+    profileResolvers.includes('createSignedUrls(paths,3600)') ||
+    !profileResolvers.includes('expiresAt:now+270000')) {
+  throw new Error('Profile photo signed URLs must expire quickly and use a matching short client cache.');
+}
+
 if (!frontend.includes('Backend Match présent en production') || !frontend.includes('Garde-fou d’expiration pas actif en production') || !frontend.includes('Authentification des salles Jitsi incomplète') || !frontend.includes('restauration réellement testée')) throw new Error('Founder dashboard must expose the verified production state and remaining launch blockers.');
 
 console.log('Malachite frontend, PWA, private media, SQL policy and Admin security checks passed.');
