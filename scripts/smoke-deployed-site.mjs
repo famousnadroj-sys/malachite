@@ -4,7 +4,8 @@ const siteUrl = process.env.SITE_URL;
 if (!siteUrl) throw new Error("SITE_URL is required from the GitHub Pages deployment output.");
 
 const base = new URL(siteUrl);
-if (base.protocol !== "https:") throw new Error("The deployed site must use HTTPS.");
+const localSmoke = base.hostname === "127.0.0.1" || base.hostname === "localhost";
+if (base.protocol !== "https:" && !localSmoke) throw new Error("The deployed site must use HTTPS.");
 if (!base.pathname.endsWith("/")) base.pathname += "/";
 
 async function get(path, expectedText = null) {
@@ -52,6 +53,29 @@ const productionAssets = [
   ["malachite-founder-finance.js", "installFinanceDashboard"],
 ];
 for (const [path, marker] of productionAssets) await get(path, marker);
+
+const appCore = await get("app-core.js", "rpc('update_my_preferences'");
+if (appCore.includes("from('config').select('cle,valeur')") ||
+    appCore.includes("NUM='';ORANGE=''")) {
+  throw new Error("Payment destination numbers must not be loaded into the public browser.");
+}
+const calls = await get("calls.js", "if(window.MAL_PAYMENTS_ENABLED!==true)");
+const avatarUi = await get("malachite-avatar-ui.js", "var MAL_PAYMENTS_ENABLED=false;");
+const offerUi = await get("malachite-user-experience.js", "Paiements temporairement désactivés");
+for (const retiredValue of [
+  "Premium — 2 USD / mois",
+  "Boost — 0,50 USD / 24 h",
+  "+243 993 315 532",
+  "+243 848 775 992",
+]) {
+  if ([appCore,calls,avatarUi,offerUi].some(content => content.includes(retiredValue))) {
+    throw new Error(`Un prix non approuvé ou un ancien numéro de paiement est encore publié : ${retiredValue}`);
+  }
+}
+if (!avatarUi.includes("if(!MAL_PAYMENTS_ENABLED)") ||
+    !offerUi.includes("Ne transfère aucun argent.")) {
+  throw new Error("Payment intake must fail closed until the owner confirms the launch settings.");
+}
 
 const discoveryHtml = await get("decouvrir.html", "Pass Appels");
 for (const retiredValue of ["2 $", "0,50 $", "Pour 30 jours", "Pour 24 heures"]) {
