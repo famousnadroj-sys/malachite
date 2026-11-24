@@ -26,7 +26,7 @@ La conservation d'une pièce de paiement ne justifie pas de conserver automatiqu
 
 - Le Code du numérique de la RDC, ordonnance-loi n° 23/010 du 13 mars 2023, prévoit à l'article 193 que les données personnelles identifiantes ne sont conservées que pendant la durée nécessaire aux finalités, sous réserve des exceptions légales prévues.
 - L'article 194 impose des données adéquates, pertinentes et non excessives.
-- L'article 205 traite des situations où l'identification de la personne n'est plus nécessaire.
+- L'article 205 précise que, lorsque les finalités du traitement n'exigent plus l'identification, le responsable n'est pas tenu de conserver, d'obtenir ou de traiter des informations supplémentaires permettant d'identifier la personne uniquement pour appliquer les dispositions du titre. Ce n'est pas, à lui seul, un article général imposant ou organisant l'effacement des données.
 - L'Acte uniforme OHADA relatif au droit comptable et à l'information financière (AUDCIF), article 24, prévoit une conservation de dix ans pour les livres comptables et pièces justificatives. Cette durée ne doit pas être étendue automatiquement à tout document ou à tout fichier de paiement : il faut déterminer si la pièce concernée constitue effectivement une pièce justificative comptable et si MALACHITE/l'entité exploitante entre dans le champ applicable.
 
 ## 4. Mesures techniques obligatoires avant mise en production
