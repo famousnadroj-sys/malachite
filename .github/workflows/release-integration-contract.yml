@@ -1,0 +1,63 @@
+name: Malachite release integration contract
+
+on:
+  push:
+    branches: [website/public-launch-cleanup-2026-11-24]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  release-integration:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout secured application candidate
+        uses: actions/checkout@v4
+        with:
+          ref: security/profile-write-authorization-v1
+          path: app-source
+
+      - name: Checkout public launch pages
+        uses: actions/checkout@v4
+        with:
+          ref: website/public-launch-cleanup-2026-11-24
+          path: public-source
+
+      - name: Checkout isolated Match preview
+        uses: actions/checkout@v4
+        with:
+          ref: preview/malachite-match-staging-clean
+          path: preview-source
+
+      - name: Assemble non-deployable release artifact
+        run: |
+          set -euo pipefail
+          mkdir -p _site/preview
+          cp app-source/*.html app-source/*.js app-source/*.css _site/
+          cp app-source/manifest.webmanifest app-source/sw.js _site/
+          cp -r app-source/assets _site/assets
+          cp public-source/index.html public-source/decouvrir.html public-source/404.html _site/
+          cp public-source/robots.txt public-source/sitemap.xml _site/
+          cp -r preview-source/. _site/preview/
+          touch _site/.nojekyll
+          test -f _site/index.html
+          test -f _site/decouvrir.html
+          test -f _site/preview/index.html
+
+      - name: Smoke-test the assembled artifact without publishing
+        working-directory: public-source
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8765 --directory "$GITHUB_WORKSPACE/_site" >/tmp/malachite-release-smoke.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for attempt in {1..15}; do
+            if curl -fsS http://127.0.0.1:8765/ >/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          SITE_URL=http://127.0.0.1:8765/ node scripts/smoke-deployed-site.mjs
