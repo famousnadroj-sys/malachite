@@ -49,4 +49,12 @@ begin
 end
 $$;
 
+set local role authenticated;
+select set_config('request.jwt.claim.sub','50000000-0000-0000-0000-000000000001',true);
+do $ begin
+ if exists(select 1 from public.profiles where id='40000000-0000-0000-0000-000000000001') then
+  raise exception 'private_profile_visible_to_other_authenticated_user';
+ end if;
+end $;
+reset role;
 rollback;
