@@ -172,6 +172,10 @@ const notificationUi = fs.readFileSync('malachite-user-experience.js', 'utf8');
 if (notificationUi.includes('value="promotion"') || notificationUi.includes("['promotion','Publicités']")) {
   throw new Error('Promotional announcement category must not be offered at launch.');
 }
+const adminPushFunction = fs.readFileSync('supabase/functions/malachite-admin-push/index.ts', 'utf8');
+if (!adminPushFunction.includes('!supplied') || !adminPushFunction.includes('!expected') || !adminPushFunction.includes('supplied.length > 256')) {
+  throw new Error('Internal push hook must fail closed for missing or oversized secrets.');
+}
 const performanceGuard = fs.readFileSync('malachite-performance.js', 'utf8');
 if (!performanceGuard.includes('mal-low-power') || !performanceGuard.includes('navigator.deviceMemory') || !performanceGuard.includes('connection.saveData')) {
   throw new Error('Low-power devices must use the lightweight visual mode.');

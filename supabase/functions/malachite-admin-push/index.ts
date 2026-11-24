@@ -37,7 +37,8 @@ Deno.serve(async (req: Request) => {
   if (req.headers.has("x-malachite-hook")) {
     const supplied = req.headers.get("x-malachite-hook") || "";
     const { data: secrets, error: secretError } = await adminClient.rpc("get_malachite_push_secrets");
-    if (secretError || !secrets || !safeEqual(supplied, String(secrets.malachite_push_hook || ""))) {
+    const expected = String(secrets?.malachite_push_hook || "");
+    if (secretError || !supplied || supplied.length > 256 || !expected || !safeEqual(supplied, expected)) {
       return json(401, { error: "invalid_internal_hook" }, origin);
     }
     if (body.action === "payment") {
