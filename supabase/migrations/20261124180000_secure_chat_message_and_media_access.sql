@@ -98,13 +98,12 @@ with check (
   bucket_id = 'chat-media'
   and (storage.foldername(name))[1] = (select auth.uid())::text
   and (storage.foldername(name))[2] is not null
-  and (storage.foldername(name))[2] ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
   and not private.blocked_text((storage.foldername(name))[2])
   and not private.is_suspended((select auth.uid()))
-  and not private.is_suspended(((storage.foldername(name))[2])::uuid)
   and exists (
     select 1 from public.profiles p
-    where p.id = ((storage.foldername(name))[2])::uuid
+    where p.id::text = (storage.foldername(name))[2]
+      and not private.is_suspended(p.id)
   )
 );
 
@@ -119,9 +118,9 @@ using (
     where m.media_url = objects.name
       and m.media_type in ('image','audio','video','document')
       and (
-        (m.de = (select auth.uid()) and m.a = ((storage.foldername(objects.name))[2])::uuid)
+        (m.de = (select auth.uid()) and m.a::text = (storage.foldername(objects.name))[2])
         or
-        (m.a = (select auth.uid()) and m.de = ((storage.foldername(objects.name))[1])::uuid)
+        (m.a = (select auth.uid()) and m.de::text = (storage.foldername(objects.name))[1])
       )
       and not private.is_suspended(m.de)
       and not private.is_suspended(m.a)
