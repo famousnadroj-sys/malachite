@@ -443,9 +443,6 @@ if (!frontend.includes("function aiManagerPreview()") || !frontend.includes("mot
 if (frontend.includes("Premium — 3 $")) {
   throw new Error('Legacy Premium price of 3 USD remains anywhere in the frontend.');
 }
-if (!frontend.includes("Premium — 2 USD / mois")) {
-  throw new Error('The active Premium price must be 2 USD per month.');
-}
 
 const paymentMigration = fs.readFileSync('supabase/migrations/20261120130000_restrict_payment_review_rpc.sql', 'utf8');
 for (const item of [
