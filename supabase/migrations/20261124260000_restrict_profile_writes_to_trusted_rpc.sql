@@ -1,7 +1,6 @@
--- Close direct table-write paths that bypass save_my_profile's server-side 18+ checks.
--- Keep only the two narrow profile updates still used by the web client:
--- avatar and derniere_vue. All identity/profile/private-field writes go through
--- trusted SECURITY DEFINER RPCs with auth.uid() checks and an empty search_path.
+-- Close direct table-write paths that bypass server-side profile validation.
+-- Keep only last-seen as a narrow direct profile update. Avatar and discovery
+-- preference writes use owner-scoped SECURITY DEFINER RPCs.
 
 alter function public.save_my_profile(jsonb, jsonb) security definer;
 alter function public.save_my_profile(jsonb, jsonb) set search_path to '';
@@ -48,7 +47,7 @@ begin
   end if;
 
   select coalesce(prefs, '{}'::jsonb)
-  into v_existing_prefs
+    into v_existing_prefs
   from public.prives
   where id = v_uid
   for update;
@@ -89,12 +88,12 @@ begin
 
   foreach v_key in array array['communes','ints','rel'] loop
     if p_preferences ? v_key then
-      if jsonb_typeof(p_preferences->v_key) <> 'array'
+      if jsonb_typeof(p_preferences->v_key) is distinct from 'array'
          or jsonb_array_length(p_preferences->v_key) > 20
          or exists (
            select 1
            from jsonb_array_elements(p_preferences->v_key) item(value)
-           where jsonb_typeof(item.value) <> 'string'
+           where jsonb_typeof(item.value) is distinct from 'string'
               or length(item.value #>> '{}') not between 1 and 60
          ) then
         raise exception 'Liste de préférence invalide';
@@ -103,7 +102,7 @@ begin
   end loop;
 
   if p_preferences ? 'desc' then
-    if jsonb_typeof(p_preferences->'desc') <> 'string'
+    if jsonb_typeof(p_preferences->'desc') is distinct from 'string'
        or length(p_preferences->>'desc') > 300 then
       raise exception 'Description de préférence invalide';
     end if;
@@ -135,6 +134,7 @@ begin
   if v_uid is null then
     raise exception 'Authentification requise';
   end if;
+
   if p_avatar is null or jsonb_typeof(p_avatar) <> 'object'
      or octet_length(p_avatar::text) > 8192 then
     raise exception 'Configuration de l’avatar invalide';
@@ -155,9 +155,7 @@ begin
   elsif v_type = 'humanforge-3d' then
     if p_avatar->>'version' is distinct from '1'
        or coalesce(p_avatar->>'imagePath','') !~ (
-         '^' || v_uid::text || '/avatar-[0-9]+[.]pngrevoke all on function public.save_my_profile(jsonb, jsonb) from public, anon;
-grant execute on function public.save_my_profile(jsonb, jsonb) to authenticated;
-
+         '^' || v_uid::text || '/avatar-[0-9]+[.]png$'
        )
        or (p_avatar - array['type','version','config','imagePath']::text[]) <> '{}'::jsonb then
       raise exception 'Fichier ou configuration d’avatar non autorisé';
@@ -180,6 +178,5 @@ $malachite_avatar$;
 revoke all on function public.update_my_avatar(jsonb) from public, anon;
 grant execute on function public.update_my_avatar(jsonb) to authenticated;
 
--- save_my_profile is the sole trusted write path for profile identity and private fields.
 revoke all on function public.save_my_profile(jsonb, jsonb) from public, anon;
 grant execute on function public.save_my_profile(jsonb, jsonb) to authenticated;
