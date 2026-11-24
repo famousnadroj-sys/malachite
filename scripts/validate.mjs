@@ -407,21 +407,32 @@ if (!frontend.includes('Backend Match présent en production') || !frontend.incl
 console.log('Malachite frontend, PWA, private media, SQL policy and Admin security checks passed.');
 
 
-// Malachite launch/payment guardrails (static checks; not a live payment test).
+// Malachite launch/payment guardrails: payment intake stays closed until
+// the owner confirms the dedicated receiving SIM, prices and call provider.
 for (const item of [
-  "Premium — 2 USD / mois",
-  "Boost — 0,50 USD / 24 h",
-  "+243 993 315 532",
-  "+243 848 775 992",
+  "Paiements temporairement désactivés",
+  "Tarif à confirmer",
+  "1 USD / 7 jours après activation",
+  "var MAL_PAYMENTS_ENABLED=false;",
   "operateur:data.operator",
   "Une capture d’écran seule ne déclenche jamais Premium.",
   "Ne communique jamais ton code PIN ni ton OTP.",
 ]) {
-  if (!frontend.includes(item)) throw new Error('Launch payment requirement missing: ' + item);
+  if (!frontend.includes(item)) throw new Error('Launch payment safety requirement missing: ' + item);
 }
-if (!frontend.includes("var payload={offre:data.offer,code:data.code,operateur:data.operator,receipt_path:receipt.path}") ||
+if (!frontend.includes("if(!MAL_PAYMENTS_ENABLED)") ||
+    !frontend.includes("if(window.MAL_PAYMENTS_ENABLED!==true)") ||
+    !frontend.includes("var payload={offre:data.offer,code:data.code,operateur:data.operator,receipt_path:receipt.path}") ||
     !frontend.includes("sb.from('paiements').insert(payload)")) {
-  throw new Error('Payment submission must preserve offer, reference, operator and private receipt path.');
+  throw new Error('Payment UI and client submission must fail closed while preserving the reviewed future receipt workflow.');
+}
+for (const retiredValue of [
+  "Premium — 2 USD / mois",
+  "Boost — 0,50 USD / 24 h",
+  "+243 993 315 532",
+  "+243 848 775 992",
+]) {
+  if (frontend.includes(retiredValue)) throw new Error('Unapproved price or old payment destination remains in frontend: ' + retiredValue);
 }
 if (!frontend.includes("function aiManagerPreview()") || !frontend.includes("moteur IA Malachite existant") || !frontend.includes("actions sensibles restent sous ton contrôle")) {
   throw new Error('AI copilots must describe the existing engine and preserve human approval for sensitive actions.');
