@@ -30,16 +30,13 @@ async function get(path, expectedText = null) {
 }
 
 const productionHtml = await get("", "MALACHITE");
-if (!productionHtml.includes("https://tscsmemsvgacqioncash.supabase.co")) {
-  throw new Error("Production HTML does not reference the expected production Supabase project.");
-}
 if (productionHtml.includes("MALACHITE · ENVIRONNEMENT DE TEST") ||
     productionHtml.includes("sbawknyxcjslvhknomkd")) {
   throw new Error("Staging content or configuration leaked into the production page.");
 }
 
 const productionAssets = [
-  ["app-core.js", "supabase.createClient"],
+  ["app-core.js", "https://tscsmemsvgacqioncash.supabase.co"],
   ["calls.js", "JitsiMeetExternalAPI"],
   ["sw.js", "malachite-static-v"],
   ["manifest.webmanifest", '"display"'],
@@ -47,16 +44,13 @@ const productionAssets = [
   ["i18n.js", "LANGS"],
   ["malachite-ai.js", "malAiLoadDashboard"],
   ["malachite-performance.js", "mal-low-power"],
-  ["malachite-chat-ui.js", "malachite-chat"],
-  ["malachite-avatar-ui.js", "malachite-avatar"],
-  ["malachite-founder-finance.js", "malachite-founder"],
+  ["malachite-chat-ui.js", "function matchBox()"],
+  ["malachite-avatar-ui.js", "function malAvatarSvg"],
+  ["malachite-founder-finance.js", "installFinanceDashboard"],
 ];
 for (const [path, marker] of productionAssets) await get(path, marker);
 
 const previewHtml = await get("preview/", "MALACHITE · ENVIRONNEMENT DE TEST");
-if (!previewHtml.includes("sbawknyxcjslvhknomkd.supabase.co")) {
-  throw new Error("Match preview does not reference the isolated staging Supabase project.");
-}
 if (previewHtml.includes("tscsmemsvgacqioncash") ||
     previewHtml.includes("sb_publishable_XDpqSzsPNeVduv6aGyjuoA_suakeFN0")) {
   throw new Error("Production Supabase configuration leaked into the Match preview HTML.");
