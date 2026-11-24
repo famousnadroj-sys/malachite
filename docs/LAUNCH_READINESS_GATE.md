@@ -2,7 +2,7 @@
 
 Ce document définit les contrôles humains obligatoires avant d'autoriser la publication publique. Les variables GitHub Actions suivantes doivent rester absentes ou à `false` tant que les preuves ci-dessous ne sont pas disponibles :
 
-- `MALACHITE_DB_SECURITY_READY=true` : uniquement après application et vérification des migrations de sécurité de profil et de pause des paiements sur la base de production.
+- `MALACHITE_DB_SECURITY_READY=true` : uniquement après application et vérification des migrations de sécurité de profil, de pause des paiements et de verrouillage des mutations de sessions d'appel sur la base de production.
 - `MALACHITE_LAUNCH_APPROVED=true` : uniquement après validation de tous les points produit, juridique, opérationnels et de récupération ci-dessous.
 
 ## 1. Base de données et sécurité
