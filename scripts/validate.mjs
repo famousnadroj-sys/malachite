@@ -103,6 +103,13 @@ if (callsCheck.status !== 0) {
   process.exit(callsCheck.status || 1);
 }
 if (frontend.includes('<script src="calls.js" defer></script>') || !frontend.includes('core.onload=function(){') || !frontend.includes('calls.src="./calls.js?v=20261122-call-init-v2"')) throw new Error('Call client must load only after app-core has defined its functions.');
+if (calls.includes("me.email==='famousnadroj@gmail.com'") ||
+    calls.includes('me.email==="famousnadroj@gmail.com"') ||
+    !calls.includes("sb.rpc('malachite_ai_manager_is_admin')") ||
+    !calls.includes('function stopPaymentRealtime()') ||
+    !calls.includes('if(adminPaymentUserId&&(!next||next.id!==adminPaymentUserId))stopPaymentRealtime()')) {
+  throw new Error('Admin payment realtime must use the database admin role and clear its subscription when the session identity changes.');
+}
 if (!calls.includes('Les appels sécurisés seront réactivés après leur mise en place') ||
     !calls.includes("h=h.replace('<button disabled title=")) {
   throw new Error('Mutual-match call actions must replace the legacy disabled call button.');
