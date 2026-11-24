@@ -506,6 +506,9 @@ for (const item of [
   'revoke insert on table public.paiements from public, anon, authenticated',
   'drop policy if exists "declarer un paiement" on public.paiements',
   'drop policy if exists "payment receipts owner upload" on storage.objects',
+  'drop policy if exists "paid matched members can call" on public.call_sessions',
+  'drop policy if exists "call participants can update" on public.call_sessions',
+  'revoke insert, update, delete on table public.call_sessions from public, anon, authenticated',
 ]) {
   if (!publicConfigMigration.includes(item)) throw new Error('Payment intake and destination config must remain closed until owner activation.');
 }
