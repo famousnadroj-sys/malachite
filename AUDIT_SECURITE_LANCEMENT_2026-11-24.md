@@ -29,6 +29,7 @@
 - L'audit de la fonction RPC `public.save_my_profile` a confirmé qu'elle acceptait auparavant une absence d'âge dans le champ privé `profile_age` ; la contrainte SQL `age >= 18` accepte également `NULL`.
 - La migration `20261124250000_enforce_profile_age_server_side.sql` exige désormais un âge entier de 18 à 100 ans dans le stockage privé du propriétaire, impose la cohérence avec l'âge public quand le profil est public et conserve l'âge hors de la ligne publique pour les profils privés.
 - Le test PostgreSQL isolé couvre âge absent, âge inférieur à 18, âge public absent, âge incohérent, âge valide de 18 ans et profil privé avec âge de 100 ans.
+- Limite restante : le formulaire recueille un âge déclaré en années, pas une date de naissance ni une preuve d'identité. Le contrôle serveur bloque les valeurs absentes et hors limites, mais ne prouve pas que la personne a réellement 18 ans. Une vérification d'âge plus forte doit être conçue avec une collecte minimale de données et une revue juridique avant ouverture générale.
 - CI vérifiée sur le commit `a084a8590552b658a985a211e0ab72010b4f2ea7` : validation statique, tests SQL d'accès privé, tests d'âge, tests d'appels, de reçus, de suppressions FK et runtime Match réussis.
 
 ### Publicités et campagnes
@@ -41,9 +42,9 @@
 
 Cela respecte le périmètre de lancement retenu : Premium, Boost et appels payants uniquement ; pas de publicité ni de sponsoring.
 
-## Audit du projet Supabase connecté — lecture seule
+## Audit du projet Supabase de production — lecture seule
 
-Le projet connecté n'est pas explicitement identifié comme production ou staging. Il a donc été traité comme protégé : aucune migration, aucun changement Auth, aucun secret et aucune écriture n'ont été appliqués.
+Le dépôt principal référence le projet Supabase `tscsmemsvgacqioncash`. Le contrôle a été effectué en lecture seule ; aucune migration, aucun changement Auth, aucun secret et aucune écriture n'ont été appliqués.
 
 Constats vérifiés :
 
@@ -59,6 +60,10 @@ Références de remédiation :
 - SECURITY DEFINER exécutable par anon : https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable
 - Protection des mots de passe compromis : https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection
 
+### Vérification des profils existants (lecture seule)
+
+Le contrôle de la base de production a compté 9 utilisateurs Auth. Dans `public.profiles`, aucun âge NULL, inférieur à 18 ans ou supérieur à 100 ans n'a été observé au moment du contrôle. Ce constat décrit uniquement les lignes présentes ; il ne prouve pas la véracité des âges déclarés et ne remplace pas les contrôles d'inscription.
+ 
 ### Suppression de compte — fonction utilisateur manquante
 
 - Aucun parcours « supprimer mon compte » n'a été trouvé dans `app-core.js` et aucun Edge Function de suppression n'est présent dans `supabase/functions`.
