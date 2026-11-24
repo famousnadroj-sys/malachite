@@ -15,6 +15,19 @@ begin
     raise exception 'authenticated_direct_payment_delete_must_be_revoked';
   end if;
 
+  if has_table_privilege('authenticated','public.config','SELECT')
+     or has_table_privilege('authenticated','public.config','INSERT')
+     or has_table_privilege('authenticated','public.config','UPDATE')
+     or has_table_privilege('authenticated','public.config','DELETE') then
+    raise exception 'payment_destination_config_must_not_be_client_accessible';
+  end if;
+  if exists (
+    select 1 from pg_policies
+    where schemaname='public' and tablename='config' and policyname='voir config'
+  ) then
+    raise exception 'public_config_read_policy_must_be_removed';
+  end if;
+
   if not exists (
     select 1 from information_schema.columns
     where table_schema='public' and table_name='paiements' and column_name='receipt_path'
