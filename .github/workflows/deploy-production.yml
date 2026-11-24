@@ -68,6 +68,15 @@ jobs:
         run: |
           python -m pip install --disable-pip-version-check pglast
           python scripts/validate_sql.py
+      - name: Require verified production database security readiness
+        env:
+          DB_SECURITY_READY: ${{ vars.MALACHITE_DB_SECURITY_READY }}
+        run: |
+          set -euo pipefail
+          if [ "$DB_SECURITY_READY" != "true" ]; then
+            echo "::error::Refusing production publish. Apply and verify the profile-write and payment-pause migrations first, then set MALACHITE_DB_SECURITY_READY=true."
+            exit 1
+          fi
       - name: Build production website and isolated Match preview
         working-directory: .
         env:
