@@ -426,6 +426,21 @@ for (const item of [
 ]) {
   if (!configStatusMutationMigration.includes(item)) throw new Error('Authenticated clients must not directly mutate config or entitlement status records.');
 }
+const statusVisibilityMigration = fs.readFileSync('supabase/migrations/20261124200000_limit_entitlement_status_visibility.sql', 'utf8').toLowerCase();
+for (const item of ['read own entitlement status', 'user_id = (select auth.uid())', 'public.public_status_badges()', 'private.is_suspended', 'private.is_blocked_with', 'profile_private = false', 'premium_until > now()', 'verified_until > now()', 'boost_until > now()', 'revoke all on function public.public_status_badges() from public, anon']) {
+  if (!statusVisibilityMigration.includes(item)) throw new Error('Entitlement timestamps must remain private behind the public boolean badge projection.');
+}
+const statusVisibilityTest = fs.readFileSync('supabase/tests/entitlement_status_visibility_checks.sql', 'utf8');
+for (const item of ['statuts_must_be_owner_only', 'legacy_public_status_policy_must_be_removed', 'public_status_badges_permissions_invalid']) {
+  if (!statusVisibilityTest.includes(item)) throw new Error('Entitlement status visibility SQL test is incomplete.');
+}
+if (!appCoreSource.includes("sb.rpc('public_status_badges')") || appCoreSource.includes("sb.from('statuts').select('*')") ||
+    !appCoreSource.includes('premium_active') || !appCoreSource.includes('verified_active') || !appCoreSource.includes('boost_active')) {
+  throw new Error('Public profile cards must consume only boolean entitlement badges, never exact expiry timestamps.');
+}
+if (!calls.includes('ownStatus.premium_active') || !memberExperience.includes('status.premium_active')) {
+  throw new Error('Own Premium status must remain available without exposing other members entitlement timestamps.');
+}
 const publicConfigMigration = fs.readFileSync('supabase/migrations/20261124181403_limit_public_config_reads_to_payment_operators.sql', 'utf8').toLowerCase();
 for (const item of ['drop policy if exists "voir config" on public.config', "using (cle in ('airtel','orange'))"]) {
   if (!publicConfigMigration.includes(item)) throw new Error('Public configuration reads must be restricted to payment-operator keys.');
