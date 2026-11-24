@@ -296,6 +296,9 @@ const appCoreSource = fs.readFileSync('app-core.js', 'utf8');
 if (appCoreSource.includes("ADM='famousnadroj@gmail.com'") || appCoreSource.includes('me.email===ADM') || appCoreSource.includes('me.email!==ADM') || appCoreSource.includes('me.email==ADM')) throw new Error('Admin UI must not use a client-side email allow-list.');
 if (!appCoreSource.includes("sb.rpc('malachite_ai_manager_is_admin')") || !appCoreSource.includes('malAdminAuthorized')) throw new Error('Admin UI must derive access from the database authorization RPC.');
 
+if (frontend.includes('Aucun changement Match n’a été appliqué à la base de production') || frontend.includes('Code préparé, pas encore publié')) throw new Error('Founder dashboard must not claim Match is absent from production.');
+if (!frontend.includes('Backend Match présent en production') || !frontend.includes('Garde-fou d’expiration pas actif en production') || !frontend.includes('restauration réellement testée')) throw new Error('Founder dashboard must expose the verified production state and remaining launch blockers.');
+
 console.log('Malachite frontend, PWA, private media, SQL policy and Admin security checks passed.');
 
 
