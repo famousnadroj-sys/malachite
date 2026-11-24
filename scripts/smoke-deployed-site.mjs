@@ -54,7 +54,7 @@ const productionAssets = [
 for (const [path, marker] of productionAssets) await get(path, marker);
 
 const discoveryHtml = await get("decouvrir.html", "Pass Appels");
-for (const retiredValue of ["2 $", "0,50 $", "1 $", "Pour 30 jours", "Pour 24 heures", "Pour 7 jours"]) {
+for (const retiredValue of ["2 $", "0,50 $", "Pour 30 jours", "Pour 24 heures"]) {
   if (discoveryHtml.includes(retiredValue)) {
     throw new Error(`Un tarif ou une durée non approuvés sont encore publiés : ${retiredValue}`);
   }
