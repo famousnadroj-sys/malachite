@@ -90,7 +90,7 @@ async function malAttachPendingSignupAvatar(){
  if(up.error)throw up.error;
  var avatar={type:'humanforge-3d',version:1,config:saved.config,imagePath:path};
  avatar.imageUrl=await signedUrl('profile-photos',path);
- var result=await sb.from('profiles').update({avatar:avatar}).eq('id',me.id).select('id,avatar').maybeSingle();
+ var result=await sb.rpc('update_my_avatar',{p_avatar:avatar});
  if(result.error||!result.data){await sb.storage.from('profile-photos').remove([path]);throw result.error||new Error('Profil non prêt.')}
  mine=Object.assign({},mine||{},result.data);await resolveProfilePhotos(mine);
  var idx=profs.findIndex(function(p){return p.id===me.id});if(idx>=0)profs[idx]=mine;else profs.push(mine);
