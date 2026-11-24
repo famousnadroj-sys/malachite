@@ -251,6 +251,10 @@ begin
   -- Set member 1's private relation intention for compatibility checks.
   update public.prives set prefs='{"rel":["Relation sérieuse"]}'::jsonb
   where id='00000000-0000-0000-0000-000000000001';
+  -- Keep these test-only accounts out of the expected compatibility set.
+  update public.prives set prefs='{"rel":["Amitié"]}'::jsonb
+  where id in ('00000000-0000-0000-0000-000000000013',
+               '00000000-0000-0000-0000-000000000019');
 
   -- Relationship intentions are compared privately; only compatible IDs leave the database.
   compatible := public.match_relation_compatible_ids();
