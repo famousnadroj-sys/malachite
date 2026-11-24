@@ -176,7 +176,7 @@ async function malUploadPaymentReceipt(file){
  if(!me||!me.id)return {error:'Session expirée. Reconnecte-toi.'};
  var token=window.crypto&&crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);
  var path=me.id+'/'+token+'.'+ext;
- var up=await sb.storage.from('payment-receipts').upload(path,file,{contentType:file.type,upsert:false,cacheControl:'3600'});
+ var up=await sb.storage.from('payment-receipts').upload(path,file,{contentType:file.type,upsert:false,cacheControl:'300'});
  return up.error?{error:'Envoi du justificatif impossible : '+up.error.message}:{path:path};
 }
 async function malSubmitPayment(data){
