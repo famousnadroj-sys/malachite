@@ -11,9 +11,40 @@ insert into public.avis_match(user_id,autre,ok) values
  ('20000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001',true),
  ('10000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000001',true),
  ('40000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001',true);
+do $provider$
+begin
+  if (select enabled from private.call_provider_config where singleton=true) then
+    raise exception 'call_provider_must_default_to_disabled';
+  end if;
+end
+$provider$;
 set local role authenticated;
 select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000001',true);
-do $$ begin
+do $disabled$
+begin
+  begin
+    perform * from public.start_call_session(
+      '90000000-0000-0000-0000-000000000006',
+      '40000000-0000-0000-0000-000000000001',
+      'room-provider-disabled-01','audio',now()+interval '1 minute');
+    raise exception 'disabled_call_provider_created_session';
+  exception when sqlstate 'P0001' then
+    if sqlerrm <> 'secure_call_provider_unavailable' then raise; end if;
+  end;
+end
+$disabled$;
+reset role;
+do $empty$
+begin
+  if exists(select 1 from public.call_sessions) then
+    raise exception 'disabled_call_provider_left_session';
+  end if;
+end
+$empty$;
+update private.call_provider_config set enabled=true, updated_at=now() where singleton=true;
+set local role authenticated;
+select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000001',true);
+do $ begin
  if exists(select 1 from public.get_malachite_referrer_preview('20000000-0000-0000-0000-000000000001')) then
    raise exception 'suspended_referrer_preview_leaked';
  end if;
