@@ -595,17 +595,18 @@ function rdv(){var o=others();return '<h2>Mes rendez-vous</h2><div class="list">
 function gps(){navigator.geolocation.getCurrentPosition(function(p){pos='https://maps.google.com/?q='+p.coords.latitude+','+p.coords.longitude;$('gp').textContent='Position ajoutée ✔'},function(){$('gp').textContent='Position refusée.'})}
 async function mkRdv(){var a=$('ra').value,q=$('rd').value,l=$('rl').value.trim();if(!a||!q||!l){msg='Choisis la personne, la date et le lieu.';return draw()}var r=await sb.from('rendez_vous').insert({a:a,quand:new Date(q).toISOString(),lieu:l,message:$('rm').value.trim(),lien_carte:pos||null});msg=r.error?(/limite_rdv/.test(r.error.message)?'Les membres gratuits ont 1 rendez-vous par semaine. Passe en Premium (onglet Offres).':'Rendez-vous non créé.'):'Invitation envoyée ✔';pos='';await loadRdv();draw()}
 async function repRdv(id,s){await sb.from('rendez_vous').update({statut:s}).eq('id',id);await loadRdv();draw()}
-var PRIX={'Premium':'2 $','Boost':'0,50 $','Contact':'1 $'};
+var PRIX={'Premium':'2 $','Boost':'0,50 $'};
 function hearts(){for(var i=0;i<18;i++){var h=document.createElement('span');h.className='hrt';h.textContent=['💗','❤️','💖','💕'][i%4];h.style.left=Math.random()*95+'vw';h.style.animationDelay=Math.random()*.8+'s';h.style.fontSize=(18+Math.random()*22)+'px';document.body.appendChild(h);(function(x){setTimeout(function(){x.remove()},3600)})(h)}}
 function welcome(){var d=document.createElement('div');d.className='wel';d.innerHTML='<div><div class="cup" style="font-size:54px"><span class="cb">😇🏹</span><span class="ar">➳</span><span class="ht">💗</span></div><h2>Bienvenue sur Malachite !</h2><p>Ton compte est créé. Crée ton profil et trouve ta moitié.</p><button class="b1" style="width:100%">C’est parti 💕</button></div>';d.onclick=function(){d.remove();go('me')};document.body.appendChild(d);hearts()}
-function matchBox(){var o=open;if(blockedCurrent)return '<div class="mrow">🚫 Cette conversation est bloquée. Tu peux débloquer ce membre avec le bouton 🚫.</div>';
-if(av2===null)return '<div class="mrow pop"><span>Vous avez bien discuté ?</span><button class="b1" onclick="avis(true)">💗 Ça match</button><button onclick="avis(false)">Pas pour moi</button></div>';
-if(av2===false)return '<div class="mrow"><span class="note">Tu as répondu « Pas pour moi ».</span><button onclick="avis(true)">Changer d’avis</button></div>';
-if(!mutual)return '<div class="mrow pop"><span>💗 Ton « Ça match » est envoyé. On attend l’autre personne.</span></div>';
-var h='<div class="mrow pop" style="border:2px solid var(--pink)"><b>🎉 Match !</b><button class="b1" onclick="rdvFor=\''+o+'\';go(\'rdv\')">📅 Rendez-vous</button><button disabled title="Les appels sécurisés seront réactivés après leur mise en place">📹 Appel indisponible</button>'+(ct?'':'<button onclick="payOpen=!payOpen;lastSig=\'\';loadChat()">🔓 Contact 1 $</button>')+'</div>';
-if(ct)h+='<div class="mrow">📞 <b>'+esc(ct.nom||'')+'</b> · <a href="tel:'+esc(ct.tel||'')+'">'+esc(ct.tel||'pas de numéro')+'</a></div>';
-else if(payOpen)h+='<div class="mrow" style="display:block">Envoie 1 $ au <b>'+esc(NUM)+'</b> par Airtel Money (gratuit en Premium), puis écris le code reçu par SMS.<div class="send" style="margin-top:6px"><input id="uc" placeholder="Code de transaction"><button onclick="payC()">Débloquer</button></div><div class="note" id="um"></div></div>';
-return h}
+function matchBox(){
+ if(blockedCurrent)return '<div class="mrow">🚫 Cette conversation est bloquée.</div>';
+ if(av2===null)return '<div class="mrow pop"><span>Vous avez bien discuté ?</span><button class="b1" onclick="avis(true)">💗 Ça match</button><button onclick="avis(false)">Pas pour moi</button></div>';
+ if(av2===false)return '<div class="mrow"><span class="note">Tu as répondu « Pas pour moi ».</span><button onclick="avis(true)">Changer d’avis</button></div>';
+ if(!mutual)return '<div class="mrow pop"><span>💗 Ton « Ça match » est envoyé. On attend l’autre personne.</span></div>';
+ var h='<div class="mrow pop"><b>🎉 Match !</b><button class="b1" onclick="rdvFor=\''+open+'\';go(\'rdv\')">📅 Rendez-vous</button><span class="note">Continuez à discuter ici en toute simplicité.</span></div>';
+ if(ct)h+='<div class="mrow">📞 <b>'+esc(ct.nom||'')+'</b> · <a href="tel:'+esc(ct.tel||'')+'">'+esc(ct.tel||'pas de numéro')+'</a></div>';
+ return h
+}
 async function ensureMatchNotice(id){
  if(!id||matchNoticeChecked[id])return;
  var body='💗 Match confirmé ! Vous vous êtes choisis mutuellement. Vous pouvez maintenant apprendre à vous connaître et proposer un rendez-vous.';

@@ -3,7 +3,7 @@
 (function(){
  'use strict';
  var photoCache=Object.create(null),callInbox=null,callInboxUserId=null,sessionChannel=null,callState=null,incoming=null,jitsiApi=null,callBusy=false,joiningCallId=null,callClockTimer=null,callStartedAt=0,audioOutputDevices=[],offerStatusFor=null,offerStatusPending=false;
- if(typeof PRIX==='object')PRIX.Appels='1 $ / semaine';
+ if(typeof PRIX==='object')PRIX.Appels='1 $ / 7 jours';
 
  function readPhotoCache(key,now){
   var v=photoCache[key];
