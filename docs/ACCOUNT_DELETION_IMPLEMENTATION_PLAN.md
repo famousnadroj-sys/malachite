@@ -117,7 +117,9 @@ Utiliser deux comptes synthétiques A et B, deux appareils simulés et des fichi
 
 Le fichier `supabase/tests/account_deletion_behavior_contract.sql` ajoute un test jetable qui modélise la conservation des messages, l’anonymisation de l’expéditeur, le retrait de son appartenance et l’isolation d’une conversation tierce.
 
-**Limite importante :** ce test est un test de contrat comportemental sur tables temporaires. Il ne valide pas les vrais triggers, les politiques RLS, les politiques Storage, les reçus de lecture, les appels ni le workflow Auth de production. Il n’a pas été exécuté dans cette session : aucun serveur PostgreSQL local/jetable (`psql`, `postgres` ou Docker) n’est disponible ici. Il ne faut donc pas le présenter comme « réussi ».
+**Résultat vérifié :** le contrat comportemental a été exécuté avec succès sur PostgreSQL 17 jetable par GitHub Actions (run `45485434783`, commit `3f1045618adaef1148f4eddec212ac70c99519df`). Le test utilise uniquement des tables temporaires et vérifie la conservation des messages, l’anonymisation de l’expéditeur, le retrait de l’appartenance, la relance sans effet destructif et l’isolation d’une conversation tierce.
+
+**Limite importante :** ce succès valide uniquement le contrat simulé. Il ne valide pas les vrais triggers, les politiques RLS, les politiques Storage, les reçus de lecture, les appels ni le workflow Auth de production. Il ne constitue donc pas une validation de la suppression réelle d’un compte.
 
 L’inspection en lecture seule de la base confirme notamment :
 - `messages.de` et `messages.a` sont obligatoires ; le trigger `limite_messages()` rejette un expéditeur différent de `auth.uid()` et construit le chemin média à partir de `de` et `a` ;
