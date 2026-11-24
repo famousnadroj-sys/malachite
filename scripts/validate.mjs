@@ -160,21 +160,17 @@ const aiManager = fs.readFileSync('malachite-ai.js', 'utf8');
 for (const item of ['malAiLoadDashboard', 'malAiInsights', 'malAiQuickPrompt', 'malachite-ai-manager', 'history.slice(-9,-1)']) {
   if (!aiManager.includes(item)) throw new Error('AI Manager dashboard capability missing: ' + item);
 }
-const adStudio = fs.readFileSync('malachite-ad-studio.js', 'utf8');
-const adStudioTemp = path.join(os.tmpdir(), 'malachite-ad-studio.js');
-fs.writeFileSync(adStudioTemp, adStudio);
-const adStudioCheck = spawnSync(process.execPath, ['--check', adStudioTemp], { encoding: 'utf8' });
-if (adStudioCheck.status !== 0) { process.stderr.write(adStudioCheck.stderr || adStudioCheck.stdout); process.exit(adStudioCheck.status || 1); }
-for (const item of ['MediaRecorder', 'captureStream(24)', 'malCreateAdVideo', 'malRecordAdVoice', 'malGenerateAdVoiceAI', 'malCampaignDuration', 'malCampaignSourceVideo', 'video/webm']) {
-  if (!adStudio.includes(item)) throw new Error('Short video ad studio capability missing: ' + item);
-}
 const adCreativeFunction = fs.readFileSync('supabase/functions/malachite-ad-creative/index.ts', 'utf8');
-for (const item of ['auth.getUser(token)', 'malachite_ai_manager_is_admin', 'gemini-3.8-flash-lite-tts', 'responseModalities:["AUDIO"]', 'audio_base64', 'daily_voice_limit']) {
-  if (!adCreativeFunction.includes(item)) throw new Error('Secure AI ad voice endpoint requirement missing: ' + item);
+if (!adCreativeFunction.includes('advertising_generation_disabled') || !adCreativeFunction.includes('status: 410')) {
+  throw new Error('Retired advertising endpoint must reject requests with HTTP 410.');
 }
-const campaignMedia = fs.readFileSync('malachite-campaigns.js', 'utf8');
-for (const item of ['video_path', 'media_type', 'malachite-campaign-media', 'playsinline controls']) {
-  if (!campaignMedia.includes(item)) throw new Error('Sponsored video publishing requirement missing: ' + item);
+const adminUi = fs.readFileSync('malachite-avatar-ui.js', 'utf8');
+if (adminUi.includes("malAdminPage==='campaigns'") || adminUi.includes("from('campagnes')") || adminUi.includes('📢 Publicité')) {
+  throw new Error('Advertising management must not remain available in the admin UI.');
+}
+const notificationUi = fs.readFileSync('malachite-user-experience.js', 'utf8');
+if (notificationUi.includes('value="promotion"') || notificationUi.includes("['promotion','Publicités']")) {
+  throw new Error('Promotional announcement category must not be offered at launch.');
 }
 const performanceGuard = fs.readFileSync('malachite-performance.js', 'utf8');
 if (!performanceGuard.includes('mal-low-power') || !performanceGuard.includes('navigator.deviceMemory') || !performanceGuard.includes('connection.saveData')) {
