@@ -38,6 +38,13 @@ Ces 24 fichiers comprennent notamment le durcissement des profils privés, des m
 
 **Blocage de lancement :** ne pas considérer ces protections comme actives en production. Elles doivent être revues dans l'ordre, testées sur un environnement de test, puis déployées selon un plan de migration contrôlé. Ne pas appliquer les 24 fichiers en bloc : certains peuvent dépendre du frontend déjà publié, de fonctions RPC ou de migrations antérieures. L'historique de migration et l'état réel du schéma doivent être comparés fichier par fichier.
 
+### Dépendance spécifique aux appels Jitsi
+
+La migration en attente `20261124170000_harden_call_and_referrer_access.sql` crée `private.call_provider_config` avec `enabled = false` et remplace `public.start_call_session()` pour refuser les appels tant qu'un fournisseur sécurisé n'est pas activé. La migration indique explicitement qu'un émetteur JWT JaaS privé et ses secrets Supabase doivent être déployés avant activation.
+
+En production, la table `private.call_provider_config` n'existe pas encore, tandis que la fonction actuelle `start_call_session()` existe sans ce contrôle du fournisseur. **Ne pas appliquer cette migration isolément** : cela pourrait désactiver les nouveaux appels. Avant toute mise en production, il faut choisir et tester le fournisseur d'appel privé, l'émission JWT côté serveur, les secrets, les règles d'accès, les expirations et le parcours client. Ne pas exposer une clé JaaS dans le navigateur.
+
+
 ## 2. Modèle cible recommandé
 
 Pour le périmètre actuel (conversation privée entre exactement deux personnes), utiliser un nom cohérent dans toute l'implémentation :
