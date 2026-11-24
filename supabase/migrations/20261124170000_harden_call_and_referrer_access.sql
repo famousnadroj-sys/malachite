@@ -15,6 +15,21 @@ revoke all privileges on table private.call_provider_config from public, anon, a
 grant usage on schema private to service_role;
 grant select on table private.call_provider_config to service_role;
 
+create or replace function public.call_provider_is_enabled()
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $function$
+  select exists (
+    select 1 from private.call_provider_config c
+    where c.singleton = true and c.enabled = true
+  )
+$function$;
+revoke all on function public.call_provider_is_enabled() from public, anon;
+grant execute on function public.call_provider_is_enabled() to authenticated;
+
 create or replace function public.start_call_session(
   p_id uuid,
   p_callee_id uuid,
