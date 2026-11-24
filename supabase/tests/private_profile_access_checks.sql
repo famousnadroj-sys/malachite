@@ -86,7 +86,9 @@ begin
     and jsonb_array_length(prompts)=1 and derniere_vue is not null) then
     raise exception 'private_profile_owner_data_not_preserved';
   end if;
-  if (select count(*) from storage.objects where bucket_id='profile-photos') <> 2 then
+  if (select count(*) from storage.objects
+      where bucket_id='profile-photos'
+        and (storage.foldername(objects.name))[1] = '10000000-0000-0000-0000-000000000001') <> 2 then
     raise exception 'private_profile_owner_cannot_read_own_photos';
   end if;
 end
