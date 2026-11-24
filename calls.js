@@ -3,6 +3,8 @@
 (function(){
  'use strict';
  var photoCache=Object.create(null),callInbox=null,callInboxUserId=null,sessionChannel=null,callState=null,incoming=null,jitsiApi=null,callBusy=false,joiningCallId=null,callClockTimer=null,callStartedAt=0,audioOutputDevices=[],offerStatusFor=null,offerStatusPending=false;
+ // Fail closed until JaaS JWT authentication is configured and verified server-side.
+ var SECURE_JITSI_PROVIDER_READY=false;
  if(typeof PRIX==='object')PRIX.Appels='1 $ / 7 jours';
 
  function readPhotoCache(key,now){
@@ -83,6 +85,7 @@
   }).subscribe(function(status){if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED'){if(callInboxUserId===uid){callInbox=null;callInboxUserId=null}console.warn('Réception des appels indisponible : '+status)}});
  }
  async function acceptIncoming(){
+  if(!SECURE_JITSI_PROVIDER_READY){alert('Les appels sont temporairement indisponibles : la sécurisation des salles est en cours.');return}
   var row=incoming;if(!row||!me)return;
   var r=await sb.from('call_sessions').update({status:'accepted'}).eq('id',row.id).eq('callee_id',me.id).eq('status','pending').select('id,caller_id,callee_id,mode,room,status,expires_at').maybeSingle();
   if(r.error||!r.data||r.data.status!=='accepted'||new Date(r.data.expires_at).getTime()<=Date.now()){
@@ -102,6 +105,7 @@
  }
  function subscribeReady(ch){return new Promise(function(resolve,reject){var done=false,t=setTimeout(function(){if(!done){done=true;reject(new Error('Le service temps réel ne répond pas.'))}},12000);ch.subscribe(function(status,error){if(done)return;if(status==='SUBSCRIBED'){done=true;clearTimeout(t);resolve()}else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED'){done=true;clearTimeout(t);reject(error||new Error('Connexion Realtime impossible'))}})})}
  async function startCall(mode){
+  if(!SECURE_JITSI_PROVIDER_READY){alert('Les appels sont temporairement indisponibles : la sécurisation des salles est en cours.');return}
   if(!me||!open){alert('Ouvre une conversation avant d’appeler.');return}
   if(mode!=='audio'&&mode!=='video')mode='audio';
   if(!mutual){alert('Appel impossible : un match réciproque est nécessaire.');return}
@@ -140,6 +144,7 @@
   });
  }
  async function joinJitsi(state){
+  if(!SECURE_JITSI_PROVIDER_READY)throw new Error('Authentification JaaS non configurée : accès à la salle refusé.');
   if(!state||!callState||callState.id!==state.id||joiningCallId===state.id||jitsiApi)return;
   joiningCallId=state.id;
   try{
