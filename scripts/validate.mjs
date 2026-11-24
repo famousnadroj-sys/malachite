@@ -329,7 +329,7 @@ if (!migrations.includes('avatar=case when p_profile ?') || !migrations.includes
 if (frontend.includes('Ajoute une photo de profil avant d’enregistrer.')) throw new Error('Profile creation must allow a saved avatar instead of requiring a photo.');
 if (!frontend.includes('cache.expiresAt=now+270000')) throw new Error('Signed media URL cache must refresh its expiry after renewal.');
 if (!frontend.includes("Signature des médias de la conversation ('+bucket+')")) throw new Error('Media URL resolution must isolate failures by storage bucket.');
-if (!sw.match(/malachite-static-v[0-9]+/) || !sw.includes('./calls.js') || !sw.includes('./malachite-ad-studio.js')) throw new Error('Service worker must cache a versioned app shell including the call client.');
+if (!sw.match(/malachite-static-v[0-9]+/) || !sw.includes('./calls.js') || !sw.includes('./malachite-chat-ui.js') || sw.includes('./malachite-ad-studio.js') || sw.includes('./malachite-campaigns.js')) throw new Error('Service worker must cache the active app shell and exclude retired advertising assets.');
 if (!frontend.includes("status==='SUBSCRIBED'")) throw new Error('Realtime recovery must immediately resync the active conversation after reconnect.');
 if (!frontend.includes("timer=setInterval(function(){if(tab==='chat'&&!document.hidden&&!msgRealtimeReady)loadChat()},20000)")) throw new Error('Fallback chat sync must pause while hidden and run only when Realtime is unavailable.');
 if (!frontend.includes("sb.channel('malachite-online-v1'")) throw new Error('Realtime online presence channel is missing.');
