@@ -31,6 +31,18 @@ end $$;
 select set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
 do $$ begin
  if (select count(*) from public.call_sessions)<>1 then raise exception 'callee_cannot_read_call'; end if;
+ if has_column_privilege('authenticated','public.call_sessions','caller_id','UPDATE')
+    or has_column_privilege('authenticated','public.call_sessions','callee_id','UPDATE')
+    or has_column_privilege('authenticated','public.call_sessions','room','UPDATE')
+    or has_column_privilege('authenticated','public.call_sessions','expires_at','UPDATE')
+    or has_column_privilege('authenticated','public.call_sessions','mode','UPDATE') then
+   raise exception 'call_session_identity_or_expiry_mutable';
+ end if;
+ if not has_column_privilege('authenticated','public.call_sessions','status','UPDATE') then
+   raise exception 'call_session_status_update_missing';
+ end if;
+ update public.call_sessions set status='accepted' where id='90000000-0000-0000-0000-000000000001' and callee_id=auth.uid();
+ if not exists(select 1 from public.call_sessions where status='accepted') then raise exception 'callee_status_update_failed'; end if;
  if (select count(*) from public.rendez_vous)<>1 then raise exception 'invitee_cannot_read_appointment'; end if;
  update public.rendez_vous set statut='confirme' where a=auth.uid();
  if not exists(select 1 from public.rendez_vous where statut='confirme') then raise exception 'appointment_status_update_failed'; end if;
