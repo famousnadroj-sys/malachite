@@ -454,9 +454,8 @@ for (const item of [
     throw new Error('Payment RPC privilege guard missing: ' + item);
   }
 }
-if (!frontend.includes('maxlength="100" placeholder="Référence exacte du SMS"') ||
-    !frontend.includes('c.length<4||c.length>100')) {
-  throw new Error('Payment reference length must match the database RLS policy (4–100 characters).');
+if (!frontend.includes('c.length<4||c.length>100')) {
+  throw new Error('Retained payment code must validate reference length before any future reactivation.');
 }
 if (frontend.includes('maxlength="120" placeholder="Référence de transaction"')) {
   throw new Error('Payment reference input exceeds the database limit.');
