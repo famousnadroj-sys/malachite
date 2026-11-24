@@ -57,6 +57,9 @@ create policy "paid matched members can call" on public.call_sessions
 for insert to authenticated
 with check (caller_id=(select auth.uid()) and status='pending' and expires_at>now());
 
+insert into public.call_sessions(caller_id,callee_id,status,expires_at)
+values('50000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000002','pending',now()+interval '2 minutes');
+
 create schema storage;
 create table storage.objects(bucket_id text not null,name text not null);
 grant select,insert,delete on storage.objects to authenticated;
