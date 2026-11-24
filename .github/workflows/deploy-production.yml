@@ -1,4 +1,4 @@
-name: MALACHITE production and isolated Match preview
+name: MALACHITE Match preview source validation
 on:
   push:
     branches:
@@ -6,140 +6,22 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
-  pages: write
-  id-token: write
-concurrency:
-  group: pages-production
-  cancel-in-progress: false
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  validate-preview:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout production main
+      - name: Checkout isolated Match source
         uses: actions/checkout@v4
-        with:
-          ref: main
-          path: production-source
-      - name: Checkout isolated Match preview source
-        uses: actions/checkout@v4
-        with:
-          ref: preview/malachite-match-staging-clean
-          path: preview-source
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Validate production application JavaScript
-        working-directory: production-source
-        run: node scripts/validate.mjs
-      - name: Set up Deno
-        uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
-      - name: Type-check production Edge Functions
-        working-directory: production-source
-        run: |
-          deno check supabase/functions/admin-user-moderation/index.ts
-          deno check supabase/functions/malachite-ai-manager/index.ts
-          deno check supabase/functions/malachite-ai-worker/index.ts
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - name: Parse production SQL migrations
-        working-directory: production-source
-        run: |
-          python -m pip install --disable-pip-version-check pglast
-          python scripts/validate_sql.py
-      - name: Build production website and isolated Match preview
-        working-directory: .
-        env:
-          PROD_SUPABASE_REF: tscsmemsvgacqioncash
-          STAGING_SUPABASE_REF: sbawknyxcjslvhknomkd
-          PROD_PUBLISHABLE_KEY: sb_publishable_XDpqSzsPNeVduv6aGyjuoA_suakeFN0
-          STAGING_PUBLISHABLE_KEY: sb_publishable_rXT4ztk4NLX-PeK2spwzqg_UcKMnRD5
+      - name: Validate Match application
         run: |
           set -euo pipefail
-          mkdir -p _site/icons _site/preview/icons
-          cp production-source/index.html production-source/*.js production-source/*.html production-source/manifest.webmanifest production-source/sw.js production-source/.nojekyll _site/
-          cp production-source/icons/malachite.svg _site/icons/
-          cp production-source/robots.txt production-source/sitemap.xml _site/
-          test -f _site/index.html
-          test -f _site/app-core.js
-          test -f _site/malachite-founder-finance.js
-          test -f _site/icons/malachite.svg
-          grep -Fq 'https://famousnadroj-sys.github.io/malachite/sitemap.xml' _site/robots.txt
-          grep -Fq 'https://famousnadroj-sys.github.io/malachite/partenaires.html' _site/sitemap.xml
-          grep -Fq "https://${PROD_SUPABASE_REF}.supabase.co" _site/app-core.js
-          grep -Fq "${PROD_PUBLISHABLE_KEY}" _site/app-core.js
-          if grep -R -E 'sbawknyxcjslvhknomkd|sb_publishable_rXT4ztk4NLX-PeK2spwzqg_UcKMnRD5|MALACHITE · ENVIRONNEMENT DE TEST' _site --exclude-dir=preview; then
-            echo "Staging configuration found in production artifact."
-            exit 1
-          fi
-          cp preview-source/index.html preview-source/*.js preview-source/*.html preview-source/manifest.webmanifest preview-source/sw.js preview-source/.nojekyll _site/preview/
-          cp preview-source/icons/malachite.svg _site/preview/icons/
-          python3 - <<'PY'
-          import os, re
-          from pathlib import Path
-          root = Path("_site/preview")
-          replacements = {
-              os.environ["PROD_SUPABASE_REF"]: os.environ["STAGING_SUPABASE_REF"],
-              os.environ["PROD_PUBLISHABLE_KEY"]: os.environ["STAGING_PUBLISHABLE_KEY"],
-          }
-          counts = {old: 0 for old in replacements}
-          for path in root.rglob("*"):
-              if not path.is_file():
-                  continue
-              try:
-                  content = path.read_text(encoding="utf-8")
-              except UnicodeDecodeError:
-                  continue
-              for old, new in replacements.items():
-                  counts[old] += content.count(old)
-                  content = content.replace(old, new)
-              path.write_text(content, encoding="utf-8")
-          if not all(counts.values()):
-              raise SystemExit("Preview build failed: production Supabase configuration was not fully replaced.")
-          for path in root.rglob("*"):
-              if path.is_file():
-                  try:
-                      content = path.read_text(encoding="utf-8")
-                  except UnicodeDecodeError:
-                      continue
-                  if any(old in content for old in replacements):
-                      raise SystemExit(f"Production Supabase configuration remains in preview: {path}")
-          html_path = root / "index.html"
-          html = html_path.read_text(encoding="utf-8")
-          banner = '<div id="mal-staging-banner" role="status">MALACHITE · ENVIRONNEMENT DE TEST · DONNÉES DE TEST UNIQUEMENT</div>'
-          style = '<style>#mal-staging-banner{position:sticky;top:0;z-index:99999;background:#7c2d12;color:#fff;text-align:center;padding:8px 12px;font:700 12px system-ui;letter-spacing:.04em}</style>'
-          if 'id="mal-staging-banner"' not in html:
-              if "</head>" not in html or not re.search(r"<body\b[^>]*>", html, flags=re.I):
-                  raise SystemExit("Preview build failed: expected HTML head/body elements were not found.")
-              html = html.replace("</head>", style + "</head>", 1)
-              html, count = re.subn(r"(<body\b[^>]*>)", lambda match: match.group(1) + banner, html, count=1, flags=re.I)
-              if count != 1:
-                  raise SystemExit("Preview build failed: could not insert staging banner.")
-          html_path.write_text(html, encoding="utf-8")
-          PY
-          test -f _site/preview/index.html
-          test -f _site/preview/app-core.js
-          test -f _site/preview/icons/malachite.svg
-          grep -Fq 'function matchExperience' _site/preview/app-core.js
-          grep -Fq 'MALACHITE · ENVIRONNEMENT DE TEST' _site/preview/index.html
-          grep -Fq 'sbawknyxcjslvhknomkd.supabase.co' _site/preview/app-core.js
-          if grep -R -E 'tscsmemsvgacqioncash|sb_publishable_XDpqSzsPNeVduv6aGyjuoA_suakeFN0' _site/preview; then
-            echo "Production Supabase configuration found in preview artifact."
-            exit 1
-          fi
-          echo "Production root and isolated Match preview validated."
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v5
-      - name: Upload combined website artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: _site
-      - name: Publish production and preview website
-        id: deployment
-        uses: actions/deploy-pages@v4
+          node scripts/validate.mjs
+          grep -Fq 'function matchPage()' app-core.js
+          grep -Fq 'match:matchPage' app-core.js
+          grep -Fq "['match','💗','Match']" app-core.js
+          grep -Fq "t=='home'||t=='search'||t=='match'" app-core.js
+          echo "Dedicated Match screen and route checks passed."
