@@ -60,6 +60,16 @@ La revue précédente des privilèges directs avait confirmé l'absence de droit
 4. Maintenir les tables sans policies en accès fermé tant qu'aucun besoin fonctionnel validé ne justifie une policy.
 5. Revoir les index seulement après collecte de statistiques sous trafic réel.
 
+## Tests d'accès exécutés sur staging isolé
+
+Le 24 novembre 2026, des tests SQL transactionnels ont été exécutés sur le projet de staging isolé `malachite-match-test` (pas sur la production) :
+- le rôle `anon` ne dispose pas du droit EXECUTE sur les trois RPC admin/finance ;
+- un JWT simulé avec un UUID de test non administrateur est refusé par `admin_malachite_referrals`, `founder_business_overview` et `founder_finance_summary` ;
+- l'aperçu parrain ne retourne aucune ligne pour un UUID inconnu ;
+- la transaction de test est annulée (`ROLLBACK`) et ne conserve aucune modification.
+
+Limite : la base de staging ne contient aucun profil. Le comportement runtime pour un profil privé et un profil public n'a donc pas pu être exercé avec des fixtures. Les assertions de définition SQL vérifient néanmoins que la fonction filtre `profile_private = false` et ne retourne que `prenom` et `username`. Ce contrôle runtime devra être complété avec des comptes de test avant lancement.
+
 ## État de production
 
 Aucune correction n'a été appliquée en production pendant cette revue. Les alertes sont classées et les contrôles vérifiés ; les changements de configuration Auth ou de privilèges devront faire l'objet d'une modification isolée, testée et validée avant déploiement.
