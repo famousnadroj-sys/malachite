@@ -148,6 +148,6 @@ Les alertes des Advisors sont des pistes de vérification, pas la preuve que cha
 
 - Publicité et campagnes : interface retirée, accès client aux buckets/table supprimé, endpoint de génération désactivé.
 - Suppression de compte : toujours non implémentée ; le schéma exige une stratégie explicite par catégorie.
-- Appels : toujours bloqués comme critère de sécurité de lancement tant qu'une authentification de participant Jitsi ou un fournisseur de conférence authentifié n'est pas en place.
+- Appels : fonctionnalité non désactivée, mais non validée comme suffisamment sécurisée pour un lancement public tant qu'une authentification de participant Jitsi ou un fournisseur de conférence authentifié n'est pas en place.
 - Auth : protection des mots de passe compromis à examiner dans le tableau de bord.
 - Aucune suppression de compte, aucun changement de fournisseur d'appels, aucune migration de données utilisateur et aucun paiement n'ont été exécutés.
