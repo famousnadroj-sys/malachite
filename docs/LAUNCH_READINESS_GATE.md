@@ -15,8 +15,8 @@ Ce document définit les contrôles humains obligatoires avant d'autoriser la pu
 
 ## 2. Inscription et sécurité des membres
 
-- [ ] Choisir et vérifier le mode d'inscription définitif. Le code actuel utilise e-mail/mot de passe ; l'inscription téléphone + SMS demandée initialement n'est pas encore configurée ni validée.
-- [ ] Si téléphone + SMS est retenu : fournisseur SMS, pays RDC, délivrabilité, coûts, limites anti-abus, récupération et tests réels validés.
+- [ ] Confirmer le mode d'inscription définitif. Le code actuel implémente e-mail/mot de passe. Un parcours e-mail/mot de passe + Google avait été proposé, mais l'acceptation finale de Google n'est pas établie. Aucune exigence Malachite confirmée de téléphone + SMS n'a été retrouvée ; ne pas la déduire du projet RArs.
+- [ ] Si Google est choisi : configurer OAuth, URL de redirection, consentement et tests réels. Si un autre mode est choisi, le spécifier et le tester avant lancement.
 - [ ] Confirmer la règle 18+ et décider si l'auto-déclaration d'âge est suffisante ou si un contrôle supplémentaire est nécessaire.
 - [ ] Tester récupération de compte, changement de téléphone/e-mail, sessions, déconnexion et révocation.
 
