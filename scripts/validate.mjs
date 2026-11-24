@@ -143,6 +143,12 @@ if (!calls.includes("createSignedUrls(batch,300)") ||
   throw new Error('Call-module profile photo URLs must be short-lived, user-scoped and discarded after account changes.');
 }
 
+for (const path of ['calls.js', 'malachite-user-experience.js', 'malachite-avatar-ui.js']) {
+  const source = fs.readFileSync(path, 'utf8');
+  if (/Déblocage contact|Déblocage contact : 1 USD|déblocage contact séparément/i.test(source)) {
+    throw new Error('Launch monetization must remain limited to Premium, Boost and paid calls.');
+  }
+}
 const manifest = JSON.parse(fs.readFileSync('manifest.webmanifest', 'utf8'));
 if (manifest.start_url !== './' || manifest.scope !== './' || manifest.display !== 'standalone') {
   throw new Error('PWA manifest configuration is incomplete.');
