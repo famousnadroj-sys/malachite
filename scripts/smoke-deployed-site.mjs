@@ -106,6 +106,9 @@ if (previewHtml.includes("tscsmemsvgacqioncash") ||
   throw new Error("Production Supabase configuration leaked into the Match preview HTML.");
 }
 const previewCore = await get("preview/app-core.js", "sbawknyxcjslvhknomkd.supabase.co");
+if (!previewCore.includes("function matchExperience")) {
+  throw new Error("Le preview doit charger le parcours Match isolé.");
+}
 if (previewCore.includes("tscsmemsvgacqioncash") ||
     previewCore.includes("sb_publishable_XDpqSzsPNeVduv6aGyjuoA_suakeFN0")) {
   throw new Error("Production Supabase configuration leaked into the Match preview JavaScript.");
