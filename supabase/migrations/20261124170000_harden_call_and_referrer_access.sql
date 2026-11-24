@@ -12,6 +12,7 @@ insert into private.call_provider_config(singleton, enabled)
 values (true, false)
 on conflict (singleton) do update set enabled = false, updated_at = now();
 revoke all privileges on table private.call_provider_config from public, anon, authenticated;
+grant usage on schema private to service_role;
 grant select on table private.call_provider_config to service_role;
 
 create or replace function public.start_call_session(
