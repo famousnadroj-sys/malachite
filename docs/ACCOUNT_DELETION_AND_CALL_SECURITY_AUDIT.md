@@ -171,3 +171,33 @@ La documentation Jitsi décrit aussi les mécanismes d'authentification JWT et l
 - https://jitsi.github.io/handbook/docs/devops-guide/devops-guide-docker/
 
 Cette architecture n'est pas déployée. Elle nécessite un serveur que MALACHITE contrôle, des secrets protégés et des essais réels. Aucun fournisseur payant, hébergement ou changement de prestataire n'a été choisi ni activé.
+
+
+## 13. Addendum — état courant corrigé au 24 novembre 2026
+
+Cet addendum prévaut sur les passages antérieurs de ce document qui décrivent encore les buckets de campagnes comme publics, la fonction de création publicitaire comme active, ou la migration de préparation de suppression comme non appliquée.
+
+### Publicité / campagnes — état confirmé
+
+- Les buckets `malachite-campaigns` et `malachite-campaign-media` sont privés. Les politiques de lecture publique correspondantes ont été retirées.
+- Les deux buckets ont été contrôlés en lecture seule : zéro objet.
+- La table `campagnes` a été contrôlée en lecture seule : zéro ligne et zéro campagne active.
+- `malachite-ad-creative` reste déployée comme endpoint de retrait (JWT requis) et renvoie HTTP 410 `advertising_generation_disabled`. Elle ne doit pas être présentée comme une fonction de génération active.
+- Les tables et historiques sont conservés ; aucune donnée de campagne n'a été supprimée.
+
+### Migration de préparation de suppression — état confirmé
+
+La migration `account_deletion_fk_cleanup` est enregistrée dans l'historique Supabase de production. Les trois références administratives préparées par la PR #85 sont nullable et utilisent `ON DELETE SET NULL`. Cette préparation ne supprime pas de comptes ni de lignes métier.
+
+### Écart de journal de migrations
+
+La revue du 24 novembre a constaté que les versions/noms de migrations enregistrés en production ne correspondent pas exactement aux fichiers versionnés. La migration de privatisation des buckets n'apparaît pas comme entrée distincte, tandis que la migration de retrait publicitaire en production peut couvrir les mêmes effets. L'historique seul ne prouve pas l'identité exacte du SQL exécuté. Ne pas lancer `supabase db push`, réinitialiser la base, réécrire les entrées appliquées ou rejouer aveuglément les migrations. Comparer les effets SQL et utiliser uniquement une migration corrective forward-only si un écart réel est démontré.
+
+### Points de lancement qui restent bloquants
+
+- Les appels rejoignent toujours `meet.jit.si` sans JWT Jitsi : les droits du RPC MALACHITE ne protègent pas l'accès à la salle du fournisseur. Ne pas annoncer les appels comme authentifiés pour le lancement public.
+- La protection Supabase Auth contre les mots de passe compromis est signalée désactivée et doit être examinée dans le Dashboard par le propriétaire du projet.
+- La suppression de compte en libre-service n'est pas implémentée. Les références sans FK et les règles de conservation par catégorie doivent être traitées avant toute suppression réelle.
+- Les tests de suppression doivent utiliser des comptes synthétiques et démontrer qu'aucune donnée d'un autre utilisateur n'est touchée.
+
+Aucun compte, message, paiement ou média utilisateur n'a été supprimé pendant ces vérifications. Aucun fournisseur payant ni service de paiement n'a été activé.
