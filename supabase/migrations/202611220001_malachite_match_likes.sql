@@ -52,7 +52,7 @@ begin
       and (not coalesce(old.ok, false) or new.autre is distinct from old.autre);
   end if;
 
-  if v_new_like then
+  if coalesce(new.ok, false) then
     -- Enforce candidate eligibility in the database; the frontend filter is not a security boundary.
     select coalesce(p.profile_private, true)
       into v_target_private
@@ -95,7 +95,9 @@ begin
        ) then
       raise exception 'match_incompatible_target';
     end if;
+  end if;
 
+  if v_new_like then
     -- Serialize free-member like attempts to prevent parallel requests
     -- from exceeding the daily allowance.
     perform pg_advisory_xact_lock(hashtextextended(v_uid::text, 0));
