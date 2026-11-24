@@ -15,11 +15,12 @@ Production Supabase : `tscsmemsvgacqioncash`
 
 - PR #72 ouverte, brouillon, non fusionnée.
 - Branche : `integration/match-frontend-mainline-2026-11-23`.
-- Commit contrôlé : `6d2c2779c1ce1bd465ca15984799a6477f998cc5`.
-- Vérification directe GitHub : checks `validate` et `match-runtime` tous deux terminés avec succès.
-- Tests réels à deux comptes/appareils non effectués.
-- Revue sécurité publiée dans la conversation de PR : la validation d'éligibilité des destinataires doit être faite côté serveur, et testée contre des appels REST directs (profil privé/suspendu/incompatible), pas seulement dans le frontend.
-- Ne pas fusionner / déployer avant sauvegarde restaurable, correction/retest de cette revue, tests réels et autorisation.
+- Dernier commit contrôlé : `afccd5a4ff637326c772c639be0555411c8ab303`.
+- GitHub Actions sur ce commit : `validate` et `match-runtime` tous deux terminés avec succès; le test runtime utilise un PostgreSQL 17 jetable.
+- Correction ajoutée dans la branche : le trigger serveur vérifie l'éligibilité (profil public, non suspendu, non bloqué, intentions compatibles) avant d'enregistrer un like.
+- Test runtime ajouté : tentatives directes vers profil privé, suspendu, bloqué et incompatible refusées; le quota reste inchangé. Ces tests sont des tests SQL isolés, pas encore des essais REST sur deux comptes réels.
+- Tests réels à deux comptes/appareils non effectués. PR toujours brouillon et non fusionnée.
+- Ne pas fusionner / déployer avant sauvegarde restaurable, tests réels, revue finale et autorisation.
 
 ## 3. Worker IA — état actuel (révision du 24 novembre)
 
