@@ -1,0 +1,73 @@
+import process from "node:process";
+
+const siteUrl = process.env.SITE_URL;
+if (!siteUrl) throw new Error("SITE_URL is required from the GitHub Pages deployment output.");
+
+const base = new URL(siteUrl);
+if (base.protocol !== "https:") throw new Error("The deployed site must use HTTPS.");
+if (!base.pathname.endsWith("/")) base.pathname += "/";
+
+async function get(path, expectedText = null) {
+  const url = new URL(path, base);
+  let response;
+  let body = "";
+  for (let attempt = 1; attempt <= 5; attempt++) {
+    try {
+      response = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(15000) });
+      body = await response.text();
+      if (response.ok && (!expectedText || body.includes(expectedText))) break;
+    } catch (error) {
+      if (attempt === 5) throw error;
+    }
+    if (attempt < 5) await new Promise(resolve => setTimeout(resolve, 2000));
+  }
+  if (!response?.ok) throw new Error(`HTTP ${response?.status ?? "network error"} for ${url}`);
+  if (expectedText && !body.includes(expectedText)) {
+    throw new Error(`Expected deployed content not found at ${url}: ${expectedText}`);
+  }
+  console.log(`OK ${response.status} ${url.pathname}`);
+  return body;
+}
+
+const productionHtml = await get("", "MALACHITE");
+if (!productionHtml.includes("https://tscsmemsvgacqioncash.supabase.co")) {
+  throw new Error("Production HTML does not reference the expected production Supabase project.");
+}
+if (productionHtml.includes("MALACHITE · ENVIRONNEMENT DE TEST") ||
+    productionHtml.includes("sbawknyxcjslvhknomkd")) {
+  throw new Error("Staging content or configuration leaked into the production page.");
+}
+
+const productionAssets = [
+  ["app-core.js", "supabase.createClient"],
+  ["calls.js", "JitsiMeetExternalAPI"],
+  ["sw.js", "malachite-static-v"],
+  ["manifest.webmanifest", '"display"'],
+  ["icons/malachite.svg", "<svg"],
+  ["i18n.js", "LANGS"],
+  ["malachite-ai.js", "malAiLoadDashboard"],
+  ["malachite-performance.js", "mal-low-power"],
+  ["malachite-chat-ui.js", "malachite-chat"],
+  ["malachite-avatar-ui.js", "malachite-avatar"],
+  ["malachite-founder-finance.js", "malachite-founder"],
+];
+for (const [path, marker] of productionAssets) await get(path, marker);
+
+const previewHtml = await get("preview/", "MALACHITE · ENVIRONNEMENT DE TEST");
+if (!previewHtml.includes("sbawknyxcjslvhknomkd.supabase.co")) {
+  throw new Error("Match preview does not reference the isolated staging Supabase project.");
+}
+if (previewHtml.includes("tscsmemsvgacqioncash") ||
+    previewHtml.includes("sb_publishable_XDpqSzsPNeVduv6aGyjuoA_suakeFN0")) {
+  throw new Error("Production Supabase configuration leaked into the Match preview HTML.");
+}
+const previewCore = await get("preview/app-core.js", "sbawknyxcjslvhknomkd.supabase.co");
+if (previewCore.includes("tscsmemsvgacqioncash") ||
+    previewCore.includes("sb_publishable_XDpqSzsPNeVduv6aGyjuoA_suakeFN0")) {
+  throw new Error("Production Supabase configuration leaked into the Match preview JavaScript.");
+}
+await get("preview/sw.js", "malachite-match-preview-static-v1");
+await get("preview/manifest.webmanifest", '"display"');
+await get("preview/icons/malachite.svg", "<svg");
+
+console.log("MALACHITE deployed-site smoke checks passed for production and isolated Match preview.");
