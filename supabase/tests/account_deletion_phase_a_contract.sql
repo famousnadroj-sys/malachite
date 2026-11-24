@@ -83,3 +83,44 @@ begin
   end if;
 end $$;
 reset role;
+reset role;
+
+-- Simulate deleting A from the disposable Auth table. The stable thread and
+-- B's membership must survive; the pair index and A's membership must cascade.
+delete from auth.users
+where id='30000000-0000-0000-0000-00000000000a';
+
+do $$
+declare
+  ab_thread uuid;
+begin
+  select conversation_id into ab_thread
+  from public.conversation_pair_index
+  where member_low='30000000-0000-0000-0000-00000000000a'
+     or member_high='30000000-0000-0000-0000-00000000000a';
+  if ab_thread is not null then
+    raise exception 'phase_a_deleted_user_pair_index_must_cascade';
+  end if;
+
+  if not exists (
+    select 1 from public.conversation_members cm
+    join public.conversation_pair_index i using (conversation_id)
+    where i.member_low='30000000-0000-0000-0000-00000000000b'
+      and i.member_high='30000000-0000-0000-0000-00000000000e'
+      and cm.user_id='30000000-0000-0000-0000-00000000000b'
+      and cm.active
+  ) then
+    -- This checks a surviving membership in a separate thread, not the AB thread.
+    raise exception 'phase_a_surviving_membership_contract_failed';
+  end if;
+
+  if not exists (
+    select 1 from public.messages
+    where texte='A vers B' and conversation_id is not null
+      and sender_id is null
+      and de='30000000-0000-0000-0000-00000000000a'
+  ) then
+    raise exception 'phase_a_sender_fk_should_null_new_sender_id_but_legacy_de_remains';
+  end if;
+end $$;
+
