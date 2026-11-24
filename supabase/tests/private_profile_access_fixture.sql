@@ -111,3 +111,6 @@ $$;
 create trigger enforce_private_profile_public_projection
 before insert or update on public.profiles
 for each row execute function private.enforce_private_profile_public_projection();
+
+-- Ensure the corrective grant is exercised by the migration, not preloaded by the fixture.
+revoke select on public.profiles from authenticated;
