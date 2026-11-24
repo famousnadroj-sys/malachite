@@ -438,7 +438,7 @@ if (!appCoreSource.includes("sb.rpc('public_status_badges')") || appCoreSource.i
     !appCoreSource.includes('premium_active') || !appCoreSource.includes('verified_active') || !appCoreSource.includes('boost_active')) {
   throw new Error('Public profile cards must consume only boolean entitlement badges, never exact expiry timestamps.');
 }
-if (!calls.includes('ownStatus.premium_active') || !memberExperience.includes('status.premium_active')) {
+if (!calls.includes('ownStatus.premium_active') || !fs.readFileSync('malachite-user-experience.js', 'utf8').includes('status.premium_active')) {
   throw new Error('Own Premium status must remain available without exposing other members entitlement timestamps.');
 }
 const publicConfigMigration = fs.readFileSync('supabase/migrations/20261124181403_limit_public_config_reads_to_payment_operators.sql', 'utf8').toLowerCase();
