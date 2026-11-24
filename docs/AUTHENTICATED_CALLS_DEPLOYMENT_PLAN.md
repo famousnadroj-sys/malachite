@@ -27,3 +27,37 @@ Self-hosting requires infrastructure, maintenance, updates, bandwidth, and monit
 ## Release gate
 
 Calls are **not security-ready for launch** until the actual conference room enforces server-validated participant authentication and the negative tests above pass. Database authorization alone is insufficient.
+
+
+## Database call-expiry guard — production status (24 November 2026)
+
+### Code and isolated tests
+
+- PR #100 merged the client-side acceptance-result check and the additive migration `20261124130100_reject_expired_call_acceptance.sql`.
+- PR #101 expanded the disposable PostgreSQL fixture to include the existing `private.guard_call_session_update()` trigger, then verified:
+  - expired `pending → accepted` is rejected with `call_session_expired`;
+  - a non-expired call can transition `pending → accepted → ended`;
+  - legitimate `pending → expired` and `pending → rejected` transitions remain available.
+- PR #101 standard validation and PostgreSQL runtime checks passed before merge.
+
+### Read-only production verification
+
+A read-only inspection of Supabase production project `tscsmemsvgacqioncash` on 24 November 2026 found:
+
+- `public.call_sessions.expires_at` is `NOT NULL` and defaults to 90 seconds after creation.
+- The existing `guard_call_session_update` trigger is present.
+- The new `reject_expired_call_acceptance` trigger is **not present**.
+- The production migration history does not yet contain `20261124130100_reject_expired_call_acceptance`.
+- At the time of the check, two rows were still `pending` despite their `expires_at` being in the past. No row values or user identifiers were copied into this report.
+
+Therefore, the merged migration is tested in disposable PostgreSQL but the server-side expiry guard is **not yet active in production**. The client now checks the returned update row and expiry timestamp, but this is not a substitute for the database guard.
+
+### Safe next steps
+
+1. Before any production change, re-check the live trigger and migration history because the observed state can change.
+2. Review the migration against the current production trigger and confirm the expected trigger order/behavior.
+3. Obtain explicit production-change approval before applying the additive migration.
+4. After application, verify the trigger definition and run a rollback-safe SQL check that an expired pending call cannot be accepted while valid terminal transitions remain permitted.
+5. Decide separately whether stale pending rows should be marked expired. Do not mass-update call records as part of the trigger migration without a reviewed cleanup procedure.
+
+This check does not authenticate users inside the Jitsi conference room. The Jitsi JWT/infrastructure release gate above remains unchanged.
