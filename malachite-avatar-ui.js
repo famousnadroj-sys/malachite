@@ -231,7 +231,6 @@ async function loadAdm(){
  if(malAdminPage==='members'){tasks.push(sb.from('signalements').select('*').order('created_at',{ascending:false}).limit(100));keys.push('reports');tasks.push(sb.from('suspensions').select('user_id,depuis,motif').order('depuis',{ascending:false}));keys.push('suspensions')}
  if(malAdminPage==='settings'&&malSettingsPage==='support'){tasks.push(sb.from('demandes_support').select('*').order('created_at',{ascending:false}).limit(100));keys.push('support')}
  if(malAdminPage==='settings'&&malSettingsPage==='avis'){tasks.push(sb.from('avis_site').select('*').order('created_at',{ascending:false}).limit(50));keys.push('reviews')}
- if((malAdminPage==='campaigns'||(malAdminPage==='settings'&&malSettingsPage==='publicite'))){tasks.push(sb.from('campagnes').select('*').order('created_at',{ascending:false}).limit(40));keys.push('campaigns')}
  var results=await Promise.all(tasks),byKey={};keys.forEach(function(k,i){byKey[k]=results[i]});
  var pr=byKey.payments;if(pr.error){console.error('Chargement paiements',pr.error);alert('Impossible de charger les paiements. Réessaie.');return}
  admTotal=pr.count||0;adm=pr.data||[];
@@ -241,7 +240,6 @@ async function loadAdm(){
  if(byKey.suspensions){if(byKey.suspensions.error)console.warn('Suspensions',byKey.suspensions.error);else admSuspensions=byKey.suspensions.data||[]}
  if(byKey.support){if(byKey.support.error)console.warn('Support',byKey.support.error);else malSupportRows=byKey.support.data||[]}
  if(byKey.reviews){if(byKey.reviews.error)console.warn('Avis',byKey.reviews.error);else avs=byKey.reviews.data||[]}
- if(byKey.campaigns){if(byKey.campaigns.error){console.error('Campagnes publicitaires',byKey.campaigns.error);malCampaignRows=[]}else malCampaignRows=byKey.campaigns.data||[]}
 
  draw();
  malAiAutoAnalyzePayments(adm);
