@@ -50,6 +50,17 @@ const productionAssets = [
 ];
 for (const [path, marker] of productionAssets) await get(path, marker);
 
+const discoveryHtml = await get("decouvrir.html", "Pass Appels");
+for (const retiredValue of ["2 $", "0,50 $", "1 $", "Pour 30 jours", "Pour 24 heures", "Pour 7 jours"]) {
+  if (discoveryHtml.includes(retiredValue)) {
+    throw new Error(`Un tarif ou une durée non approuvés sont encore publiés : ${retiredValue}`);
+  }
+}
+const sitemap = await get("sitemap.xml", "<urlset");
+if (sitemap.includes("partenaires.html")) {
+  throw new Error("La page Partenaires retirée est encore présente dans le sitemap public.");
+}
+
 const previewHtml = await get("preview/", "MALACHITE · ENVIRONNEMENT DE TEST");
 if (previewHtml.includes("tscsmemsvgacqioncash") ||
     previewHtml.includes("sb_publishable_XDpqSzsPNeVduv6aGyjuoA_suakeFN0")) {
