@@ -56,7 +56,7 @@ if (!frontend.includes('function persistMalView()') || !frontend.includes('funct
 if (!frontend.includes('function sendSticker(emoji)') || !frontend.includes('m.media_type==="document"')) {
   throw new Error('Chat stickers and document rendering must remain available.');
 }
-if (!frontend.includes('createSignedUrl(path,3600,{download:true})')) {
+if (!frontend.includes('createSignedUrl(path,ttl,{download:true})')) {
   throw new Error('Private document downloads must use signed download URLs.');
 }
 if (frontend.includes('timer=setInterval(loadChat,4000)')) {
