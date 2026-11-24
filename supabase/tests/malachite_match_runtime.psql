@@ -189,6 +189,25 @@ begin
   where user_id=auth.uid();
   if used_count <> 0 then raise exception 'rejected_ineligible_likes_consumed_quota: %',used_count; end if;
 
+  -- Existing active likes must also be revalidated if the target later becomes private.
+  insert into public.avis_match(autre,ok)
+  values ('00000000-0000-0000-0000-000000000002',true);
+  update public.profiles set profile_private=true
+  where id='00000000-0000-0000-0000-000000000002';
+  begin
+    update public.avis_match set ok=true
+    where user_id=auth.uid()
+      and autre='00000000-0000-0000-0000-000000000002';
+    raise exception 'active_like_to_private_target_was_not_rejected';
+  exception when others then
+    if sqlerrm not like '%match_private_target%' then raise; end if;
+  end;
+  update public.profiles set profile_private=false
+  where id='00000000-0000-0000-0000-000000000002';
+  select count(*) into used_count from private.match_daily_like_events
+  where user_id=auth.uid();
+  if used_count <> 1 then raise exception 'revalidation_update_changed_like_quota: %',used_count; end if;
+
 
   -- Changing the target of an existing active like is a new like and must
   -- consume quota; otherwise a client can bypass the daily limit with UPDATE.
