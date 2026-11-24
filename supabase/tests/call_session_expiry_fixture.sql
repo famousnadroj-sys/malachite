@@ -1,3 +1,8 @@
+create schema if not exists auth;
+create or replace function auth.uid()
+returns uuid language sql stable
+as $$ select null::uuid $$;
+
 -- Minimal production-shaped fixture: the existing status-transition guard
 -- is installed first, then the new expiry guard is applied by the workflow.
 create schema if not exists private;
