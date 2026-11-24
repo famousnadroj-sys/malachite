@@ -23,6 +23,9 @@ alter table public.paiements enable row level security;
 create policy "declarer un paiement" on public.paiements
 for insert to authenticated
 with check (user_id=(select auth.uid()));
+create policy "voir ses paiements" on public.paiements
+for select to authenticated
+using (user_id=(select auth.uid()));
 
 insert into public.paiements(user_id,offre,code,operateur,receipt_path)
 values('50000000-0000-0000-0000-000000000001','Premium','OLD-REF-1234','airtel','50000000-0000-0000-0000-000000000001/old-receipt.png');
