@@ -38,3 +38,7 @@ jobs:
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/account_deletion_rls_contract.sql
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/account_deletion_conversation_backfill_contract.sql
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/account_deletion_live_message_schema_contract.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/account_deletion_phase_a_fixture.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f docs/ACCOUNT_DELETION_PHASE_A_MIGRATION_DRAFT.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f docs/ACCOUNT_DELETION_PHASE_A_MIGRATION_DRAFT.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/account_deletion_phase_a_contract.sql
