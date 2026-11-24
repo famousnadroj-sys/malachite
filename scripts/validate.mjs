@@ -122,6 +122,7 @@ if (calls.includes("me.email==='famousnadroj@gmail.com'") ||
   throw new Error('Admin payment realtime must use the database admin role and clear its subscription when the session identity changes.');
 }
 if (!calls.includes("var SECURE_JITSI_PROVIDER_READY=false;") ||
+    !calls.includes("if(!SECURE_JITSI_PROVIDER_READY||!me)return;") ||
     calls.includes("var oldMatch=window.matchBox") ||
     calls.includes("mal-call-head")) {
   throw new Error('Call controls must remain disabled until the secure provider is configured.');
