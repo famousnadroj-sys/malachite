@@ -40,15 +40,16 @@ Une recherche en lecture seule des fonctions `public` et `private` par noms usue
 
 ## 3. Architecture cible proposée pour la messagerie
 
-Introduire un identifiant de conversation stable, indépendant des comptes :
+Introduire un identifiant de conversation stable, indépendant des UUID des comptes conservés :
 
-- `conversations` : une ligne par fil de discussion, avec un identifiant UUID stable et des métadonnées minimales ;
-- `conversation_members` : appartenance et état d’accès de chaque participant ;
-- `messages.conversation_id` : référence stable vers le fil ;
-- `messages.sender_id` : nullable après anonymisation, avec une date d’anonymisation explicite ;
-- `messages.sender_deleted_at` (ou état équivalent) : permet au client d’afficher « Compte supprimé » sans rechercher un profil ;
-- `messages.media_owner_id` : à ajouter si nécessaire pour déterminer le propriétaire d’un fichier indépendamment de l’auteur visible du message.
-
+- `conversation_threads` : ligne par fil, identifiant UUID stable et métadonnées minimales ; aucune colonne de participant.
+- `conversation_pair_index` : index canonique temporaire de paire (`member_low/member_high`) vers `conversation_id`, avec FK Auth en cascade. Cet index sert à retrouver/créer un fil privé à deux.
+- `conversation_members` : appartenance et état d’accès ; FK Auth en cascade pour que le compte supprimé perde son appartenance sans supprimer celle du membre restant.
+- `messages.conversation_id` : référence stable vers le fil.
+- `messages.sender_id` : nullable après anonymisation, avec FK `ON DELETE SET NULL` et date d’anonymisation explicite.
+- `messages.sender_deleted_at` : permet au client d’afficher « Compte supprimé » sans rechercher un profil.
+- `messages.de/a` : restent obligatoires pendant la transition ; ne pas les anonymiser avant migration complète du frontend, des triggers, des notifications, des politiques RLS/Storage et des reçus.
+- `messages.media_owner_id` : à ajouter seulement si nécessaire après inventaire de la propriété réelle des objets.
 Contraintes de conception :
 1. Les lignes de conversation et les messages ne doivent pas être supprimés en cascade à cause de la suppression d’un participant.
 2. La suppression d’un compte retire son appartenance et ses droits d’accès ; elle ne retire pas l’appartenance de l’autre membre.
@@ -129,19 +130,27 @@ Utiliser deux comptes synthétiques A et B, deux appareils simulés et des fichi
 
 ## 7. État réel des tests préparatoires
 
-Le fichier `supabase/tests/account_deletion_behavior_contract.sql` ajoute un test jetable qui modélise la conservation des messages, l’anonymisation de l’expéditeur, le retrait de son appartenance et l’isolation d’une conversation tierce.
+Les contrats de comportement, RLS, backfill, schéma de messagerie et migration Phase A sont exécutés par GitHub Actions sur PostgreSQL 17 jetable. Le run `45491495220` a terminé avec `success` sur le commit `990df8fb861d2cc3dfecd4e543b786cea0a57f24`.
 
-**Résultat vérifié :** le contrat comportemental a été exécuté avec succès sur PostgreSQL 17 jetable par GitHub Actions (run `45485434783`, commit `3f1045618adaef1148f4eddec212ac70c99519df`). Le test utilise uniquement des tables temporaires et vérifie la conservation des messages, l’anonymisation de l’expéditeur, le retrait de l’appartenance, la relance sans effet destructif et l’isolation d’une conversation tierce.
+Un test complémentaire a été exécuté sur le projet Supabase distinct `malachite-match-test` (`sbawknyxcjslvhknomkd`), vide de comptes et de messages avant l'essai. Ce projet contenait 51 migrations de schéma, dont les triggers et policies réels de messagerie, médias et reçus. Le brouillon Phase A a été appliqué uniquement à ce projet de test sous le nom `account_deletion_phase_a_conversation_threads_test` (version `20261124213104`).
 
-**Limite importante :** ce succès valide uniquement le contrat simulé. Il ne valide pas les vrais triggers, les politiques RLS, les politiques Storage, les reçus de lecture, les appels ni le workflow Auth de production. Il ne constitue donc pas une validation de la suppression réelle d’un compte.
+Dans une transaction annulée, le test a utilisé des comptes synthétiques A/B/C/D/E, dont E sans profil, des messages dans les deux sens, un appel Jitsi, un reçu de livraison et les vrais triggers/RLS du projet de test. Résultats vérifiés :
+- 5 messages rattachés à 3 fils et 6 appartenances ;
+- A ne voit que A/B, C ne voit que C/D, B voit ses deux fils ;
+- les déclencheurs de message acceptent les messages et le format Jitsi testés ;
+- après suppression simulée de A dans Auth, le fil A/B et l'appartenance de B restent, l'index de paire et l'appartenance de A disparaissent, et `sender_id` devient NULL ;
+- le reçu lié à A est supprimé par cascade, conformément aux FK actuelles ;
+- après `ROLLBACK`, les compteurs Auth, messages, profils, reçus, fils et appartenances sont revenus à zéro.
 
-L’inspection en lecture seule de la base confirme notamment :
-- `messages.de` et `messages.a` sont obligatoires ; le trigger `limite_messages()` rejette un expéditeur différent de `auth.uid()` et construit le chemin média à partir de `de` et `a` ;
-- le trigger de notification utilise `new.de` comme auteur ;
-- les politiques RLS de `messages` et `message_receipts` reposent sur `de` et `a` ;
-- les reçus de lecture exigent encore que le message conserve les identifiants d’origine.
+**Limites :** ce test valide le schéma réel de ce projet de test et ses migrations déjà appliquées ; il ne charge pas l'intégralité de la production, ne valide pas tous les objets Storage ni les Edge Functions, et ne constitue pas une autorisation de déploiement production.
 
-Cela confirme qu’une simple anonymisation de `de` dans la table actuelle casserait les fonctions existantes. Le modèle de conversation stable décrit plus haut est donc nécessaire avant toute suppression effective.
+L'historique de production contient 65 migrations et sa dernière version enregistrée est `20261124122733`. Vingt-quatre migrations plus récentes de la branche ne sont pas enregistrées comme appliquées en production. Elles doivent être auditées et testées dans l'ordre ; ne pas supposer que les protections de ces fichiers sont déjà actives.
+
+Les reçus `message_receipts` ont des FK Auth `ON DELETE CASCADE` sur `sender_id` et `recipient_id`. Le comportement actuel est donc leur suppression quand l'un des participants est supprimé. Si le produit doit conserver des états de livraison/lecture anonymisés, une phase dédiée devra changer ces dépendances avant suppression Auth.
+
+Rapports détaillés :
+- [Rapport de tests RLS et Phase A](ACCOUNT_DELETION_RLS_TEST_REPORT.md)
+- [Plan d'intégration du schéma de conversation](ACCOUNT_DELETION_CONVERSATION_SCHEMA_BLUEPRINT.md)
 
 ## 8. Conditions de passage en production
 
