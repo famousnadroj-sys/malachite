@@ -97,7 +97,7 @@ reset role;
 update private.call_provider_config set enabled=true, updated_at=now() where singleton=true;
 set local role authenticated;
 select set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
-do $ begin
+do $accepted$ begin
  if (select count(*) from public.call_sessions)<>1 then raise exception 'callee_cannot_read_call'; end if;
  if has_column_privilege('authenticated','public.call_sessions','caller_id','UPDATE')
     or has_column_privilege('authenticated','public.call_sessions','callee_id','UPDATE')
@@ -115,7 +115,7 @@ do $ begin
  update public.rendez_vous set statut='confirme' where a=auth.uid();
  if not exists(select 1 from public.rendez_vous where statut='confirme') then raise exception 'appointment_status_update_failed'; end if;
  if has_column_privilege('authenticated','public.rendez_vous','de','UPDATE') then raise exception 'appointment_sender_column_mutable'; end if;
-end $$;
+end $accepted$;
 reset role;
 insert into public.blocages values ('10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000001');
 set local role authenticated;
