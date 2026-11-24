@@ -151,7 +151,7 @@ if (!calls.includes("createSignedUrls(batch,300)") ||
 
 for (const path of ['calls.js', 'malachite-user-experience.js', 'malachite-avatar-ui.js']) {
   const source = fs.readFileSync(path, 'utf8');
-  if (/Déblocage contact|Déblocage contact : 1 USD|déblocage contact séparément/i.test(source)) {
+  if (/Déblocage contact|Déblocage contact : 1 USD|déblocage contact séparément|Unlock contact: USD 1|Fungola contact: 1 USD|Kangula contact: 1 USD|Kufungua mawasiliano: USD 1/i.test(source)) {
     throw new Error('Launch monetization must remain limited to Premium, Boost and paid calls.');
   }
 }
