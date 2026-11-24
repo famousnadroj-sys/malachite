@@ -67,7 +67,8 @@
   callInboxUserId=null;incoming=null;
  }
  function startInbox(){
-  if(!me)return;var uid=me.id;
+  // Do not advertise or accept incoming calls until a signed JaaS provider is configured.
+  if(!SECURE_JITSI_PROVIDER_READY||!me)return;var uid=me.id;
   if(callInbox&&callInboxUserId===uid)return;
   if(callInbox)stopCallInbox();
   callInboxUserId=uid;
