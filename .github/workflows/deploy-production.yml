@@ -156,6 +156,8 @@ jobs:
         with:
           name: malachite-pages
           path: _site
+      - name: Wait for GitHub Pages artifact indexing
+        run: sleep 10
       - name: Publish production and preview website
         id: deployment
         uses: actions/deploy-pages@v4
