@@ -292,6 +292,9 @@ if (!frontend.includes('class="conv-avatar" onclick="event.stopPropagation();vie
 if (!frontend.includes('async function viewProf(id,startIndex)') || !frontend.includes("window.malOpenProfile=async function(id,startIndex)") || !frontend.includes("layer.className='mal-profile-viewer'")) throw new Error('Immersive profile viewer must remain available.');
 if (!frontend.includes('href="https://famousnadroj-sys.github.io/malachite/preview/"') || !frontend.includes('Ouvrir MALACHITE · environnement de test')) throw new Error('Founder dashboard must open the isolated Match preview, not production.');
 
+if (frontend.includes("ADM='famousnadroj@gmail.com'") || frontend.includes('me.email===ADM') || frontend.includes('me.email!==ADM') || frontend.includes('me.email==ADM')) throw new Error('Admin UI must not use a client-side email allow-list.');
+if (!frontend.includes("sb.rpc('malachite_ai_manager_is_admin')") || !frontend.includes('malAdminAuthorized')) throw new Error('Admin UI must derive access from the database authorization RPC.');
+
 console.log('Malachite frontend, PWA, private media, SQL policy and Admin security checks passed.');
 
 
