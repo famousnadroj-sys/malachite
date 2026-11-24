@@ -135,6 +135,10 @@ Contrôle agrégé effectué sur la base de production le 24 novembre 2026, sans
 
 **Décision :** le backfill naïf de toutes les lignes `messages` est interdit. Les deux messages auto-adressés doivent être exclus du modèle strict A/B jusqu'à classification. Les trois messages d'auteurs sans profil ne doivent pas être exclus automatiquement : les comptes Auth existent, donc ils restent candidats au backfill si `de <> a`, avec un traitement d'affichage sans profil. Les reçus sont cohérents au moment du contrôle, mais leurs FK Auth en cascade restent un risque au moment de supprimer l'utilisateur.
 
+## 4 ter. Quarantaine des lignes historiques ambiguës
+
+Le brouillon Phase A crée aussi `conversation_migration_quarantine`. Les messages auto-adressés, les lignes dont un participant n'existe plus dans `auth.users` et les éventuelles lignes incomplètes y sont enregistrés avec une raison, sans inventer de fil à deux personnes. La table est sous RLS sans lecture client. Le contrat Phase A vérifie un message auto-adressé et un participant Auth manquant, en plus du cas d'un auteur Auth présent mais sans profil (qui reste migrable).
+
 ## 5. Tests d'intégration obligatoires à ajouter
 
 Le test actuel de backfill utilise une structure simulée ; il ne charge pas le vrai schéma ni les triggers de Malachite. Le prochain jeu de tests doit reproduire fidèlement les colonnes, contraintes, fonctions et politiques pertinentes à partir des migrations réelles versionnées.
