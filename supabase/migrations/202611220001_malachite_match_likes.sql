@@ -348,4 +348,17 @@ $function$;
 
 revoke all on function private.est_match(uuid) from public, anon, authenticated;
 
+create or replace function public.est_match(p_autre uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $function$
+  select private.est_match(p_autre);
+$function$;
+
+revoke all on function public.est_match(uuid) from public, anon;
+grant execute on function public.est_match(uuid) to authenticated;
+
 commit;
