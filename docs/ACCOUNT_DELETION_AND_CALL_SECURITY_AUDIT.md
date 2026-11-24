@@ -201,3 +201,20 @@ La revue du 24 novembre a constaté que les versions/noms de migrations enregist
 - Les tests de suppression doivent utiliser des comptes synthétiques et démontrer qu'aucune donnée d'un autre utilisateur n'est touchée.
 
 Aucun compte, message, paiement ou média utilisateur n'a été supprimé pendant ces vérifications. Aucun fournisseur payant ni service de paiement n'a été activé.
+
+
+## 14. Revue des Edge Functions à authentification personnalisée — addendum
+
+Contrôle du code décrit dans la revue du 24 novembre 2026. `verify_jwt=false` n'est pas, à lui seul, la preuve d'une fonction ouverte : chaque fonction doit imposer son propre contrôle d'accès adapté.
+
+- `malachite-admin-push` : endpoint de webhook interne ; les actions de gestion vérifient une session Supabase et le rôle administrateur, les actions internes utilisent un secret stocké côté serveur. Le correctif de la PR #90 refuse les secrets manquants/vides et borne l'en-tête. Ne jamais inscrire le secret ni sa valeur dans le dépôt ou les journaux.
+- `malachite-ai-worker` : déclenchement serveur avec signature HMAC SHA-256 vérifiée côté base, fenêtre temporelle de cinq minutes et clé conservée dans Vault. Ne pas exposer cette clé au client.
+- `username-login` : endpoint public nécessaire à l'authentification ; limite documentée de 15 tentatives par IP sur 15 minutes, hash IP et réponse générique en cas d'identifiants invalides. L'action publique de disponibilité du nom peut faciliter l'énumération ; conserver un rate limit et surveiller les abus.
+- `admin-user-moderation` et `malachite-ai-manager` : JWT Supabase requis, avec vérification serveur des privilèges administrateur pour les opérations sensibles.
+- `malachite-ad-creative` : JWT requis ; endpoint de retrait HTTP 410, pas de génération de campagne active.
+
+Cette revue est une analyse de code et de configuration rapportée, pas une preuve d'un test d'intrusion complet. Les contrôles d'intégration, la surveillance des abus et la rotation des secrets restent nécessaires.
+
+## 15. Confirmation de migration — références administratives
+
+L'historique de production indique que `account_deletion_fk_cleanup` a été appliquée. Les références administratives `campagnes.cree_par`, `demandes_support.traite_par` et `signalements.traite_par` ont été préparées avec `ON DELETE SET NULL` ; aucune ligne métier ni aucun compte n'a été supprimé par cette préparation. Cela ne résout pas les références utilisateur sans FK listées plus haut et ne constitue pas une implémentation de suppression de compte.
