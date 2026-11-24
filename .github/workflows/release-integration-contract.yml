@@ -41,6 +41,7 @@ jobs:
           cp -r app-source/assets _site/assets
           cp public-source/index.html public-source/decouvrir.html public-source/404.html _site/
           cp public-source/robots.txt public-source/sitemap.xml _site/
+          rm -f _site/partenaires.html
           cp -r preview-source/. _site/preview/
           touch _site/.nojekyll
           test -f _site/index.html
