@@ -6,6 +6,7 @@ on:
   push:
     branches:
       - main
+      - preview/malachite-match-staging-clean
   workflow_dispatch:
 permissions:
   contents: read
