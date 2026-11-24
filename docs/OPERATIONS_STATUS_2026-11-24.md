@@ -8,7 +8,8 @@ Production Supabase : `tscsmemsvgacqioncash`
 
 - Plan Supabase de l'organisation vérifié : Free.
 - Aucun export complet ni restauration de test n'a été exécuté par cette revue.
-- La sauvegarde complète restaurable reste bloquée. Voir [BACKUP_RESTORE_RUNBOOK.md](BACKUP_RESTORE_RUNBOOK.md).
+- Inventaire Storage en lecture seule : 66 objets, 70 341 882 octets (~67,1 Mio) dans `chat-media` (31), `payment-receipts` (2), `photos` (9), `profile-photos` (24); les deux buckets de campagnes sont vides. Les buckets contenant des médias et reçus sont privés.
+- La sauvegarde complète restaurable reste bloquée. Le runbook a été renforcé avec l'inventaire exact et un test de restauration local gratuit en priorité; Auth et Storage nécessitent une couverture séparée. Voir [BACKUP_RESTORE_RUNBOOK.md](BACKUP_RESTORE_RUNBOOK.md).
 - Ne pas activer PITR ou un service payant sans validation du prix.
 
 ## 2. MALACHITE Match — PR #72
