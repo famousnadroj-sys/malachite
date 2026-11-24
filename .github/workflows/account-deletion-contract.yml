@@ -35,3 +35,4 @@ jobs:
         run: |
           set -euo pipefail
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/account_deletion_behavior_contract.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/account_deletion_rls_contract.sql
