@@ -175,6 +175,15 @@ with check (
 create policy "user reads own notifications" on public.user_notifications
 for select to authenticated using (user_id = (select auth.uid()));
 
+grant usage on schema auth, private to authenticated;
+grant execute on function auth.uid() to authenticated;
+grant execute on function private.is_suspended(uuid) to authenticated;
+grant execute on function private.is_blocked_with(uuid) to authenticated;
+grant execute on function private.est_premium(uuid) to authenticated;
+grant select on public.profiles to authenticated;
+grant insert, select on public.messages to authenticated;
+grant insert, select, update on public.message_receipts to authenticated;
+
 insert into public.profiles(id) values
 ('00000000-0000-0000-0000-00000000000a'),
 ('00000000-0000-0000-0000-00000000000b'),
