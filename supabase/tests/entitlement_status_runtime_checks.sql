@@ -31,6 +31,14 @@ begin
      or has_table_privilege('anon','public.deblocages','INSERT') then
     raise exception 'legacy_contact_unlock_table_must_not_be_directly_accessible';
   end if;
+  if has_table_privilege('anon','public.campagnes','SELECT')
+     or has_table_privilege('anon','public.campagnes','INSERT')
+     or has_table_privilege('authenticated','public.campagnes','SELECT')
+     or has_table_privilege('authenticated','public.campagnes','INSERT')
+     or has_table_privilege('authenticated','public.campagnes','UPDATE')
+     or has_table_privilege('authenticated','public.campagnes','DELETE') then
+    raise exception 'retired_campaign_table_must_not_be_directly_accessible';
+  end if;
   if not has_function_privilege('authenticated','public.public_status_badges()','EXECUTE')
      or has_function_privilege('anon','public.public_status_badges()','EXECUTE') then
     raise exception 'public_status_badges_permissions_invalid';
