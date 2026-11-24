@@ -87,6 +87,11 @@ reset role;
 
 -- Simulate deleting A from the disposable Auth table. The stable thread and
 -- B's membership must survive; the pair index and A's membership must cascade.
+create temporary table phase_a_expected_ab_thread as
+select conversation_id from public.conversation_pair_index
+where member_low='30000000-0000-0000-0000-00000000000a'
+  and member_high='30000000-0000-0000-0000-00000000000b';
+
 delete from auth.users
 where id='30000000-0000-0000-0000-00000000000a';
 
@@ -103,15 +108,29 @@ begin
   end if;
 
   if not exists (
+    select 1 from phase_a_expected_ab_thread expected
+    join public.conversation_threads t on t.id=expected.conversation_id
+  ) then
+    raise exception 'phase_a_stable_thread_must_survive_account_deletion';
+  end if;
+
+  if not exists (
     select 1 from public.conversation_members cm
-    join public.conversation_pair_index i using (conversation_id)
-    where i.member_low='30000000-0000-0000-0000-00000000000b'
-      and i.member_high='30000000-0000-0000-0000-00000000000e'
-      and cm.user_id='30000000-0000-0000-0000-00000000000b'
+    join phase_a_expected_ab_thread expected
+      on expected.conversation_id=cm.conversation_id
+    where cm.user_id='30000000-0000-0000-0000-00000000000b'
       and cm.active
   ) then
-    -- This checks a surviving membership in a separate thread, not the AB thread.
-    raise exception 'phase_a_surviving_membership_contract_failed';
+    raise exception 'phase_a_surviving_member_B_must_keep_thread_access';
+  end if;
+
+  if exists (
+    select 1 from public.conversation_members cm
+    join phase_a_expected_ab_thread expected
+      on expected.conversation_id=cm.conversation_id
+    where cm.user_id='30000000-0000-0000-0000-00000000000a'
+  ) then
+    raise exception 'phase_a_deleted_member_A_must_be_removed';
   end if;
 
   if not exists (
