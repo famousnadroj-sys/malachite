@@ -140,7 +140,7 @@ const manifest = JSON.parse(fs.readFileSync('manifest.webmanifest', 'utf8'));
 if (manifest.start_url !== './' || manifest.scope !== './' || manifest.display !== 'standalone') {
   throw new Error('PWA manifest configuration is incomplete.');
 }
-if (!frontend.includes("createSignedUrls(paths,3600)") || !frontend.includes("profilePhotoSignedCache") || !frontend.includes("if(tab==='me')draw(true)")) {
+if (!frontend.includes("createSignedUrls(paths,300)") || !frontend.includes("profilePhotoSignedCache") || !frontend.includes("if(tab==='me')draw(true)")) {
   throw new Error('Own profile images must be signed in batches and rendered as soon as the profile is ready.');
 }
 if (!frontend.includes('fetchpriority="high"') || !frontend.includes('mal-own-cover-image')) {
@@ -255,7 +255,7 @@ if (!frontend.includes('if(firstLoad){\n    msgs=msgs.concat(fresh)')) throw new
 if (!frontend.includes('resolveMessagesMedia(priorityMedia).then(function()') || !frontend.includes('var deferredMedia=firstLoad?mediaRows.slice(0,-12):[]')) throw new Error('Recent chat media must be prioritized and older media resolved in the background.');
 if (!frontend.includes("Promise.all([sb.from('avis_match').select('ok')")) throw new Error('Conversation match checks must run concurrently.');
 if (!frontend.includes("sb.channel('msgs-'+me.id)")) throw new Error('Per-user Realtime message updates must remain enabled.');
-if (!frontend.includes('async function resolveMessagesMedia(rows)') || !frontend.includes("createSignedUrls(paths,3600)")) throw new Error('Chat media URLs must be resolved in batches.');
+if (!frontend.includes('async function resolveMessagesMedia(rows)') || !frontend.includes("createSignedUrls(paths,300)")) throw new Error('Chat media URLs must be resolved in batches.');
 if (!frontend.includes("filter:'a=eq.'+me.id") || !frontend.includes("filter:'de=eq.'+me.id")) throw new Error('Realtime messages must be filtered to the signed-in user.');
 if (!frontend.includes("preload=\"none\"")) throw new Error('Chat videos must not preload all media data.');
 if (!frontend.includes('async function loadOlderMessages()')) throw new Error('Chat history must load older messages incrementally.');
@@ -286,7 +286,7 @@ if (!frontend.includes("msg-status read") || !frontend.includes("aria-label=\"Lu
 if (!migrations.includes('message_receipts') || !migrations.includes('recipient marks read') || !migrations.includes('revoke all on public.message_receipts')) throw new Error('Secure message receipt migrations are missing.');
 if (!migrations.includes('avatar=case when p_profile ?') || !migrations.includes('profile_private,avatar')) throw new Error('Profile avatar persistence migration is missing.');
 if (frontend.includes('Ajoute une photo de profil avant d’enregistrer.')) throw new Error('Profile creation must allow a saved avatar instead of requiring a photo.');
-if (!frontend.includes('cache.expiresAt=now+3500000')) throw new Error('Signed media URL cache must refresh its expiry after renewal.');
+if (!frontend.includes('cache.expiresAt=now+270000')) throw new Error('Signed media URL cache must refresh its expiry after renewal.');
 if (!frontend.includes("Signature des médias de la conversation ('+bucket+')")) throw new Error('Media URL resolution must isolate failures by storage bucket.');
 if (!sw.match(/malachite-static-v[0-9]+/) || !sw.includes('./calls.js') || !sw.includes('./malachite-ad-studio.js')) throw new Error('Service worker must cache a versioned app shell including the call client.');
 if (!frontend.includes("status==='SUBSCRIBED'")) throw new Error('Realtime recovery must immediately resync the active conversation after reconnect.');
