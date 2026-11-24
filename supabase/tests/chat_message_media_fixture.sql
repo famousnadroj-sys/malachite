@@ -21,6 +21,13 @@ create policy "envoyer un message" on public.messages for insert to authenticate
 create policy "lire ses messages" on public.messages for select to authenticated using ((de=(select auth.uid()) or a=(select auth.uid())) and not private.is_blocked_with(case when de=(select auth.uid()) then a else de end));
 create policy "chat-media envoyer" on storage.objects for insert to authenticated with check (bucket_id='chat-media' and (storage.foldername(name))[1]=(select auth.uid())::text and (storage.foldername(name))[2] is not null and not private.blocked_text((storage.foldername(name))[2]) and not private.is_suspended((select auth.uid())));
 create policy "chat-media lire" on storage.objects for select to authenticated using (bucket_id='chat-media' and (((storage.foldername(name))[1]=(select auth.uid())::text) or ((storage.foldername(name))[2]=(select auth.uid())::text)));
+
+create policy "legacy chat media read participants" on storage.objects for select to authenticated
+using (bucket_id='photos' and exists(select 1 from public.messages m
+ where split_part(m.media_url,'/storage/v1/object/public/photos/',2)=objects.name
+ and (m.de=(select auth.uid()) or m.a=(select auth.uid()))
+ and not private.is_blocked_with(case when m.de=(select auth.uid()) then m.a else m.de end)));
+
 create or replace function public.limite_messages() returns trigger language plpgsql security definer set search_path='' as $$
 declare n integer;
 begin
