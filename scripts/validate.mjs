@@ -161,7 +161,7 @@ for (const item of ['malAiLoadDashboard', 'malAiInsights', 'malAiQuickPrompt', '
   if (!aiManager.includes(item)) throw new Error('AI Manager dashboard capability missing: ' + item);
 }
 const adCreativeFunction = fs.readFileSync('supabase/functions/malachite-ad-creative/index.ts', 'utf8');
-if (!adCreativeFunction.includes('advertising_generation_disabled') || !adCreativeFunction.includes('status: 410')) {
+if (!adCreativeFunction.includes('advertising_generation_disabled') || !adCreativeFunction.includes('respond(410,')) {
   throw new Error('Retired advertising endpoint must reject requests with HTTP 410.');
 }
 const adminUi = fs.readFileSync('malachite-avatar-ui.js', 'utf8');
