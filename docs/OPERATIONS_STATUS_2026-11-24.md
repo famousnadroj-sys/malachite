@@ -38,9 +38,9 @@ Cette vérification confirme le fonctionnement périodique actuel, pas une garan
 ## 4. Avis Supabase — sécurité
 
 Contrôle en lecture seule du 24 novembre :
-- 10 tables avec RLS activé sans politique : principalement tables administratives/privées. C'est une fermeture par défaut, mais vérifier que chaque accès voulu passe uniquement par les fonctions autorisées.
-- Alerte `anon_security_definer_function_executable` sur `public.get_malachite_referrer_preview(uuid)` : elle renvoie uniquement le prénom et le nom d'utilisateur d'un profil public, ce qui semble correspondre à l'aperçu de parrainage public. Confirmer l'intention et limiter la réponse aux champs publics.
-- 5 alertes de fonctions `SECURITY DEFINER` exécutables par `authenticated` : `admin_malachite_referrals`, `founder_business_overview`, `founder_finance_summary`, `get_malachite_referrer_preview`, `start_call_session`. Les définitions examinées vérifient les permissions administrateur pour les RPC admin/finance ; `start_call_session` vérifie l'identité, l'abonnement, le blocage et le match mutuel. Ne pas supprimer ces contrôles ni changer en `SECURITY INVOKER` sans tests inter-comptes.
+- 10 tables avec RLS activé sans politique : principalement tables administratives/privées. Contrôle SQL complémentaire : `anon` et `authenticated` n'ont aucun privilège direct SELECT/INSERT sur ces 10 tables ; l'alerte est donc informative et le refus par défaut est confirmé.
+- Alerte `anon_security_definer_function_executable` sur `public.get_malachite_referrer_preview(uuid)` : c'est la seule des 5 fonctions examinées exécutable par `anon`. Elle renvoie seulement le prénom et le nom d'utilisateur d'un profil non privé, ce qui semble correspondre à l'aperçu public de parrainage. Le risque est limité aux champs publics, mais la fonction doit rester minimaliste et son intention doit être confirmée.
+- 5 fonctions `SECURITY DEFINER` sont exécutables par `authenticated` ; aucun accès `anon` pour les 4 autres : `admin_malachite_referrals`, `founder_business_overview`, `founder_finance_summary`, `start_call_session`. Les définitions examinées vérifient les permissions administrateur pour les RPC admin/finance ; `start_call_session` vérifie l'identité, l'abonnement, le blocage et le match mutuel. Ne pas supprimer ces contrôles ni changer en `SECURITY INVOKER` sans tests inter-comptes.
 - Aucun DDL de production n'a été appliqué pendant cet audit.
 
 ## 5. Suite recommandée
