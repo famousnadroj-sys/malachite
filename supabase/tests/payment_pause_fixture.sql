@@ -37,6 +37,26 @@ create policy "voir config" on public.config
 for select to authenticated using (true);
 insert into public.config(cle,valeur) values ('airtel','TEST-DESTINATION-NOT-REAL');
 
+create table public.call_sessions(
+  id uuid primary key default gen_random_uuid(),
+  caller_id uuid not null,
+  callee_id uuid not null,
+  status text not null,
+  expires_at timestamptz not null
+);
+grant select,insert,update,delete on public.call_sessions to authenticated;
+alter table public.call_sessions enable row level security;
+create policy "call participants can read" on public.call_sessions
+for select to authenticated
+using (caller_id=(select auth.uid()) or callee_id=(select auth.uid()));
+create policy "call participants can update" on public.call_sessions
+for update to authenticated
+using (caller_id=(select auth.uid()) or callee_id=(select auth.uid()))
+with check (caller_id=(select auth.uid()) or callee_id=(select auth.uid()));
+create policy "paid matched members can call" on public.call_sessions
+for insert to authenticated
+with check (caller_id=(select auth.uid()) and status='pending' and expires_at>now());
+
 create schema storage;
 create table storage.objects(bucket_id text not null,name text not null);
 grant select,insert,delete on storage.objects to authenticated;
