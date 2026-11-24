@@ -10,6 +10,7 @@ create table auth.users(id uuid primary key);
 create table public.profiles(
  id uuid primary key references auth.users(id),
  prenom text not null,
+ age integer not null check (age between 18 and 100),
  profile_private boolean not null default false,
  photos text[] not null default '{}'::text[]
 );
