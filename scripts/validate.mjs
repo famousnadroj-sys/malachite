@@ -42,6 +42,9 @@ for (const item of requiredFrontend) {
   if (!frontend.includes(item)) throw new Error('Frontend requirement missing: ' + item);
 }
 if (frontend.includes("from('prives').upsert(")) throw new Error('Private preference writes must use the validated RPC.');
+if (frontend.includes("from('config').select('cle,valeur')") || frontend.includes('window.NUM') || frontend.includes('window.ORANGE')) {
+  throw new Error('Payment destination numbers must not be loaded into the public client while payment intake is paused.');
+}
 if (frontend.includes("from('profiles').update({avatar:")) throw new Error('Avatar writes must use the owner-scoped avatar RPC.');
 if (frontend.includes("avatar.imageUrl=await signedUrl('profile-photos',path)")) throw new Error('Signed avatar URLs must not be persisted in profile JSON.');
 if (frontend.includes("profiles').select('*')")) throw new Error('Public profile query must not select private columns.');
