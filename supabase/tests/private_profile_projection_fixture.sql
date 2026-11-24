@@ -28,3 +28,16 @@ create table public.profiles (
  derniere_vue timestamptz,
  profile_private boolean not null default false
 );
+
+create or replace function auth.uid()
+returns uuid language sql stable
+as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
+
+create or replace function private.is_blocked_with(target uuid)
+returns boolean language sql stable
+as $$ select false $$;
+
+create or replace function private.is_suspended(target uuid)
+returns boolean language sql stable
+as $$ select false $$;
+
