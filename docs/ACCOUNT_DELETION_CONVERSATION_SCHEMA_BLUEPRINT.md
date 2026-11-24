@@ -45,6 +45,19 @@ La migration en attente `20261124170000_harden_call_and_referrer_access.sql` cr�
 En production, la table `private.call_provider_config` n'existe pas encore, tandis que la fonction actuelle `start_call_session()` existe sans ce contrôle du fournisseur. **Ne pas appliquer cette migration isolément** : cela pourrait désactiver les nouveaux appels. Avant toute mise en production, il faut choisir et tester le fournisseur d'appel privé, l'émission JWT côté serveur, les secrets, les règles d'accès, les expirations et le parcours client. Ne pas exposer une clé JaaS dans le navigateur.
 
 
+## 1 ter. Politiques RLS confirmées en production
+
+Relecture directe de `pg_policies` le 24 novembre 2026 :
+
+- `messages SELECT` : accès si `de = auth.uid()` ou `a = auth.uid()`, et si le blocage bilatéral avec l'autre personne ne s'applique pas. La politique ne vérifie pas directement la suspension du participant dans sa clause `USING`.
+- `messages INSERT` : `de = auth.uid()`, `a <> auth.uid()`, absence de blocage, absence de suspension de l'émetteur, et profil existant du destinataire.
+- `message_receipts SELECT` : émetteur ou destinataire du reçu.
+- `message_receipts INSERT/UPDATE` : destinataire uniquement, avec vérification que le reçu correspond exactement à `messages.de/a`.
+- `rendez_vous SELECT/INSERT/UPDATE` : politiques distinctes basées sur `de/a`, blocage et statut du rendez-vous.
+- `user_notifications SELECT/UPDATE` : propriétaire de la notification.
+
+Le contrat d'intégration `account_deletion_live_message_schema_contract.sql` a été corrigé pour refléter les clauses RLS réellement observées, et non une version supposée plus stricte. Les contrôles de suspension côté serveur doivent rester dans le trigger/les fonctions et être testés séparément. La Phase B doit migrer les reçus avant de changer ou supprimer les colonnes historiques `de/a`.
+
 ## 2. Modèle cible recommandé
 
 Pour le périmètre actuel (conversation privée entre exactement deux personnes), utiliser un nom cohérent dans toute l'implémentation :
