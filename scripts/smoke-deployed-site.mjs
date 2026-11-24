@@ -30,6 +30,9 @@ async function get(path, expectedText = null) {
 }
 
 const productionHtml = await get("", "MALACHITE");
+if (!productionHtml.includes("offres payantes prévues au lancement")) {
+  throw new Error("La page d'accueil doit présenter les offres comme prévues, pas comme déjà actives.");
+}
 if (productionHtml.includes("MALACHITE · ENVIRONNEMENT DE TEST") ||
     productionHtml.includes("sbawknyxcjslvhknomkd")) {
   throw new Error("Staging content or configuration leaked into the production page.");
