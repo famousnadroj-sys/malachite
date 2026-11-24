@@ -1,9 +1,13 @@
-do $
-begin
-end
-$;
-
 begin;
+-- Inspect the private function definition as the database owner before switching
+-- to the restricted client role. The client must not receive USAGE on schema private.
+do $$
+begin
+  if position('public.deblocages' in pg_get_functiondef('private.contact_de(uuid)'::regprocedure))=0 then
+    raise exception 'guarded_contact_rpc_must_preserve_legacy_entitlements';
+  end if;
+end
+$$;
 set local role authenticated;
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000001',true);
 do $$
@@ -26,9 +30,6 @@ begin
      or has_table_privilege('anon','public.deblocages','SELECT')
      or has_table_privilege('anon','public.deblocages','INSERT') then
     raise exception 'legacy_contact_unlock_table_must_not_be_directly_accessible';
-  end if;
-  if position('public.deblocages' in pg_get_functiondef('private.contact_de(uuid)'::regprocedure))=0 then
-    raise exception 'guarded_contact_rpc_must_preserve_legacy_entitlements';
   end if;
   if not has_function_privilege('authenticated','public.public_status_badges()','EXECUTE')
      or has_function_privilege('anon','public.public_status_badges()','EXECUTE') then
