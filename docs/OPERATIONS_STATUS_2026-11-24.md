@@ -44,7 +44,8 @@ Cette vérification confirme le fonctionnement périodique actuel, pas une garan
 
 - Le workflow `.github/workflows/deploy-production.yml` publie uniquement sur un `push` vers `main` ou un lancement manuel. Les PR #72 et #73 sont en brouillon et n'ont pas déclenché de déploiement.
 - URL configurée dans le dépôt : `https://famousnadroj-sys.github.io/malachite/`.
-- La vérification HTTP directe du site n'a pas pu être menée depuis cet environnement de consultation; l'état live du site n'est donc pas certifié par cette revue.
+- Dernier déploiement GitHub Pages retrouvé : workflow réussi #45257722705, le 23/11/2026 à 20:16 UTC, sur le commit `ac9f2e14acc4ced3772dfbc754e27bdbb4e964fc` (identique au `main` contrôlé comme base des PR #72–#74). Les étapes de validation, build, upload d'artefact et publication ont toutes réussi.
+- La vérification HTTP directe du site n'a pas pu être menée depuis cet environnement de consultation; le workflow prouve la publication réussie, mais pas le chargement actuel depuis un téléphone ou un réseau mobile.
 
 ## 5. Avis Supabase — sécurité
 
