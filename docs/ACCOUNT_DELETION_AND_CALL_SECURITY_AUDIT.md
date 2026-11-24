@@ -151,3 +151,23 @@ Les alertes des Advisors sont des pistes de vérification, pas la preuve que cha
 - Appels : fonctionnalité non désactivée, mais non validée comme suffisamment sécurisée pour un lancement public tant qu'une authentification de participant Jitsi ou un fournisseur de conférence authentifié n'est pas en place.
 - Auth : protection des mots de passe compromis à examiner dans le tableau de bord.
 - Aucune suppression de compte, aucun changement de fournisseur d'appels, aucune migration de données utilisateur et aucun paiement n'ont été exécutés.
+
+
+## 12. Plan technique pour rétablir des appels authentifiés
+
+La documentation officielle Jitsi indique que l'authentification JWT est configurée sur le serveur Jitsi (notamment Prosody), et non simplement activée par l'application cliente. Pour une installation Docker, les paramètres officiels incluent `ENABLE_AUTH=1`, `AUTH_TYPE=jwt`, `JWT_APP_ID`, `JWT_APP_SECRET` et `JWT_ALLOW_EMPTY=0`. Le secret doit rester côté serveur.
+
+Architecture recommandée si une infrastructure contrôlée devient disponible :
+1. Déployer une instance Jitsi dédiée, avec HTTPS, Docker et configuration de domaine maîtrisée.
+2. Configurer l'authentification JWT sur Prosody et refuser les jetons vides.
+3. Créer une Edge Function MALACHITE d'émission de jeton. Elle valide le JWT Supabase, vérifie que l'utilisateur est le caller ou callee de la session acceptée, que la session n'est pas expirée/terminée et que l'accès reste autorisé.
+4. Signer un jeton Jitsi de courte durée, lié à une seule salle précise et à l'identité du participant. Ne jamais signer un nom de salle ou un rôle fournis librement par le navigateur.
+5. Transmettre le jeton signé à `JitsiMeetExternalAPI` depuis le client ; ne jamais exposer le secret Jitsi dans le JavaScript.
+6. Tester les cas autorisés et refusés sur deux appareils et deux réseaux : bon caller, bon callee, autre utilisateur, session expirée, salle incorrecte, jeton expiré, utilisateur bloqué et tentative sans JWT.
+
+La documentation Jitsi décrit aussi les mécanismes d'authentification JWT et les options de Docker :
+- https://jitsi.github.io/handbook/docs/devops-guide/token-authentication/
+- https://jitsi.github.io/handbook/docs/devops-guide/authentication/
+- https://jitsi.github.io/handbook/docs/devops-guide/devops-guide-docker/
+
+Cette architecture n'est pas déployée. Elle nécessite un serveur que MALACHITE contrôle, des secrets protégés et des essais réels. Aucun fournisseur payant, hébergement ou changement de prestataire n'a été choisi ni activé.
