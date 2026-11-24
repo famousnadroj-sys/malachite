@@ -19,6 +19,25 @@ begin
   if (select count(*) from public.messages where de = a and conversation_id is null) <> 1 then
     raise exception 'phase_a_self_message_must_remain_unmapped';
   end if;
+
+  if (select count(*) from public.conversation_migration_quarantine) <> 2 then
+    raise exception 'phase_a_expected_two_quarantined_messages';
+  end if;
+  if not exists (
+    select 1 from public.conversation_migration_quarantine
+    where message_id=5 and reason='self_addressed'
+  ) then
+    raise exception 'phase_a_self_message_not_quarantined';
+  end if;
+  if not exists (
+    select 1 from public.conversation_migration_quarantine
+    where message_id=7 and reason='missing_auth_participant'
+  ) then
+    raise exception 'phase_a_missing_auth_message_not_quarantined';
+  end if;
+  if has_table_privilege('authenticated','public.conversation_migration_quarantine','SELECT') then
+    raise exception 'phase_a_quarantine_must_not_be_client_readable';
+  end if;
   if exists (
     select 1 from public.messages
     where conversation_id is not null and sender_id is distinct from de
