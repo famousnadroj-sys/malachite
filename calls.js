@@ -80,9 +80,11 @@
  }
  async function acceptIncoming(){
   var row=incoming;if(!row||!me)return;
-  var r=await sb.from('call_sessions').update({status:'accepted'}).eq('id',row.id).eq('callee_id',me.id).eq('status','pending');
-  if(r.error){alert('Impossible d’accepter : '+r.error.message);incoming=null;closeUI();return}
-  callState={id:row.id,caller:false,caller_id:row.caller_id,callee_id:row.callee_id,mode:row.mode,room:row.room,status:'accepted'};
+  var r=await sb.from('call_sessions').update({status:'accepted'}).eq('id',row.id).eq('callee_id',me.id).eq('status','pending').select('id,caller_id,callee_id,mode,room,status,expires_at').maybeSingle();
+  if(r.error||!r.data||r.data.status!=='accepted'||new Date(r.data.expires_at).getTime()<=Date.now()){
+   alert('Impossible d’accepter : cet appel n’est plus en attente ou a expiré.');incoming=null;closeUI();return
+  }
+  callState={id:r.data.id,caller:false,caller_id:r.data.caller_id,callee_id:r.data.callee_id,mode:r.data.mode,room:r.data.room,status:r.data.status};
   incoming=null;await joinJitsi(callState);
  }
  async function rejectIncoming(){var row=incoming;if(row&&me)await sb.from('call_sessions').update({status:'rejected'}).eq('id',row.id).eq('callee_id',me.id).eq('status','pending');incoming=null;closeUI()}
