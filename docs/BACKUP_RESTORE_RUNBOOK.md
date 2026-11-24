@@ -20,16 +20,17 @@ Références officielles : [Backups](https://supabase.com/docs/guides/platform/b
 2. Installer la version stable actuelle de Supabase CLI et PostgreSQL client.
 3. Obtenir la chaîne de connexion **Session pooler** depuis Supabase Dashboard → Connect. Ne jamais la mettre dans Git, un ticket ou un message.
 4. La définir dans une variable d'environnement masquée `SUPABASE_DB_URL` et éviter l'historique shell. Ne pas réinitialiser le mot de passe de production pour cette procédure.
-5. Créer un dossier daté, privé et non synchronisé publiquement.
+5. Se connecter à la CLI avec `supabase login`, puis lier le dépôt au projet exact avec `supabase link --project-ref tscsmemsvgacqioncash` pour les commandes Storage. Vérifier le projet lié avec `supabase projects list` avant toute commande. Cette liaison ne déploie aucune migration.
+6. Créer un dossier daté, privé et non synchronisé publiquement.
 
 ## 2. Export logique SQL
 
 Exécuter les commandes séparément et vérifier le code de sortie de chacune :
 
 ```bash
-supabase db dump --remote="$SUPABASE_DB_URL" -f roles.sql --role-only
-supabase db dump --remote="$SUPABASE_DB_URL" -f schema.sql
-supabase db dump --remote="$SUPABASE_DB_URL" -f data.sql --use-copy --data-only -x "storage.buckets_vectors" -x "storage.vector_indexes"
+supabase db dump --db-url="$SUPABASE_DB_URL" -f roles.sql --role-only
+supabase db dump --db-url="$SUPABASE_DB_URL" -f schema.sql
+supabase db dump --db-url="$SUPABASE_DB_URL" -f data.sql --use-copy --data-only -x "storage.buckets_vectors" -x "storage.vector_indexes"
 ```
 
 Ces fichiers sont sensibles : ils peuvent contenir des données personnelles et des données internes. Les garder hors du dépôt Git. Ce dump ne remplace pas un backup Supabase complet des données Auth ni des objets Storage.
@@ -52,13 +53,13 @@ Total constaté : **66 objets, 70 341 882 octets (~67,1 Mio)**. Les reçus de pa
 Copier chaque bucket vers un dossier local chiffré, par exemple :
 
 ```bash
-supabase storage ls "ss:///chat-media" --recursive --experimental --remote=tscsmemsvgacqioncash
-supabase storage cp "ss:///chat-media" "./storage/chat-media" --recursive --experimental --remote=tscsmemsvgacqioncash
-supabase storage cp "ss:///payment-receipts" "./storage/payment-receipts" --recursive --experimental --remote=tscsmemsvgacqioncash
-supabase storage cp "ss:///photos" "./storage/photos" --recursive --experimental --remote=tscsmemsvgacqioncash
-supabase storage cp "ss:///profile-photos" "./storage/profile-photos" --recursive --experimental --remote=tscsmemsvgacqioncash
-supabase storage cp "ss:///malachite-campaign-media" "./storage/malachite-campaign-media" --recursive --experimental --remote=tscsmemsvgacqioncash
-supabase storage cp "ss:///malachite-campaigns" "./storage/malachite-campaigns" --recursive --experimental --remote=tscsmemsvgacqioncash
+supabase storage ls "ss:///chat-media" --recursive --experimental
+supabase storage cp "ss:///chat-media" "./storage/chat-media" --recursive --experimental
+supabase storage cp "ss:///payment-receipts" "./storage/payment-receipts" --recursive --experimental
+supabase storage cp "ss:///photos" "./storage/photos" --recursive --experimental
+supabase storage cp "ss:///profile-photos" "./storage/profile-photos" --recursive --experimental
+supabase storage cp "ss:///malachite-campaign-media" "./storage/malachite-campaign-media" --recursive --experimental
+supabase storage cp "ss:///malachite-campaigns" "./storage/malachite-campaigns" --recursive --experimental
 ```
 
 Vérifier le nombre de fichiers téléchargés par bucket et conserver les métadonnées (bucket, chemin, type MIME, taille). Ne pas publier les listes de chemins ni les reçus. La copie des objets ne sauvegarde pas automatiquement les politiques Storage ni tous les paramètres de bucket; documenter/recréer ces réglages séparément.
