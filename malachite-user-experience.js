@@ -665,7 +665,7 @@
         '<article class="mal-offer-card"><h3>Gratuit <span class="price">0 USD</span></h3><p>Découvrir, aimer et discuter avec tes matchs.</p></article>' +
         '<article class="mal-offer-card featured"><h3>Premium <span class="price">2 USD / 30 jours</span></h3><p>Messages sans quota, rendez-vous illimités et appels audio/vidéo inclus.</p></article>' +
         '<article class="mal-offer-card"><h3>Boost <span class="price">0,50 USD / 24 h</span></h3><p>Ton profil remonte en priorité dans Découvrir.</p></article>' +
-        '<article class="mal-offer-card"><h3>Déblocage contact <span class="price">1 USD</span></h3><p>Accès aux coordonnées après un match réciproque. Inclus avec Premium.</p></article>' +
+
         (premiumActive ? '<article class="mal-offer-card"><h3>Appels audio et vidéo</h3><p>Déjà inclus dans ton Premium actif.</p></article>' : '<article class="mal-offer-card"><h3>Pass Appels <span class="price">1 USD / 7 jours</span></h3><p>Appels audio et vidéo avec tes matchs pendant 7 jours.</p></article>') +
         '</div><button type="button" class="mal-offer-next" onclick="malSetOfferPage(2)">Comparer les avantages →</button>';
     } else if (offerPage === 2) {
