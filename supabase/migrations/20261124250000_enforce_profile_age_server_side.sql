@@ -4,7 +4,7 @@ create or replace function public.save_my_profile(p_profile jsonb, p_private jso
 returns jsonb
 language plpgsql
 set search_path to ''
-as $function$
+as $malachite_profile_body$
 declare
  v_uid uuid := auth.uid();
  v_profile public.profiles;
@@ -69,7 +69,7 @@ begin
 
  return to_jsonb(v_profile);
 end;
-$function$;
+$malachite_profile_body$;
 
 revoke all on function public.save_my_profile(jsonb,jsonb) from public, anon;
 grant execute on function public.save_my_profile(jsonb,jsonb) to authenticated;
