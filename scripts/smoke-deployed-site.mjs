@@ -76,6 +76,11 @@ if (!avatarUi.includes("if(!MAL_PAYMENTS_ENABLED)") ||
     !offerUi.includes("Ne transfère aucun argent.")) {
   throw new Error("Payment intake must fail closed until the owner confirms the launch settings.");
 }
+if (!calls.includes("var SECURE_JITSI_PROVIDER_READY=false;") ||
+    calls.includes("var oldMatch=window.matchBox") ||
+    calls.includes("mal-call-head")) {
+  throw new Error("Call controls must stay unavailable until the secure provider is configured.");
+}
 
 const discoveryHtml = await get("decouvrir.html", "Pass Appels");
 for (const retiredValue of ["2 $", "0,50 $", "Pour 30 jours", "Pour 24 heures"]) {
