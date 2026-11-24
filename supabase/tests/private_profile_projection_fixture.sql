@@ -18,7 +18,7 @@ create table public.profiles (
  id uuid primary key references auth.users(id),
  username text,
  prenom text not null,
- age integer,
+ age integer not null check (age between 18 and 100),
  genre text,
  commune text,
  quartier text,
