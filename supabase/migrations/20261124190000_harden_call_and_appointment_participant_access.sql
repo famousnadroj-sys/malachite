@@ -9,13 +9,6 @@ using (
   and not private.is_suspended(caller_id)
   and not private.is_suspended(callee_id)
   and not private.is_blocked_with(case when caller_id=(select auth.uid()) then callee_id else caller_id end)
-  and (
-    status <> 'accepted'
-    or exists (
-      select 1 from private.call_provider_config c
-      where c.singleton = true and c.enabled = true
-    )
-  )
 );
 
 drop policy if exists "call participants can update" on public.call_sessions;
@@ -32,6 +25,13 @@ with check (
   and not private.is_suspended(caller_id)
   and not private.is_suspended(callee_id)
   and not private.is_blocked_with(case when caller_id=(select auth.uid()) then callee_id else caller_id end)
+  and (
+    status <> 'accepted'
+    or exists (
+      select 1 from private.call_provider_config c
+      where c.singleton = true and c.enabled = true
+    )
+  )
 );
 
 drop policy if exists "paid matched members can call" on public.call_sessions;
