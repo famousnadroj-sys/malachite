@@ -257,7 +257,7 @@ async function ensureSignupProfile(user,metadata){
    var ext=({'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif'})[file.type];
    if(!ext)throw new Error('Format de photo non pris en charge.');
    uploaded=uid+'/profile-initial.'+ext;
-   var up=await sb.storage.from('profile-photos').upload(uploaded,file,{contentType:file.type,upsert:true});
+   var up=await sb.storage.from('profile-photos').upload(uploaded,file,{contentType:file.type,cacheControl:'300',upsert:true});
    if(up.error)throw up.error;
    photos=[uploaded];
   }
@@ -720,7 +720,7 @@ function loadTusClient(){
 }
 async function uploadChatAsset(path,file,forcedType){
  if(file.size<=6*1024*1024){
-  var standard=await sb.storage.from('chat-media').upload(path,file,{contentType:forcedType||file.type||'application/octet-stream',upsert:false,cacheControl:'31536000'});
+  var standard=await sb.storage.from('chat-media').upload(path,file,{contentType:forcedType||file.type||'application/octet-stream',upsert:false,cacheControl:'300'});
   if(standard.error)throw standard.error;
   return standard.data;
  }
@@ -734,7 +734,7 @@ async function uploadChatAsset(path,file,forcedType){
    retryDelays:[0,1000,3000,5000,10000],
    headers:{authorization:'Bearer '+session.access_token,apikey:'sb_publishable_XDpqSzsPNeVduv6aGyjuoA_suakeFN0'},
    uploadDataDuringCreation:true,removeFingerprintOnSuccess:true,chunkSize:6*1024*1024,
-   metadata:{bucketName:'chat-media',objectName:path,contentType:forcedType||file.type||'application/octet-stream',cacheControl:'31536000'},
+   metadata:{bucketName:'chat-media',objectName:path,contentType:forcedType||file.type||'application/octet-stream',cacheControl:'300'},
    onError:function(error){reject(error)},
    onProgress:function(sent,total){var el=$('chatUploadStatus');if(el)el.textContent='Transfert… '+Math.round(sent/total*100)+'%'},
    onSuccess:function(){resolve({path:path})}
@@ -1296,7 +1296,7 @@ async function up(el){
  if(ph.length>=3){msg='3 photos maximum.';return draw()}
  if(['image/jpeg','image/png','image/webp','image/gif'].indexOf(f.type)<0||f.size>5e6){msg='Choisis une image JPEG, PNG, WebP ou GIF de 5 Mo maximum.';return draw()}
  var ext=({'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif'})[f.type],path=me.id+'/'+Date.now()+'.'+ext;
- var upload=await sb.storage.from('profile-photos').upload(path,f,{contentType:f.type,upsert:false});
+ var upload=await sb.storage.from('profile-photos').upload(path,f,{contentType:f.type,cacheControl:'300',upsert:false});
  if(upload.error){msg='Photo non envoyée : '+upload.error.message;return draw()}
  var next=ph.concat([path]);
  try{await persistProfilePhotoList(next);msg='Photo ajoutée à ton profil ✔';draw()}
@@ -1333,7 +1333,7 @@ async function save(){
   if(pendingProfileFile){
    var file=pendingProfileFile,ext=({'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif'})[file.type];
    uploadedPath=uid+'/profile-'+Date.now()+'.'+ext;
-   var upload=await sb.storage.from('profile-photos').upload(uploadedPath,file,{contentType:file.type,upsert:false});
+   var upload=await sb.storage.from('profile-photos').upload(uploadedPath,file,{contentType:file.type,cacheControl:'300',upsert:false});
    if(upload.error)throw new Error('Photo non enregistrée : '+upload.error.message);
    allPhotos=[uploadedPath].concat(allPhotos).slice(0,3);
   }
