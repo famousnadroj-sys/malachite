@@ -23,7 +23,7 @@ for (const [index, source] of frontendScripts.entries()) {
 
 const requiredFrontend = [
   "profiles').select('id,username,prenom,age",
-  "from('prives').upsert({id:me.id,prefs:merged})",
+  "rpc('update_my_preferences',{p_preferences:pr})",
   "from('chat-media').upload",
   "from('profile-photos').upload",
   "createSignedUrl",
@@ -40,6 +40,7 @@ const requiredFrontend = [
 for (const item of requiredFrontend) {
   if (!frontend.includes(item)) throw new Error('Frontend requirement missing: ' + item);
 }
+if (frontend.includes("from('prives').upsert(")) throw new Error('Private preference writes must use the validated RPC.');
 if (frontend.includes("profiles').select('*')")) throw new Error('Public profile query must not select private columns.');
 if (!frontend.includes("insert({de:me.id,profil:id,motif:motif})")) throw new Error('Report must include the authenticated reporter id.');
 if ((frontend.match(/storage\.from\('photos'\)\.upload/g) || []).length) throw new Error('New uploads must not use the legacy public photos bucket.');
