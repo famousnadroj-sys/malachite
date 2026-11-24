@@ -305,9 +305,24 @@ if (!appCoreSource.includes("sb.rpc('malachite_ai_manager_is_admin')") || !appCo
 
 if (frontend.includes('Aucun changement Match n’a été appliqué à la base de production') || frontend.includes('Code préparé, pas encore publié')) throw new Error('Founder dashboard must not claim Match is absent from production.');
 if (!frontend.includes('Agent IA · état vérifié') || !frontend.includes('Worker automatique actif') || !frontend.includes('Aucune alerte ouverte') || !frontend.includes('ne lit ni les messages privés ni les préférences privées')) throw new Error('Founder dashboard must expose verified AI operations and privacy boundaries.');
-const privateProfileMigration = fs.readFileSync('supabase/migrations/20261124140129_enforce_private_profile_public_projection.sql', 'utf8').toLowerCase();
-for (const item of ['new.profile_private', 'new.age := null', 'new.bio := null', "new.interets := '{}'::text[]", "new.prompts := '[]'::jsonb", 'new.derniere_vue := null', 'new.photos := new.photos[1:1]', 'create trigger enforce_private_profile_public_projection']) {
- if (!privateProfileMigration.includes(item)) throw new Error('Private profile public projection guard missing: ' + item);
+const privateProfileAccessMigration = fs.readFileSync('supabase/migrations/20261124150000_secure_private_profile_access.sql', 'utf8').toLowerCase();
+for (const item of [
+  'drop trigger if exists enforce_private_profile_public_projection on public.profiles',
+  'drop policy if exists "voir profils" on public.profiles',
+  'profile_private = false',
+  'private.is_blocked_with(id)',
+  'private.is_suspended(id)',
+  'drop policy if exists "profile photos read" on storage.objects',
+  'drop policy if exists "profile photos read published paths" on storage.objects',
+  'create policy "profile photos read published paths"',
+]) {
+  if (!privateProfileAccessMigration.includes(item)) throw new Error('Private profile access guard missing: ' + item);
+}
+if (privateProfileAccessMigration.includes('new.age := null') ||
+    privateProfileAccessMigration.includes('new.bio := null') ||
+    privateProfileAccessMigration.includes('new.photos :=') ||
+    privateProfileAccessMigration.includes('profile_private = true')) {
+  throw new Error('Private profile migration must preserve member data and hide all private photos.');
 }
 
 if (!frontend.includes('Backend Match présent en production') || !frontend.includes('Garde-fou d’expiration pas actif en production') || !frontend.includes('Authentification des salles Jitsi incomplète') || !frontend.includes('restauration réellement testée')) throw new Error('Founder dashboard must expose the verified production state and remaining launch blockers.');
