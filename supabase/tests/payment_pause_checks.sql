@@ -35,19 +35,19 @@ begin
   end if;
 
   if has_table_privilege('authenticated','public.call_sessions','INSERT')
+     or has_table_privilege('authenticated','public.call_sessions','UPDATE')
      or has_table_privilege('authenticated','public.call_sessions','DELETE') then
-    raise exception 'call_session_creation_and_deletion_must_be_disabled';
+    raise exception 'call_session_mutations_must_be_disabled_until_provider_ready';
   end if;
-  if not has_table_privilege('authenticated','public.call_sessions','SELECT')
-     or not has_table_privilege('authenticated','public.call_sessions','UPDATE') then
-    raise exception 'existing_call_history_must_remain_readable_and_updatable';
+  if not has_table_privilege('authenticated','public.call_sessions','SELECT') then
+    raise exception 'existing_call_history_must_remain_readable';
   end if;
   if exists (
     select 1 from pg_policies
     where schemaname='public' and tablename='call_sessions'
-      and policyname='paid matched members can call'
+      and policyname in ('paid matched members can call','call participants can update')
   ) then
-    raise exception 'paid_call_insert_policy_must_be_removed_until_provider_ready';
+    raise exception 'call_mutation_policies_must_be_removed_until_provider_ready';
   end if;
 
   if exists (
@@ -106,6 +106,19 @@ begin
   end if;
 end
 $existing_call_history$;
+
+do $blocked_call_update$
+begin
+  begin
+    update public.call_sessions
+    set status='accepted'
+    where caller_id=auth.uid();
+    raise exception 'call_session_update_was_accepted';
+  exception when insufficient_privilege then
+    null;
+  end;
+end
+$blocked_call_update$;
 
 do $history_read$
 begin
