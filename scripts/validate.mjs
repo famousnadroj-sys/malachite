@@ -410,6 +410,10 @@ const publicConfigMigration = fs.readFileSync('supabase/migrations/2026112418140
 for (const item of ['drop policy if exists "voir config" on public.config', "using (cle in ('airtel','orange'))"]) {
   if (!publicConfigMigration.includes(item)) throw new Error('Public configuration reads must be restricted to payment-operator keys.');
 }
+const privateWrapperMigration = fs.readFileSync('supabase/migrations/20261124181825_secure_public_private_function_wrappers.sql', 'utf8').toLowerCase();
+for (const item of ['alter function %s security definer', "alter function %s set search_path = %l", 'public.blocked_user_ids()', 'public.contact_de(uuid)', 'public.traiter_paiement(bigint,boolean,text)']) {
+  if (!privateWrapperMigration.includes(item)) throw new Error('Public RPC wrappers must securely invoke guarded private functions.');
+}
 const directPaymentMutationMigration = fs.readFileSync('supabase/migrations/20261124230000_restrict_direct_payment_mutations.sql', 'utf8').toLowerCase();
 if (!directPaymentMutationMigration.includes('revoke update, delete on table public.paiements from authenticated')) {
   throw new Error('Authenticated clients must not directly update or delete payment records.');
