@@ -13,7 +13,7 @@ insert into public.avis_match(user_id,autre,ok) values
  ('40000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001',true);
 do $provider$
 begin
-  if (select enabled from private.call_provider_config where singleton=true) then
+  if public.call_provider_is_enabled() then
     raise exception 'call_provider_must_default_to_disabled';
   end if;
 end
