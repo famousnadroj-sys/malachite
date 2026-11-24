@@ -44,7 +44,7 @@ $empty$;
 update private.call_provider_config set enabled=true, updated_at=now() where singleton=true;
 set local role authenticated;
 select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000001',true);
-do $ begin
+do $checks$ begin
  if exists(select 1 from public.get_malachite_referrer_preview('20000000-0000-0000-0000-000000000001')) then
    raise exception 'suspended_referrer_preview_leaked';
  end if;
@@ -110,7 +110,7 @@ do $ begin
  exception when sqlstate 'P0001' then
    if sqlerrm <> 'callee_suspended' then raise; end if;
  end;
-end $$;
+end $checks$;
 reset role;
 insert into public.suspensions(user_id) values ('10000000-0000-0000-0000-000000000001');
 set local role authenticated;
