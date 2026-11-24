@@ -166,3 +166,67 @@ begin
   end if;
 end
 $$;
+
+
+-- 10) Runtime negative checks: anonymous callers cannot invoke founder RPCs,
+-- and an authenticated non-admin identity is rejected by all founder RPCs.
+-- This block is transaction-scoped and rolls back without changing fixtures.
+begin;
+do $$
+begin
+  if exists (
+    select 1 from private.admins
+    where user_id='00000000-0000-0000-0000-000000000001'::uuid
+  ) then
+    raise exception 'security_test_subject_must_not_be_admin';
+  end if;
+  if has_function_privilege('anon','public.admin_malachite_referrals()','EXECUTE')
+     or has_function_privilege('anon','public.founder_business_overview(timestamptz,timestamptz)','EXECUTE')
+     or has_function_privilege('anon','public.founder_finance_summary(timestamptz,timestamptz)','EXECUTE') then
+    raise exception 'anon_admin_finance_rpc_grant_present';
+  end if;
+end $$;
+set local role authenticated;
+select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000001',true);
+do $$
+declare v_denied boolean;
+begin
+  if auth.uid() is null then raise exception 'security_test_auth_uid_missing'; end if;
+
+  v_denied := false;
+  begin
+    perform public.admin_malachite_referrals();
+  exception when others then
+    if sqlerrm = 'forbidden' then v_denied := true; else raise; end if;
+  end;
+  if not v_denied then raise exception 'non_admin_admin_referrals_not_denied'; end if;
+
+  v_denied := false;
+  begin
+    perform public.founder_business_overview(null,null);
+  exception when sqlstate '42501' then v_denied := true;
+  end;
+  if not v_denied then raise exception 'non_admin_business_overview_not_denied'; end if;
+
+  v_denied := false;
+  begin
+    perform public.founder_finance_summary(null,null);
+  exception when sqlstate '42501' then v_denied := true;
+  end;
+  if not v_denied then raise exception 'non_admin_finance_summary_not_denied'; end if;
+end $$;
+rollback;
+
+-- 11) The referrer preview must not return a row for an unknown identifier.
+-- The staging fixture currently contains no profiles, so private/public profile
+-- behavior remains covered by the function-definition assertions in section 8.
+do $$
+begin
+  if exists (
+    select 1 from public.get_malachite_referrer_preview(
+      '00000000-0000-0000-0000-000000000001'::uuid
+    )
+  ) then
+    raise exception 'unknown_referrer_preview_must_return_no_rows';
+  end if;
+end $$;
