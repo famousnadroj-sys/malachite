@@ -346,7 +346,7 @@ if (!appCoreSource.includes("sb.rpc('malachite_ai_manager_is_admin')") || !appCo
 
 if (frontend.includes('Aucun changement Match n’a été appliqué à la base de production') || frontend.includes('Code préparé, pas encore publié')) throw new Error('Founder dashboard must not claim Match is absent from production.');
 if (!frontend.includes('Agent IA · état vérifié') || !frontend.includes('Worker automatique actif') || !frontend.includes('Aucune alerte ouverte') || !frontend.includes('ne lit ni les messages privés ni les préférences privées')) throw new Error('Founder dashboard must expose verified AI operations and privacy boundaries.');
-const privateProfileAccessMigration = fs.readFileSync('supabase/migrations/20261124150000_secure_private_profile_access.sql', 'utf8').toLowerCase();
+const privateProfileAccessMigration = fs.readFileSync('supabase/migrations/20261124150100_secure_private_profile_access.sql', 'utf8').toLowerCase();
 for (const item of [
   'drop trigger if exists enforce_private_profile_public_projection on public.profiles',
   'drop policy if exists "voir profils" on public.profiles',
@@ -445,7 +445,7 @@ const contactUnlockTest = fs.readFileSync('supabase/tests/entitlement_status_run
 for (const item of ['legacy_contact_unlock_table_must_not_be_directly_accessible', 'guarded_contact_rpc_must_preserve_legacy_entitlements']) {
   if (!contactUnlockTest.includes(item)) throw new Error('Legacy contact unlock ACL runtime test is incomplete.');
 }
-const statusVisibilityMigration = fs.readFileSync('supabase/migrations/20261124200000_limit_entitlement_status_visibility.sql', 'utf8').toLowerCase();
+const statusVisibilityMigration = fs.readFileSync('supabase/migrations/20261124200100_limit_entitlement_status_visibility.sql', 'utf8').toLowerCase();
 for (const item of ['read own entitlement status', 'user_id = (select auth.uid())', 'public.public_status_badges()', 'private.is_suspended', 'private.is_blocked_with', 'profile_private = false', 'premium_until > now()', 'verified_until > now()', 'boost_until > now()', 'revoke all on function public.public_status_badges() from public, anon']) {
   if (!statusVisibilityMigration.includes(item)) throw new Error('Entitlement timestamps must remain private behind the public boolean badge projection.');
 }
