@@ -50,4 +50,55 @@ begin
 end
 $test$;
 
+-- The authenticated profile-save RPC must reject missing, underage,
+-- out-of-range, and contradictory age values before writing any profile data.
+select set_config('request.jwt.claim.sub','71000000-0000-0000-0000-000000000004',true);
+
+do $test$
+declare
+  v_rejected boolean;
+  v_profile jsonb;
+begin
+  v_rejected := false;
+  begin
+    perform public.save_my_profile(
+      '{"id":"71000000-0000-0000-0000-000000000004","prenom":"Missing"}'::jsonb,
+      '{}'::jsonb
+    );
+  exception when others then v_rejected := true;
+  end;
+  if not v_rejected then raise exception 'save_rpc_accepted_missing_age'; end if;
+
+  v_rejected := false;
+  begin
+    perform public.save_my_profile(
+      '{"id":"71000000-0000-0000-0000-000000000004","prenom":"Underage","age":17}'::jsonb,
+      '{"profile_age":17}'::jsonb
+    );
+  exception when others then v_rejected := true;
+  end;
+  if not v_rejected then raise exception 'save_rpc_accepted_underage'; end if;
+
+  v_rejected := false;
+  begin
+    perform public.save_my_profile(
+      '{"id":"71000000-0000-0000-0000-000000000004","prenom":"Out of range","age":101}'::jsonb,
+      '{"profile_age":101}'::jsonb
+    );
+  exception when others then v_rejected := true;
+  end;
+  if not v_rejected then raise exception 'save_rpc_accepted_age_over_100'; end if;
+
+  v_rejected := false;
+  begin
+    perform public.save_my_profile(
+      '{"id":"71000000-0000-0000-0000-000000000004","prenom":"Mismatch","age":25}'::jsonb,
+      '{"profile_age":24}'::jsonb
+    );
+  exception when others then v_rejected := true;
+  end;
+  if not v_rejected then raise exception 'save_rpc_accepted_mismatched_age'; end if;
+end
+$test$;
+
 rollback;
