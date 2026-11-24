@@ -31,6 +31,22 @@ Le brouillon `docs/ACCOUNT_DELETION_PHASE_A_MIGRATION_DRAFT.sql` a été exécut
 
 **Limite importante :** cette base est un fixture d'intégration construit à partir des colonnes observées en production ; elle ne charge pas encore l'intégralité des 65 migrations appliquées, des fonctions et des triggers Supabase réels. Le test de schéma de messagerie reproduit les comportements pertinents pour le contrat, mais ne remplace pas une restauration complète du schéma de production dans un projet de test.
 
+### Vérification sur le vrai schéma Supabase de test
+
+Un second test a été effectué dans le projet Supabase distinct `malachite-match-test` (`sbawknyxcjslvhknomkd`), qui était vide côté utilisateurs/messages et contenait déjà 51 migrations de schéma, dont les triggers et policies réels de messagerie, reçus et médias. Le brouillon Phase A a été enregistré dans ce projet de test sous la migration `account_deletion_phase_a_conversation_threads_test` (version `20261124213104`). **Aucune migration n'a été appliquée au projet de production.**
+
+Dans une transaction ensuite annulée, des comptes synthétiques A/B/C/D/E et des messages ont été créés avec les vrais triggers de ce projet, y compris un appel Jitsi et un auteur sans ligne `profiles`. Le test a vérifié :
+
+- le backfill de 5 messages vers 3 fils et 6 appartenances ;
+- les règles RLS réelles : A ne voit que le fil A/B, C ne voit que C/D, B voit ses deux fils ;
+- l'insertion d'un reçu de livraison sous l'identité B ;
+- après suppression simulée de A dans `auth.users`, le fil A/B et l'appartenance de B restent, l'index de paire et l'appartenance de A disparaissent, et `sender_id` devient NULL ;
+- le reçu lié à A disparaît par cascade, conformément aux FK actuelles.
+
+Après `ROLLBACK`, les compteurs du projet de test sont revenus à zéro pour `auth.users`, `messages`, `profiles`, `message_receipts`, `conversation_threads` et `conversation_members`. La migration Phase A reste uniquement dans le schéma de ce projet de test.
+
+**Conséquence métier :** les reçus de livraison/lecture ne sont actuellement pas conservés après suppression d'un des deux comptes. Si Malachite doit préserver un état de livraison anonymisé pour le membre restant, il faudra modifier les FK et la structure des reçus dans une phase ultérieure ; ne pas promettre cette conservation avec le schéma actuel.
+
 ## Ce que ce succès prouve
 
 Le modèle proposé d’appartenance active à une conversation peut appliquer, dans PostgreSQL, la règle d’accès attendue : un membre retiré ne lit plus le fil, le membre restant conserve l’historique anonymisé, et un tiers ne lit pas les conversations d’autrui.
