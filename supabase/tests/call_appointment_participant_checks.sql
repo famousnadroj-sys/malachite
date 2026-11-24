@@ -12,12 +12,23 @@ insert into public.avis_match values
  ('30000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001',true);
 set local role authenticated;
 select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000001',true);
-do $$ begin
- insert into public.call_sessions(id,caller_id,callee_id,room,mode,status,expires_at)
- values ('90000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000001','valid-room-12345','audio','pending',now()+interval '1 minute');
+do $ begin
+ perform public.start_call_session(
+  '90000000-0000-0000-0000-000000000001',
+  '20000000-0000-0000-0000-000000000001',
+  'valid-room-12345','audio',now()+interval '1 minute'
+ );
  begin
   insert into public.call_sessions(id,caller_id,callee_id,room,mode,status,expires_at)
-  values ('90000000-0000-0000-0000-000000000003','10000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000001','suspended-room-123','audio','pending',now()+interval '1 minute');
+  values ('90000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000001','direct-room-12345','audio','pending',now()+interval '1 minute');
+  raise exception 'direct_call_session_insert_allowed';
+ exception when insufficient_privilege then null; end;
+ begin
+  perform public.start_call_session(
+   '90000000-0000-0000-0000-000000000003',
+   '30000000-0000-0000-0000-000000000001',
+   'suspended-room-123','audio',now()+interval '1 minute'
+  );
   raise exception 'suspended_callee_call_insert_allowed';
  exception when others then if sqlerrm='suspended_callee_call_insert_allowed' then raise; end if; end;
  insert into public.rendez_vous(de,a,quand,lieu,message,statut)
@@ -27,7 +38,7 @@ do $$ begin
   values ('10000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000001',now()+interval '1 day','Public place','Meet','attente');
   raise exception 'suspended_recipient_appointment_allowed';
  exception when others then if sqlerrm='suspended_recipient_appointment_allowed' then raise; end if; end;
-end $$;
+end $;
 select set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
 do $$ begin
  if (select count(*) from public.call_sessions)<>1 then raise exception 'callee_cannot_read_call'; end if;
