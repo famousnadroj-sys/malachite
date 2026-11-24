@@ -48,6 +48,20 @@ begin
 end
 $mismatch$;
 
+do $public_age_missing$
+begin
+ begin
+  perform public.save_my_profile(
+   '{"id":"10000000-0000-0000-0000-000000000001","prenom":"Test","age":null,"profile_private":false}'::jsonb,
+   '{"profile_age":18}'::jsonb
+  );
+  raise exception 'public_profile_without_age_was_accepted';
+ exception when others then
+  if sqlerrm = 'public_profile_without_age_was_accepted' then raise; end if;
+ end;
+end
+$public_age_missing$;
+
 do $public_adult$
 declare result jsonb;
 begin
