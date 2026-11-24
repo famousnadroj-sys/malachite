@@ -1,6 +1,19 @@
 -- Reject calls involving suspended accounts and keep referral previews away from
 -- suspended members and blocked relationships. Identity always comes from auth.uid().
 
+-- Server-side kill switch for calls. It remains disabled until a private JaaS
+-- JWT issuer is deployed and its credentials are configured in Supabase secrets.
+create table if not exists private.call_provider_config (
+  singleton boolean primary key default true check (singleton),
+  enabled boolean not null default false,
+  updated_at timestamptz not null default now()
+);
+insert into private.call_provider_config(singleton, enabled)
+values (true, false)
+on conflict (singleton) do update set enabled = false, updated_at = now();
+revoke all privileges on table private.call_provider_config from public, anon, authenticated;
+grant select on table private.call_provider_config to service_role;
+
 create or replace function public.start_call_session(
   p_id uuid,
   p_callee_id uuid,
@@ -17,6 +30,9 @@ declare
   v_uid uuid := auth.uid();
 begin
   if v_uid is null then raise exception 'not_authenticated'; end if;
+  if not exists (select 1 from private.call_provider_config c where c.singleton = true and c.enabled = true) then
+    raise exception 'secure_call_provider_unavailable';
+  end if;
   if p_id is null then raise exception 'invalid_call_id'; end if;
   if p_callee_id is null or p_callee_id = v_uid then raise exception 'invalid_callee'; end if;
   if p_mode not in ('audio','video') then raise exception 'invalid_call_mode'; end if;
