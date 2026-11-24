@@ -141,7 +141,7 @@
    if(!callState||callState.id!==state.id)return;
    var p=prof(state.caller?state.callee_id:state.caller_id)||{},name=(mine&&mine.prenom)||'Membre Malachite';
    overlay(state.mode==='video'?'Appel vidéo avec '+(p.prenom||'ton match'):'Appel audio avec '+(p.prenom||'ton match'),
-    '<div class="mal-call-live"><span id="malCallStatus">Connexion sécurisée en cours…</span><div class="mal-call-controls"><button type="button" onclick="malToggleMic()" id="malMicBtn">🎙️ Micro activé</button><button type="button" onclick="malToggleCamera()" id="malCameraBtn">📷 Caméra</button><label class="mal-audio-route">🔊 Sortie audio <select id="malAudioOutput" onchange="malSetAudioOutput(this.value)"><option value="">Haut-parleur par défaut</option></select></label></div></div>',
+    '<div class="mal-call-live"><span id="malCallStatus">Connexion à l’appel en cours…</span><div class="mal-call-controls"><button type="button" onclick="malToggleMic()" id="malMicBtn">🎙️ Micro activé</button><button type="button" onclick="malToggleCamera()" id="malCameraBtn">📷 Caméra</button><label class="mal-audio-route">🔊 Sortie audio <select id="malAudioOutput" onchange="malSetAudioOutput(this.value)"><option value="">Haut-parleur par défaut</option></select></label></div></div>',
     '<button class="hangup" onclick="malHangup()">Raccrocher</button>',true);
    var mount=document.getElementById('malJitsiMount');
    if(!mount)throw new Error('Interface de l’appel introuvable.');
