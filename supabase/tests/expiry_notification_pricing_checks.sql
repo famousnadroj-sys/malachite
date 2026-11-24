@@ -13,6 +13,12 @@ begin
      or position('30 jours' in v_definition)>0 or position('24 heures' in v_definition)>0 then
     raise exception 'expiry_notifications_must_not_hardcode_unapproved_prices_or_durations';
   end if;
+  select v_definition || E'\\n' || pg_get_functiondef('private.process_expired_entitlements()'::regprocedure) into v_definition;
+  if position('3 USD' in v_definition)>0 or position('2 USD' in v_definition)>0
+     or position('0,50 USD' in v_definition)>0 or position('1 USD pour 7 jours' in v_definition)>0
+     or position('30 jours' in v_definition)>0 or position('24 heures' in v_definition)>0 then
+    raise exception 'scheduled_expiry_notifications_must_not_hardcode_unapproved_prices_or_durations';
+  end if;
   if not has_function_privilege('authenticated','public.check_my_entitlement_expirations()','EXECUTE')
      or has_function_privilege('anon','public.check_my_entitlement_expirations()','EXECUTE') then
     raise exception 'expiry_rpc_permissions_invalid';
