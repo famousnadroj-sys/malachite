@@ -185,7 +185,7 @@ if (!performanceGuard.includes('mal-low-power') || !performanceGuard.includes('n
 if (!frontend.includes('async function resolveProfilePhotosBatch(profiles)') ||
     !frontend.includes('Signature groupée des photos de profil') ||
     !frontend.includes('await Promise.all([othersPhotos,loadRdv(),loadAns(),loadMyAvis()])') ||
-    !frontend.includes("if(tab==='home'||tab==='search')draw(true);")) {
+    !frontend.includes("if(tab==='home'||tab==='search'||tab==='match')draw(true);")) {
   throw new Error('Discovery must render before the grouped profile-photo signing finishes.');
 }
 if (frontend.includes("if(t==='me'&&mine&&me){var uid=me.id,target=mine;resolveProfilePhotos(target)") ||
