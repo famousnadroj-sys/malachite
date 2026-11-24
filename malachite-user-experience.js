@@ -648,7 +648,7 @@
     if (typeof window.refreshOfferPremiumStatus === 'function') window.refreshOfferPremiumStatus();
     var user = currentUser();
     var status = window.st && user && window.st[user.id] ? window.st[user.id] : {};
-    var premiumActive = !!(status.premium_until && new Date(status.premium_until).getTime() > Date.now());
+    var premiumActive = !!status.premium_active;
     var airtel = window.NUM || '';
     var orange = window.ORANGE || '';
     var steps = '<div class="mal-offer-steps">' +
