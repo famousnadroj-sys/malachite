@@ -48,7 +48,7 @@ Introduire un identifiant de conversation stable, indépendant des UUID des comp
 - `messages.conversation_id` : référence stable vers le fil.
 - `messages.sender_id` : nullable après anonymisation, avec FK `ON DELETE SET NULL` et date d’anonymisation explicite.
 - `messages.sender_deleted_at` : permet au client d’afficher « Compte supprimé » sans rechercher un profil.
-- `messages.de/a` : restent obligatoires pendant la transition ; ne pas les anonymiser avant migration complète du frontend, des triggers, des notifications, des politiques RLS/Storage et des reçus.
+- `messages.de/a` : restent obligatoires pendant la transition ; après migration complète du frontend, des triggers, des notifications, des politiques RLS/Storage et des reçus, les deux colonnes deviennent nullables. Pour un compte supprimé A, mettre `de = NULL` sur ses messages envoyés et `a = NULL` sur les messages qui lui étaient adressés. Ne traiter que `de` laisserait l'identifiant du destinataire dans les messages.
 - `messages.media_owner_id` : à ajouter seulement si nécessaire après inventaire de la propriété réelle des objets.
 Contraintes de conception :
 1. Les lignes de conversation et les messages ne doivent pas être supprimés en cascade à cause de la suppression d’un participant.
@@ -60,6 +60,17 @@ Contraintes de conception :
 7. Les notifications, accusés de lecture, appels et médias doivent être adaptés au nouveau modèle avant l’activation.
 
 Une conversation à deux participants est le périmètre actuel. Toute évolution vers les groupes doit être conçue séparément.
+
+### Anonymisation des deux extrémités historiques
+
+Après bascule complète vers `conversation_id` et `sender_id`, le workflow doit anonymiser les deux anciennes colonnes de paire :
+
+- `messages.de = NULL` pour les messages envoyés par le compte supprimé ;
+- `messages.a = NULL` pour les messages adressés au compte supprimé ;
+- `messages.sender_id = NULL` et `sender_deleted_at = now()` uniquement lorsque le compte supprimé était l'auteur ;
+- conserver `conversation_id` et le contenu du message si la règle de conservation l'autorise.
+
+Cette opération est impossible tant que l'ancien frontend, les triggers, les reçus, le polling, les canaux Realtime ou les politiques RLS dépendent de `de/a`. La migration doit d'abord retirer ces dépendances et rendre les colonnes nullables dans une migration distincte.
 
 ## 4. Traitement par catégorie
 
