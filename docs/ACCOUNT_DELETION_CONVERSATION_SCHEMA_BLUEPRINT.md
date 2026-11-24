@@ -26,6 +26,18 @@ Les colonnes effectivement présentes en production ont été relues dans `infor
 
 **Conséquence :** ne pas rendre `messages.de` nullable, ne pas anonymiser `de`, ne pas supprimer un utilisateur Auth et ne pas modifier les reçus tant que l'ensemble de ces dépendances n'a pas été migré et testé.
 
+## 1 bis. Écart entre les migrations versionnées et la production
+
+La table `supabase_migrations.schema_migrations` de production a été lue en lecture seule :
+
+- 65 migrations enregistrées.
+- Dernière version enregistrée : `20261124122733`.
+- 24 fichiers de migration présents dans la branche ont un numéro supérieur à cette dernière version, de `20261124130000` à `20261124250000`. Ils ne sont donc pas enregistrés comme appliqués dans l'historique de production.
+
+Ces 24 fichiers comprennent notamment le durcissement des profils privés, des médias de chat, des reçus, des appels/rendez-vous, des mutations de paiement et de la vérification d'âge côté serveur. La fonction `limite_messages()` actuellement lue en production ne correspond pas à la version de branche de `20261124180000_secure_chat_message_and_media_access.sql`, ce qui est cohérent avec cet écart d'historique.
+
+**Blocage de lancement :** ne pas considérer ces protections comme actives en production. Elles doivent être revues dans l'ordre, testées sur un environnement de test, puis déployées selon un plan de migration contrôlé. Ne pas appliquer les 24 fichiers en bloc : certains peuvent dépendre du frontend déjà publié, de fonctions RPC ou de migrations antérieures. L'historique de migration et l'état réel du schéma doivent être comparés fichier par fichier.
+
 ## 2. Modèle cible recommandé
 
 Pour le périmètre actuel (conversation privée entre exactement deux personnes), utiliser un nom cohérent dans toute l'implémentation :
