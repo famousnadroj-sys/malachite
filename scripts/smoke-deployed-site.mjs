@@ -77,6 +77,7 @@ if (!avatarUi.includes("if(!MAL_PAYMENTS_ENABLED)") ||
   throw new Error("Payment intake must fail closed until the owner confirms the launch settings.");
 }
 if (!calls.includes("var SECURE_JITSI_PROVIDER_READY=false;") ||
+    !calls.includes("if(!SECURE_JITSI_PROVIDER_READY||!me)return;") ||
     calls.includes("var oldMatch=window.matchBox") ||
     calls.includes("mal-call-head")) {
   throw new Error("Call controls must stay unavailable until the secure provider is configured.");
