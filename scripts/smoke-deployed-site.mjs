@@ -63,7 +63,7 @@ if (sitemap.includes("partenaires.html")) {
 }
 
 const previewHtml = await get("preview/", "MALACHITE · ENVIRONNEMENT DE TEST");
-if (!/<meta\\s+name="robots"\\s+content="noindex,nofollow">/i.test(previewHtml)) {
+if (!/<meta\s+name="robots"\s+content="noindex,nofollow">/i.test(previewHtml)) {
   throw new Error("La prévisualisation de test doit porter une balise noindex.");
 }
 await get("robots.txt", "Disallow: /preview/");
