@@ -1,6 +1,7 @@
 name: MALACHITE production and isolated Match preview
 # Rebuild production and the Match preview from their separate source branches.
 # Match has its own authenticated in-app screen and staging-only Supabase project.
+# Use a unique artifact name to avoid collisions with stale github-pages artifacts.
 on:
   push:
     branches:
@@ -150,7 +151,10 @@ jobs:
       - name: Upload combined website artifact
         uses: actions/upload-pages-artifact@v3
         with:
+          name: malachite-pages
           path: _site
       - name: Publish production and preview website
         id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          artifact_name: malachite-pages
