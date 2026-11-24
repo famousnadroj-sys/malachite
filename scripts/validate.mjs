@@ -342,8 +342,11 @@ const profileResolvers = profilePhotoSigningSource.slice(profileResolverStart, p
 if (!profilePhotoSigningSource.includes("bucket==='profile-photos'?300:3600") ||
     (profileResolvers.match(/createSignedUrls\(paths,300\)/g) || []).length !== 2 ||
     profileResolvers.includes('createSignedUrls(paths,3600)') ||
-    !profileResolvers.includes('expiresAt:now+270000')) {
-  throw new Error('Profile photo signed URLs must expire quickly and use a matching short client cache.');
+    !profileResolvers.includes('expiresAt:now+270000') ||
+    !profileResolvers.includes("uid+'|'+bucket+'|'+path") ||
+    !profileResolvers.includes("uid+'|profile-photos|'+avatarPath") ||
+    !profileResolvers.includes('if(!me||me.id!==uid)return')) {
+  throw new Error('Profile photo signed URLs must be short-lived, user-scoped and discarded after account changes.');
 }
 
 if (!frontend.includes('Backend Match présent en production') || !frontend.includes('Garde-fou d’expiration pas actif en production') || !frontend.includes('Authentification des salles Jitsi incomplète') || !frontend.includes('restauration réellement testée')) throw new Error('Founder dashboard must expose the verified production state and remaining launch blockers.');
