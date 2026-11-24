@@ -206,6 +206,7 @@ jobs:
           set -euo pipefail
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/call_appointment_participant_fixture.sql
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261124190000_harden_call_and_appointment_participant_access.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261124235000_restrict_call_session_updates.sql
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/call_appointment_participant_checks.sql
 
   message-receipt-access:
