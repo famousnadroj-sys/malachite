@@ -29,3 +29,7 @@ create trigger enforce_private_profile_public_projection
 before insert or update on public.profiles
 for each row
 execute function private.enforce_private_profile_public_projection();
+
+-- Private profiles must not be discoverable by other authenticated accounts.
+drop policy if exists "voir profils" on public.profiles;
+create policy "voir profils" on public.profiles for select to authenticated using (id = (select auth.uid()) or (profile_private = false and not private.is_blocked_with(id) and not private.is_suspended(id)));
