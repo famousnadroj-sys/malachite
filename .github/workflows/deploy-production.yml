@@ -75,7 +75,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ "$DB_SECURITY_READY" != "true" ]; then
-            echo "::error::Refusing production publish. Apply and verify the profile-write and payment-pause migrations first, then set MALACHITE_DB_SECURITY_READY=true."
+            echo "::error::Refusing production publish. Apply and verify the profile-write, payment-pause and call-session lockdown migrations first, then set MALACHITE_DB_SECURITY_READY=true."
             exit 1
           fi
           if [ "$LAUNCH_APPROVED" != "true" ]; then
