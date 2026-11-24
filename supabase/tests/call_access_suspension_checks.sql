@@ -2,12 +2,15 @@ begin;
 insert into public.profiles(id,prenom,username,profile_private) values
  ('10000000-0000-0000-0000-000000000001','Active','active_user',false),
  ('20000000-0000-0000-0000-000000000001','Suspended','suspended_user',false),
- ('30000000-0000-0000-0000-000000000001','Private','private_user',true);
+ ('30000000-0000-0000-0000-000000000001','Private','private_user',true),
+ ('40000000-0000-0000-0000-000000000001','Available','available_user',false);
 insert into public.suspensions(user_id) values ('20000000-0000-0000-0000-000000000001');
 insert into public.statuts(user_id,premium_until) values ('10000000-0000-0000-0000-000000000001',now()+interval '1 day');
 insert into public.avis_match(user_id,autre,ok) values
  ('10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000001',true),
- ('20000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001',true);
+ ('20000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001',true),
+ ('10000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000001',true),
+ ('40000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001',true);
 set local role authenticated;
 select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000001',true);
 do $$ begin
@@ -35,7 +38,7 @@ do $$ begin
  begin
    perform * from public.start_call_session(
      '90000000-0000-0000-0000-000000000002',
-     '10000000-0000-0000-0000-000000000001',
+     '40000000-0000-0000-0000-000000000001',
      'room-suspended-caller-01','audio',now()+interval '1 minute');
    raise exception 'suspended_caller_call_was_allowed';
  exception when sqlstate 'P0001' then
