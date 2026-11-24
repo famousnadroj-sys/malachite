@@ -135,6 +135,12 @@ if (!calls.includes("select('id,offre,statut,created_at,reviewed_at,admin_reason
 for (const item of ['online(targetProfile)', 'malAcceptCall', 'malRejectCall', "executeCommand('toggleAudio')", "executeCommand('toggleVideo')", 'setAudioOutputDevice', 'startInbox']) {
   if (!calls.includes(item)) throw new Error('Call feature requirement missing: ' + item);
 }
+
+if (!calls.includes('var SECURE_JITSI_PROVIDER_READY=false;') ||
+    !calls.includes('if(!SECURE_JITSI_PROVIDER_READY){alert(') ||
+    !calls.includes("if(!SECURE_JITSI_PROVIDER_READY)throw new Error('Authentification JaaS non configurée")) {
+  throw new Error('Calls must fail closed until room-level JaaS JWT authentication is configured.');
+}
 if (!calls.includes("createSignedUrls(batch,300)") ||
     calls.includes("createSignedUrls(batch,3600)") ||
     !calls.includes("uid+'|'+bucket+'|'+path") ||
