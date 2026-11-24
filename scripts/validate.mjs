@@ -421,6 +421,13 @@ const privateWrapperMigration = fs.readFileSync('supabase/migrations/20261124181
 for (const item of ['alter function %s security definer', "alter function %s set search_path = %l", 'public.blocked_user_ids()', 'public.contact_de(uuid)', 'public.traiter_paiement(bigint,boolean,text)']) {
   if (!privateWrapperMigration.includes(item)) throw new Error('Public RPC wrappers must securely invoke guarded private functions.');
 }
+const scheduledExpiryNotificationMigration = fs.readFileSync('supabase/migrations/20261124183430_remove_unapproved_prices_from_scheduled_expiry_notifications.sql', 'utf8');
+for (const item of ['private.process_expired_entitlements()', 'Consulte la page Offres pour renouveler Premium', 'security definer', "set search_path = ''"]) {
+  if (!scheduledExpiryNotificationMigration.toLowerCase().includes(item.toLowerCase())) throw new Error('Scheduled entitlement expiry notices must remain guarded and price-neutral.');
+}
+for (const item of ['3 USD', '2 USD', '0,50 USD', '1 USD pour 7 jours']) {
+  if (scheduledExpiryNotificationMigration.includes(item)) throw new Error('Scheduled expiry notices must not hardcode unapproved prices.');
+}
 const expiryNotificationMigration = fs.readFileSync('supabase/migrations/20261124182913_remove_unapproved_prices_from_expiry_notifications.sql', 'utf8');
 for (const item of ['not_authenticated', 'p.user_id=(select auth.uid())', 'Consulte la page Offres pour renouveler Premium']) {
   if (!expiryNotificationMigration.includes(item)) throw new Error('Entitlement expiry notifications must remain authenticated, user-scoped and price-neutral.');
