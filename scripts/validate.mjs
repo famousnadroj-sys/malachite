@@ -352,7 +352,7 @@ const profilePhotoSigningSource = fs.readFileSync('app-core.js', 'utf8');
 const profileResolverStart = profilePhotoSigningSource.indexOf('async function resolveProfilePhotos(p)');
 const profileResolverEnd = profilePhotoSigningSource.indexOf('function messageMediaLocation', profileResolverStart);
 const profileResolvers = profilePhotoSigningSource.slice(profileResolverStart, profileResolverEnd);
-if (!profilePhotoSigningSource.includes("bucket==='profile-photos'?300:3600") ||
+if (!profilePhotoSigningSource.includes("var ttl=300;") ||
     (profileResolvers.match(/createSignedUrls\(paths,300\)/g) || []).length !== 2 ||
     profileResolvers.includes('createSignedUrls(paths,3600)') ||
     !profileResolvers.includes('expiresAt:now+270000') ||
