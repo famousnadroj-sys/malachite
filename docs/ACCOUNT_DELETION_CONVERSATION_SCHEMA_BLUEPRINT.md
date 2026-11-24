@@ -116,6 +116,9 @@ Contrôle agrégé effectué sur la base de production le 24 novembre 2026, sans
 - 0 destinataire sans profil et 0 expéditeur sans utilisateur Auth.
 - 54 reçus : 0 reçu orphelin et 0 incohérence entre `message_receipts.sender_id/recipient_id` et `messages.de/a`.
 - Répartition des messages : 38 sans média, 6 audio, 2 call, 1 document, 15 image, 8 vidéo.
+- 32 messages ont une URL : 30 pièces jointes suivent exactement le chemin `de/a/...`, 2 sont des URLs Jitsi conformes au format attendu ; aucune URL Storage publique n'a été trouvée dans `messages.media_url`.
+- Les 30 chemins de pièces jointes sont tous dans l'ordre `de/a` ; aucun chemin inversé ni chemin de paire incohérent n'a été détecté.
+
 
 **Décision :** le backfill naïf de toutes les lignes `messages` est interdit. Les deux messages auto-adressés doivent être exclus du modèle strict A/B jusqu'à classification. Les trois messages d'auteurs sans profil ne doivent pas être exclus automatiquement : les comptes Auth existent, donc ils restent candidats au backfill si `de <> a`, avec un traitement d'affichage sans profil. Les reçus sont cohérents au moment du contrôle, mais leurs FK Auth en cascade restent un risque au moment de supprimer l'utilisateur.
 
