@@ -156,17 +156,17 @@ async function resolveMessagesMedia(rows){
  await Promise.all(Object.keys(groups).map(async function(bucket){
   try{
    var paths=Object.keys(groups[bucket]);if(!paths.length)return;
-   var result=await sb.storage.from(bucket).createSignedUrls(paths,3600);
+   var result=await sb.storage.from(bucket).createSignedUrls(paths,300);
    if(result.error)throw result.error;
    (result.data||[]).forEach(function(item,index){
     var path=item.path||paths[index],url=item.signedUrl||'';
     (groups[bucket][path]||[]).forEach(function(m){
-     if(url){m.display_url=url;var key=bucket+'|'+path,cache=chatMediaUrlCache[key]||{};cache.url=url;cache.expiresAt=now+3500000;writeChatMediaCache(key,cache)}
+     if(url){m.display_url=url;var key=bucket+'|'+path,cache=chatMediaUrlCache[key]||{};cache.url=url;cache.expiresAt=now+270000;writeChatMediaCache(key,cache)}
     });
    });
    var docPaths=Array.from(new Set(paths.filter(function(path){return (groups[bucket][path]||[]).some(function(m){return m.media_type==='document'})}).concat(Object.keys(docs[bucket]||{}))));
    if(docPaths.length){
-    var downloads=await sb.storage.from(bucket).createSignedUrls(docPaths,3600,{download:true});
+    var downloads=await sb.storage.from(bucket).createSignedUrls(docPaths,300,{download:true});
     if(downloads.error)throw downloads.error;
     (downloads.data||[]).forEach(function(item,index){
      var path=item.path||docPaths[index],url=item.signedUrl||'';
