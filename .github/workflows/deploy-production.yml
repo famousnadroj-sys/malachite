@@ -157,6 +157,20 @@ jobs:
             exit 1
           fi
           echo "Production root and isolated Match preview validated."
+      - name: Smoke-test the complete artifact before publishing
+        working-directory: production-source
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8765 --directory "$GITHUB_WORKSPACE/_site" >/tmp/malachite-smoke-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for attempt in {1..15}; do
+            if curl -fsS http://127.0.0.1:8765/ >/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          SITE_URL=http://127.0.0.1:8765/ node scripts/smoke-deployed-site.mjs
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
       - name: Upload combined website artifact
