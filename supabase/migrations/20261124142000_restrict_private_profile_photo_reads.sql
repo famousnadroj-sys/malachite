@@ -1,7 +1,8 @@
 -- Limit access to profile photos to the owner and the currently published projection.
 -- Private profiles expose only their first published photo; unlisted files remain owner-only.
 drop policy if exists "profile photos read" on storage.objects;
-create policy "profile photos read"
+drop policy if exists "profile photos read published paths" on storage.objects;
+create policy "profile photos read published paths"
 on storage.objects
 for select
 to authenticated
