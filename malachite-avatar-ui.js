@@ -141,7 +141,8 @@ function mt(k){return (MAL_TEXT[malLang]&&MAL_TEXT[malLang][k])||MAL_TEXT.fr[k]|
 function malCentre(){return '<h2>🌸 '+mt('title')+'</h2><p class="note">'+mt('intro')+'</p>'+
 '<div class="mal-panel"><label>'+mt('language')+'<select id="malLang" onchange="malSetLang(this.value)"><option value="fr">Français</option><option value="sw">Kiswahili</option><option value="ln">Lingála</option><option value="kg">Kikongo</option><option value="tsh">Tshiluba</option><option value="en">English</option></select></label></div>'+
 malAvatarPanel()+
-'<div class="mal-panel"><h3>💸 '+mt('payments')+'</h3><p class="note">'+mt('paymentsDisabled')+'</p></div>'+\n'<div class="mal-panel"><h3>📜 '+mt('legal')+'</h3><h4>'+mt('terms')+'</h4><div class="mal-legal">'+mt('termsBody')+'</div><h4>'+mt('privacy')+'</h4><div class="mal-legal">'+mt('privacyBody')+'</div><h4>'+mt('safety')+'</h4><div class="mal-legal">'+mt('safetyBody')+'</div><p class="note">'+mt('pending')+'</p></div>'+
+'<div class="mal-panel"><h3>💸 '+mt('payments')+'</h3><p class="note">'+mt('paymentsDisabled')+'</p></div>'+
+'<div class="mal-panel"><h3>📜 '+mt('legal')+'</h3><h4>'+mt('terms')+'</h4><div class="mal-legal">'+mt('termsBody')+'</div><h4>'+mt('privacy')+'</h4><div class="mal-legal">'+mt('privacyBody')+'</div><h4>'+mt('safety')+'</h4><div class="mal-legal">'+mt('safetyBody')+'</div><p class="note">'+mt('pending')+'</p></div>'+
 '<div class="mal-panel"><h3>🛟 '+mt('support')+'</h3><p class="note">'+mt('complaint')+'</p><div class="list"><label>'+mt('category')+'<select id="malCat"><option value="compte">Compte / connexion</option><option value="paiement">Paiement Mobile Money</option><option value="securite">Sécurité / harcèlement</option><option value="bug">Erreur technique</option><option value="autre">Autre</option></select></label><label>'+mt('subject')+'<input id="malSubject" maxlength="120" placeholder="Ex. paiement en attente"></label><label>'+mt('message')+'<textarea id="malMessage" rows="4" maxlength="2000"></textarea></label><button class="b1" onclick="malSendSupport()">'+mt('send')+'</button><div id="malSupportMsg" class="note"></div></div></div>'+
 '<div class="mal-panel"><h3>🔐 Compte et sécurité</h3><p class="note">Malachite est réservé aux personnes de 18 ans et plus. Utilise un mot de passe unique, bloque les comptes suspects et signale tout abus.</p><button onclick="go(\'offres\')">Voir les abonnements</button> <button onclick="go(\'me\')">Mon profil</button></div>'}
 function centre(){return malCentre()}
@@ -166,7 +167,11 @@ async function malSaveAvatar(){
 }
 async function malSendSupport(){if(!me){$('malSupportMsg').textContent=mt('noAuth');return}var subject=$('malSubject').value.trim(),message=$('malMessage').value.trim(),category=$('malCat').value;if(subject.length<3||message.length<10){$('malSupportMsg').textContent='Objet de 3 caractères minimum et message de 10 caractères minimum.';return}if(malSupportBusy)return;malSupportBusy=true;var r=await sb.from('demandes_support').insert({categorie:category,sujet:subject,message:message});malSupportBusy=false;$('malSupportMsg').textContent=r.error?'Envoi impossible : '+r.error.message:mt('sent');if(!r.error){$('malSubject').value='';$('malMessage').value=''}}
 function av(p){var u=p&&p.photoUrls&&p.photoUrls[0],a=p&&p.avatar;if(u)return '<div class="av" style="background-image:url('+esc(u)+');background-size:cover;background-position:center"></div>';if(a&&(a.type==='pro-vector'||a.type==='pro-photo'))return '<div class="av">'+malAvatarSvg(a.config||{})+'</div>';if(a&&a.emoji)return '<div class="av" style="background:'+esc(a.color||'#F7B7D0')+';display:grid;place-items:center;font-size:30px">'+esc(a.emoji)+'</div>';return '<div class="av">'+esc(p&&p.prenom?p.prenom[0]:'?')+'</div>'}
-function offres(){return '<h2>⭐ Nos offres</h2><div class="list"><div class="plan"><h3>Gratuit <span>0 $</span></h3><p>Profil, découverte, likes, conversations existantes et jusqu’à 15 nouvelles conversations initiées par jour. 1 rendez-vous par semaine.</p></div><div class="plan" style="border:2px solid var(--pink)"><h3>Premium <span>Tarif à confirmer</span></h3><p>Nouvelles conversations sans quota, rendez-vous illimités et coordonnées après un match confirmé. Les appels seront inclus dès leur activation sécurisée.</p></div><div class="plan"><h3>Boost <span>Tarif à confirmer</span></h3><p>Visibilité prioritaire pendant la durée annoncée avant activation.</p></div><div class="plan"><h3>Pass Appels <span>1 USD / 7 jours après activation</span></h3><p>Les appels audio et vidéo ne sont pas encore disponibles. Le pass ne peut pas être acheté tant que le fournisseur sécurisé n’est pas activé.</p></div></div><div class="box"><b>Paiements temporairement désactivés</b><p>Ne transfère aucun argent. Les tarifs Premium et Boost et le numéro de réception seront confirmés avant l’ouverture des paiements.</p></div>'}\nfunction changePaymentOperator(){return}\nasync function malUploadPaymentReceipt(file){\n if(!MAL_PAYMENTS_ENABLED)return {error:'Les paiements sont temporairement désactivés. Ne transfère aucun argent.'};\n
+function offres(){return '<h2>⭐ Nos offres</h2><div class="list"><div class="plan"><h3>Gratuit <span>0 $</span></h3><p>Profil, découverte, likes, conversations existantes et jusqu’à 15 nouvelles conversations initiées par jour. 1 rendez-vous par semaine.</p></div><div class="plan" style="border:2px solid var(--pink)"><h3>Premium <span>Tarif à confirmer</span></h3><p>Nouvelles conversations sans quota, rendez-vous illimités et coordonnées après un match confirmé. Les appels seront inclus dès leur activation sécurisée.</p></div><div class="plan"><h3>Boost <span>Tarif à confirmer</span></h3><p>Visibilité prioritaire pendant la durée annoncée avant activation.</p></div><div class="plan"><h3>Pass Appels <span>1 USD / 7 jours après activation</span></h3><p>Les appels audio et vidéo ne sont pas encore disponibles. Le pass ne peut pas être acheté tant que le fournisseur sécurisé n’est pas activé.</p></div></div><div class="box"><b>Paiements temporairement désactivés</b><p>Ne transfère aucun argent. Les tarifs Premium et Boost et le numéro de réception seront confirmés avant l’ouverture des paiements.</p></div>'}
+function changePaymentOperator(){return}
+async function malUploadPaymentReceipt(file){
+ if(!MAL_PAYMENTS_ENABLED)return {error:'Les paiements sont temporairement désactivés. Ne transfère aucun argent.'};
+
  if(!file)return {error:'Joins une capture du reçu pour continuer.'};
  var types={'image/jpeg':'jpg','image/png':'png','image/webp':'webp'},ext=types[file.type];
  if(!ext||file.size<1||file.size>5*1024*1024)return {error:'Format non accepté ou fichier supérieur à 5 Mo. Utilise JPEG, PNG ou WebP.'};
@@ -176,7 +181,9 @@ function offres(){return '<h2>⭐ Nos offres</h2><div class="list"><div class="p
  var up=await sb.storage.from('payment-receipts').upload(path,file,{contentType:file.type,upsert:false,cacheControl:'300'});
  return up.error?{error:'Envoi du justificatif impossible : '+up.error.message}:{path:path};
 }
-async function malSubmitPayment(data){\n if(!MAL_PAYMENTS_ENABLED)return {error:'Les paiements sont temporairement désactivés. Ne transfère aucun argent.'};\n
+async function malSubmitPayment(data){
+ if(!MAL_PAYMENTS_ENABLED)return {error:'Les paiements sont temporairement désactivés. Ne transfère aucun argent.'};
+
  var receipt=await malUploadPaymentReceipt(data.file);
  if(receipt.error)return {error:receipt.error};
  var payload={offre:data.offer,code:data.code,operateur:data.operator,receipt_path:receipt.path};
@@ -190,7 +197,9 @@ async function malSubmitPayment(data){\n if(!MAL_PAYMENTS_ENABLED)return {error:
  }
  return {ok:true};
 }
-async function pay(){\n if(!MAL_PAYMENTS_ENABLED){var disabledPaymentNotice=$('pm');if(disabledPaymentNotice)disabledPaymentNotice.textContent='Les paiements sont temporairement désactivés. Ne transfère aucun argent.';return}\n
+async function pay(){
+ if(!MAL_PAYMENTS_ENABLED){var disabledPaymentNotice=$('pm');if(disabledPaymentNotice)disabledPaymentNotice.textContent='Les paiements sont temporairement désactivés. Ne transfère aucun argent.';return}
+
  var c=$('cd').value.trim(),operator=$('malOperator').value,offer=$('of').value,file=$('malReceipt').files[0],btn=document.querySelector('#pm')&&document.querySelector('#pm').previousElementSibling;
  if(c.length<4||c.length>100){$('pm').textContent='Entre une référence valide (4 à 100 caractères).';return}
  if(btn)btn.disabled=true;
@@ -201,7 +210,9 @@ async function pay(){\n if(!MAL_PAYMENTS_ENABLED){var disabledPaymentNotice=$('p
   if(r.ok){$('cd').value='';$('malReceipt').value=''}
  }catch(e){$('pm').textContent='Erreur temporaire. Vérifie ta connexion puis réessaie.'}
  finally{if(btn)btn.disabled=false}
-}async function payC(){\n if(!MAL_PAYMENTS_ENABLED){var disabledContactNotice=$('um');if(disabledContactNotice)disabledContactNotice.textContent='Les paiements sont temporairement désactivés.';return}\n
+}async function payC(){
+ if(!MAL_PAYMENTS_ENABLED){var disabledContactNotice=$('um');if(disabledContactNotice)disabledContactNotice.textContent='Les paiements sont temporairement désactivés.';return}
+
  var c=$('uc').value.trim(),operator=$('malContactOperator')?$('malContactOperator').value:'airtel',file=$('ucProof')&&$('ucProof').files[0],btn=$('um')&&$('um').previousElementSibling;
  if(c.length<4||c.length>100){$('um').textContent='Entre une référence valide (4 à 100 caractères).';return}
  if(btn)btn.disabled=true;
