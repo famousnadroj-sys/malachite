@@ -15,13 +15,14 @@ Production Supabase : `tscsmemsvgacqioncash`
 
 - PR #72 ouverte, brouillon, non fusionnée.
 - Branche : `integration/match-frontend-mainline-2026-11-23`.
-- Dernier commit contrôlé : `afccd5a4ff637326c772c639be0555411c8ab303`.
-- GitHub Actions sur ce commit : `validate` et `match-runtime` tous deux terminés avec succès; le test runtime utilise un PostgreSQL 17 jetable.
-- Correction ajoutée dans la branche : le trigger serveur vérifie l'éligibilité (profil public, non suspendu, non bloqué, intentions compatibles) avant d'enregistrer un like.
-- Test runtime ajouté : tentatives directes vers profil privé, suspendu, bloqué et incompatible refusées; le quota reste inchangé. Ces tests sont des tests SQL isolés, pas encore des essais REST sur deux comptes réels.
-- Contrôle SQL en lecture seule de la production : la migration `202611220001` n'est pas enregistrée dans `supabase_migrations.schema_migrations`; la correction reste uniquement dans la branche GitHub. La politique RLS actuelle autorise un membre authentifié à INSERT/UPDATE son avis après contrôles de blocage/suspension, mais ne vérifie pas la confidentialité/compatibilité du destinataire; le trigger ajouté dans la PR est donc important.
-- Tests réels à deux comptes/appareils non effectués. PR toujours brouillon et non fusionnée.
-- Ne pas fusionner / déployer avant sauvegarde restaurable, tests réels, revue finale et autorisation.
+- Dernier commit contrôlé : `8bc231224f38c9768a9bae0bdc65bff74a163852`.
+- GitHub Actions sur ce commit : `validate` et `match-runtime` terminés avec succès; test runtime sur PostgreSQL 17 jetable.
+- Le trigger serveur vérifie profil public, suspension, blocage et compatibilité relationnelle avant un nouveau like; les likes actifs sont également revalidés lors d'un UPDATE.
+- `est_match` vérifie désormais les deux likes réciproques et la confidentialité, la suspension, les blocages et la compatibilité actuels. Son wrapper public est sécurisé par `SECURITY DEFINER`, `search_path` vide et des grants limités à `authenticated`; l'helper privé n'est pas directement accessible aux rôles clients.
+- Tests runtime couvrent les likes directs vers profils privés/suspendus/bloqués/incompatibles, la revalidation après changement de confidentialité, les invalidations de match et les grants RPC. Le quota n'est pas consommé par les likes rejetés.
+- Ces tests sont SQL isolés, pas encore des essais REST sur deux comptes/appareils réels.
+- Contrôle SQL en lecture seule de la production : migration `202611220001` absente de `supabase_migrations.schema_migrations`; correction uniquement dans la branche GitHub. La RLS actuelle permet INSERT/UPDATE de ses propres avis après contrôles de blocage/suspension, mais ne vérifie pas profil privé/compatibilité.
+- PR toujours brouillon et non fusionnée. Ne pas fusionner / déployer avant sauvegarde restaurable, tests réels, revue finale et autorisation.
 
 ## 3. Worker IA — état actuel (révision du 24 novembre)
 
@@ -34,6 +35,7 @@ Vérifications en lecture seule :
 - Les briefings IA ne sont générés qu'avec le réglage activé et une clé fournisseur configurée ; les autres exécutions restent des tâches de supervision.
 - L'authentification du worker repose sur une signature HMAC courte durée vérifiée en base et une clé Vault, non sur un JWT public.
 - Le worker prépare des recommandations et brouillons ; les actions sensibles restent soumises à approbation humaine. Les brouillons support approuvés sont enregistrés dans le support mais ne sont pas envoyés automatiquement.
+- Comparaison de la source déployée version 14 avec `main` : la version production remplace l'objet `details.automation` lors de la préparation d'une tâche, tandis que `main` préserve les champs d'automatisation précédents. Cela peut effacer des métadonnées d'automatisation existantes; aucune réponse n'est envoyée au membre. Prévoir un déploiement contrôlé de la version source actuelle après sauvegarde et autorisation, sans le faire maintenant.
 
 Cette vérification confirme le fonctionnement périodique actuel, pas une garantie de disponibilité continue ni un test de bout en bout de chaque action.
 
