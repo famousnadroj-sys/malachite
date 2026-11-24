@@ -24,6 +24,20 @@ Le trigger `public.limite_messages()` utilise également `new.de` pour valider l
 
 **Conclusion :** ne pas rendre `messages.de` nullable ni supprimer un compte avant une migration coordonnée du modèle de conversation, des triggers, des politiques RLS, du stockage et du frontend.
 
+### Inventaire complémentaire vérifié en lecture seule
+
+Les politiques RLS actuellement présentes sur les tables concernées couvrent notamment `messages`, `message_receipts`, `rendez_vous`, `avis_match`, `avis_site`, `paiements`, `signalements`, `profiles` et plusieurs règles sur `storage.objects`. Elles reposent sur les identifiants de compte actuels ; elles devront être revues ensemble, et non remplacées isolément.
+
+Les triggers vérifiés comprennent :
+- `messages` : `limite_messages` et `notify_new_member_message` ;
+- `rendez_vous` : `limite_rdv` ;
+- `avis_match` : `enforce_match_daily_like_limit` ;
+- `paiements` : notifications de paiement et push administrateur ;
+- `signalements` : garde anti-doublon/anti-abus et journalisation admin ;
+- `storage.objects` : protection de suppression et mise à jour des métadonnées.
+
+Une recherche en lecture seule des fonctions `public` et `private` par noms usuels de suppression de compte n’a retourné aucune fonction correspondante. Cela ne prouve pas qu’aucun endpoint applicatif ou mécanisme externe n’existe ; les Edge Functions, le frontend et les tâches planifiées doivent encore être inventoriés avant d’affirmer qu’aucune suppression n’est déjà proposée.
+
 ## 3. Architecture cible proposée pour la messagerie
 
 Introduire un identifiant de conversation stable, indépendant des comptes :
