@@ -23,6 +23,14 @@ begin
   if v_badge.user_id <> auth.uid() or not v_badge.premium_active or not v_badge.verified_active or not v_badge.boost_active then
     raise exception 'own_public_badge_projection_invalid';
   end if;
+  if has_table_privilege('authenticated','public.campagnes','SELECT')
+     or has_table_privilege('authenticated','public.campagnes','INSERT')
+     or has_table_privilege('authenticated','public.campagnes','UPDATE')
+     or has_table_privilege('authenticated','public.campagnes','DELETE')
+     or has_table_privilege('anon','public.campagnes','SELECT')
+     or has_table_privilege('anon','public.campagnes','INSERT') then
+    raise exception 'retired_campaign_table_must_not_be_directly_accessible';
+  end if;
   if has_table_privilege('authenticated','public.deblocages','SELECT')
      or has_table_privilege('authenticated','public.deblocages','INSERT')
      or has_table_privilege('authenticated','public.deblocages','UPDATE')
