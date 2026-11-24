@@ -121,9 +121,10 @@ if (calls.includes("me.email==='famousnadroj@gmail.com'") ||
     !calls.includes('if(adminPaymentUserId&&(!next||next.id!==adminPaymentUserId))stopPaymentRealtime()')) {
   throw new Error('Admin payment realtime must use the database admin role and clear its subscription when the session identity changes.');
 }
-if (!calls.includes('Les appels sécurisés seront réactivés après leur mise en place') ||
-    !calls.includes("h=h.replace('<button disabled title=")) {
-  throw new Error('Mutual-match call actions must replace the legacy disabled call button.');
+if (!calls.includes("var SECURE_JITSI_PROVIDER_READY=false;") ||
+    calls.includes("var oldMatch=window.matchBox") ||
+    calls.includes("mal-call-head")) {
+  throw new Error('Call controls must remain disabled until the secure provider is configured.');
 }
 for (const item of [
   "Paiements temporairement désactivés",
