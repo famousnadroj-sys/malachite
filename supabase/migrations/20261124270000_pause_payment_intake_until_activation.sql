@@ -9,7 +9,8 @@ drop policy if exists "payment receipts owner upload" on storage.objects;
 -- Calls are intentionally unavailable until a secure provider and token
 -- issuance backend are configured. Existing call history remains readable.
 drop policy if exists "paid matched members can call" on public.call_sessions;
-revoke insert, delete on table public.call_sessions from public, anon, authenticated;
+drop policy if exists "call participants can update" on public.call_sessions;
+revoke insert, update, delete on table public.call_sessions from public, anon, authenticated;
 
 -- The config table currently contains Mobile Money destinations. The browser
 -- no longer needs them while payment intake is paused; hide the table entirely
