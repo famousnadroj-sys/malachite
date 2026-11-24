@@ -56,7 +56,7 @@ async function resolveProfilePhotos(p){
   var str=String(raw),bucket=str.indexOf('/storage/v1/object/public/photos/')>=0?'photos':'profile-photos';
   if(str.indexOf('/storage/v1/object/public/profile-photos/')>=0)bucket='profile-photos';
   var path=storagePath(bucket,raw);
-  if(/^https?:\\/\\//i.test(str)&&str.indexOf('/storage/v1/object/')<0){resolved[index]=str;return}
+  if(/^https?:\/\//i.test(str)&&str.indexOf('/storage/v1/object/')<0){resolved[index]=str;return}
   add(bucket,path,index);
  });
  if(avatarPath)add('profile-photos',avatarPath,'avatar');
