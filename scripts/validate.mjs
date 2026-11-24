@@ -139,6 +139,11 @@ if (calls.includes("Premium <span>3 $ / 30 jours</span>") ||
     calls.includes("sb.from('paiements').insert(payload)")) {
   throw new Error('Calls offer override must not show the old price or bypass the shared receipt workflow.');
 }
+if (!calls.includes("var SECURE_JITSI_PROVIDER_READY=false;") ||
+    calls.includes("var oldMatch=window.matchBox") ||
+    calls.includes("mal-call-head")) {
+  throw new Error('Call controls must stay unavailable until a secure Jitsi provider is configured.');
+}
 if (calls.includes("Premium <span>2 $ / 30 jours</span>") ||
     calls.includes("Premium — 2 USD / 30 jours") ||
     calls.includes("Boost <span>0,50 $ / 24 h</span>") ||
