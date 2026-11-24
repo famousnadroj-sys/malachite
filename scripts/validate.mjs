@@ -491,9 +491,15 @@ if (!appCoreSource.includes("sb.rpc('public_status_badges')") || appCoreSource.i
 if (!calls.includes('ownStatus.premium_active') || !fs.readFileSync('malachite-user-experience.js', 'utf8').includes('status.premium_active')) {
   throw new Error('Own Premium status must remain available without exposing other members entitlement timestamps.');
 }
-const publicConfigMigration = fs.readFileSync('supabase/migrations/20261124181403_limit_public_config_reads_to_payment_operators.sql', 'utf8').toLowerCase();
-for (const item of ['drop policy if exists "voir config" on public.config', "using (cle in ('airtel','orange'))"]) {
-  if (!publicConfigMigration.includes(item)) throw new Error('Public configuration reads must be restricted to payment-operator keys.');
+const publicConfigMigration = fs.readFileSync('supabase/migrations/20261124270000_pause_payment_intake_until_activation.sql', 'utf8').toLowerCase();
+for (const item of [
+  'revoke all on table public.config from public, anon, authenticated',
+  'drop policy if exists "voir config" on public.config',
+  'revoke insert on table public.paiements from public, anon, authenticated',
+  'drop policy if exists "declarer un paiement" on public.paiements',
+  'drop policy if exists "payment receipts owner upload" on storage.objects',
+]) {
+  if (!publicConfigMigration.includes(item)) throw new Error('Payment intake and destination config must remain closed until owner activation.');
 }
 const privateWrapperMigration = fs.readFileSync('supabase/migrations/20261124181825_secure_public_private_function_wrappers.sql', 'utf8').toLowerCase();
 for (const item of ['alter function %s security definer', "alter function %s set search_path = %l", 'public.blocked_user_ids()', 'public.contact_de(uuid)', 'public.traiter_paiement(bigint,boolean,text)']) {
@@ -516,6 +522,9 @@ for (const item of ['3 USD', '2 USD', '0,50 USD', '1 USD pour 7 jours']) {
 const directPaymentMutationMigration = fs.readFileSync('supabase/migrations/20261124230000_restrict_direct_payment_mutations.sql', 'utf8').toLowerCase();
 if (!directPaymentMutationMigration.includes('revoke update, delete on table public.paiements from authenticated')) {
   throw new Error('Authenticated clients must not directly update or delete payment records.');
+}
+if (!publicConfigMigration.includes('revoke insert on table public.paiements from public, anon, authenticated')) {
+  throw new Error('Authenticated clients must not submit payments before launch activation.');
 }
 const receiptMigration = fs.readFileSync('supabase/migrations/20261120140000_private_payment_receipts.sql', 'utf8');
 for (const item of [
