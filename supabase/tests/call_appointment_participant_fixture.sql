@@ -26,5 +26,6 @@ create policy "repondre a un rdv" on public.rendez_vous for update to authentica
 create policy "voir ses rdv" on public.rendez_vous for select to authenticated using (de=auth.uid() or a=auth.uid());
 grant usage on schema auth,private,public to authenticated;
 grant execute on function auth.uid(),private.is_suspended(uuid),private.is_blocked_with(uuid) to authenticated;
+grant select on public.profiles to authenticated;
 grant select,insert,update on public.call_sessions to authenticated;
 grant select,insert on public.rendez_vous to authenticated;
