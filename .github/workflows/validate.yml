@@ -177,6 +177,7 @@ jobs:
           set -euo pipefail
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/chat_message_media_fixture.sql
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261124180000_secure_chat_message_and_media_access.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261124220000_harden_legacy_chat_media_reads.sql
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/chat_message_media_checks.sql
 
   call-appointment-participant-access:
