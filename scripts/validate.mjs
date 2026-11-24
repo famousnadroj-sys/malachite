@@ -138,7 +138,8 @@ for (const item of ['online(targetProfile)', 'malAcceptCall', 'malRejectCall', "
 
 if (!calls.includes('var SECURE_JITSI_PROVIDER_READY=false;') ||
     !calls.includes('if(!SECURE_JITSI_PROVIDER_READY){alert(') ||
-    !calls.includes("if(!SECURE_JITSI_PROVIDER_READY)throw new Error('Authentification JaaS non configurée")) {
+    !calls.includes("if(!SECURE_JITSI_PROVIDER_READY)throw new Error('Authentification JaaS non configurée") ||
+    !calls.includes('if(!SECURE_JITSI_PROVIDER_READY||!me)return;')) {
   throw new Error('Calls must fail closed until room-level JaaS JWT authentication is configured.');
 }
 if (!calls.includes("createSignedUrls(batch,300)") ||
