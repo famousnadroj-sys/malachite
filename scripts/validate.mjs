@@ -372,16 +372,8 @@ if (!frontend.includes("remove([receipt.path])")) {
 }
 
 
-const campaignModule = fs.readFileSync('malachite-campaigns.js', 'utf8');
-const campaignTemp = path.join(os.tmpdir(), 'malachite-campaigns.js');
-fs.writeFileSync(campaignTemp, campaignModule);
-const campaignCheck = spawnSync(process.execPath, ['--check', campaignTemp], { encoding: 'utf8' });
-if (campaignCheck.status !== 0) { process.stderr.write(campaignCheck.stderr || campaignCheck.stdout); process.exit(campaignCheck.status || 1); }
-for (const item of ['malachite-campaigns.js', 'malachite-static-v88']) {
-  if (!frontend.includes(item) && !sw.includes(item)) throw new Error('Campaign module release requirement missing: ' + item);
-}
-for (const item of ['campagnes', 'malachite-campaigns', 'SPONSORISÉ', 'malSaveCampaign', 'loadPublicCampaigns']) {
-  if (!campaignModule.includes(item) && !frontend.includes(item)) throw new Error('Campaign feature requirement missing: ' + item);
+for (const item of ['malachite-campaigns.js', 'malachite-ad-studio.js', 'campagnes', 'SPONSORISÉ']) {
+  if (frontend.includes(item)) throw new Error('Retired advertising source must not be loaded by the public site: ' + item);
 }
 const latestPaymentAdmin = frontend.slice(frontend.lastIndexOf('function admin0(){'), frontend.indexOf('function malShowLegal', frontend.lastIndexOf('function admin0(){')));
 if (!latestPaymentAdmin.includes('Confirmer reçu') || latestPaymentAdmin.includes('trtBatch()') || latestPaymentAdmin.includes('Valider ce lot')) {
