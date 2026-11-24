@@ -8,7 +8,7 @@ alter function public.save_my_profile(jsonb, jsonb) set search_path to '';
 
 revoke all on table public.profiles from public, anon, authenticated;
 grant select on table public.profiles to authenticated;
-grant update (avatar, derniere_vue) on table public.profiles to authenticated;
+grant update (derniere_vue) on table public.profiles to authenticated;
 
 revoke all on table public.prives from public, anon, authenticated;
 grant select on table public.prives to authenticated;
@@ -120,6 +120,65 @@ $malachite_preferences$;
 
 revoke all on function public.update_my_preferences(jsonb) from public, anon;
 grant execute on function public.update_my_preferences(jsonb) to authenticated;
+
+create or replace function public.update_my_avatar(p_avatar jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path to ''
+as $malachite_avatar$
+declare
+  v_uid uuid := auth.uid();
+  v_type text;
+  v_result jsonb;
+begin
+  if v_uid is null then
+    raise exception 'Authentification requise';
+  end if;
+  if p_avatar is null or jsonb_typeof(p_avatar) <> 'object'
+     or octet_length(p_avatar::text) > 8192 then
+    raise exception 'Configuration de l’avatar invalide';
+  end if;
+
+  v_type := p_avatar->>'type';
+  if v_type not in ('pro-vector','humanforge-3d')
+     or jsonb_typeof(p_avatar->'config') <> 'object' then
+    raise exception 'Type ou configuration d’avatar invalide';
+  end if;
+
+  if v_type = 'pro-vector' then
+    if p_avatar->>'version' <> '3'
+       or p_avatar ? 'imagePath'
+       or (p_avatar - array['type','version','config']::text[]) <> '{}'::jsonb then
+      raise exception 'Avatar vectoriel invalide';
+    end if;
+  elsif v_type = 'humanforge-3d' then
+    if p_avatar->>'version' <> '1'
+       or coalesce(p_avatar->>'imagePath','') !~ (
+         '^' || v_uid::text || '/avatar-[0-9]+[.]pngrevoke all on function public.save_my_profile(jsonb, jsonb) from public, anon;
+grant execute on function public.save_my_profile(jsonb, jsonb) to authenticated;
+
+       )
+       or (p_avatar - array['type','version','config','imagePath']::text[]) <> '{}'::jsonb then
+      raise exception 'Fichier ou configuration d’avatar non autorisé';
+    end if;
+  end if;
+
+  update public.profiles
+  set avatar = p_avatar
+  where id = v_uid
+  returning jsonb_build_object('id',id,'avatar',avatar) into v_result;
+
+  if not found then
+    raise exception 'Profil introuvable';
+  end if;
+
+  return v_result;
+end;
+$malachite_avatar$;
+
+revoke all on function public.update_my_avatar(jsonb) from public, anon;
+grant execute on function public.update_my_avatar(jsonb) to authenticated;
 
 -- save_my_profile is the sole trusted write path for profile identity and private fields.
 revoke all on function public.save_my_profile(jsonb, jsonb) from public, anon;
