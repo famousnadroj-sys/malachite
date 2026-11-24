@@ -171,3 +171,16 @@ La documentation Jitsi décrit aussi les mécanismes d'authentification JWT et l
 - https://jitsi.github.io/handbook/docs/devops-guide/devops-guide-docker/
 
 Cette architecture n'est pas déployée. Elle nécessite un serveur que MALACHITE contrôle, des secrets protégés et des essais réels. Aucun fournisseur payant, hébergement ou changement de prestataire n'a été choisi ni activé.
+
+
+## 13. Contrôle des Edge Functions à authentification personnalisée
+
+Contrôle du code actuellement déployé, le 24 novembre 2026 :
+
+- `malachite-ad-creative` : JWT Supabase obligatoire ; fonction remplacée par un refus HTTP 410 pour retirer la génération publicitaire.
+- `malachite-admin-push` : `verify_jwt=false` est volontaire pour recevoir le webhook interne. Les actions de gestion des appareils valident une session Supabase puis le rôle administrateur ; les actions internes exigent le secret Vault `malachite_push_hook`. La longueur du secret est de 43 caractères (valeur non consultée dans le rapport). La PR #90 ajoute le refus si le secret fourni ou attendu est vide et limite l'en-tête à 256 caractères. Le correctif est fusionné et déployé en version 6.
+- `malachite-ai-worker` : `verify_jwt=false` est volontaire pour le déclenchement serveur. La fonction vérifie une signature HMAC SHA-256 par RPC PostgreSQL, avec une fenêtre temporelle de cinq minutes et une clé stockée dans Vault. Elle ne se contente pas d'accepter un appel anonyme.
+- `username-login` : `verify_jwt=false` est nécessaire au flux public de connexion. Le code applique une limite de 15 tentatives par IP sur 15 minutes, conserve un hash IP et renvoie un message générique pour les identifiants incorrects. L'action de vérification de disponibilité de nom d'utilisateur reste publique ; surveiller son usage et conserver une limitation contre l'énumération.
+- `admin-user-moderation` et `malachite-ai-manager` : JWT Supabase obligatoire ; les opérations sensibles contrôlent ensuite l'administrateur côté serveur/base.
+
+Le réglage `verify_jwt=false` n'est donc pas automatiquement une vulnérabilité : il faut vérifier le contrôle d'authentification interne de chaque fonction. Les fonctions listées ci-dessus ont été examinées dans leur code déployé. Les tests d'intégration complets contre les services externes restent distincts des contrôles statiques.
