@@ -8,7 +8,7 @@ Branche de référence : `main` au commit `92878862f8f572e3b9493af948a2e3f560591
 
 - La PR #85 prépare trois références d'audit avec `ON DELETE SET NULL` et un test PostgreSQL jetable.
 - La validation et les tests de la PR ont réussi.
-- **La migration de la PR #85 n'a pas été appliquée à Supabase production.**
+- La migration de la PR #85 a depuis été appliquée à Supabase production : les trois références d'audit utilisent désormais `ON DELETE SET NULL` et les colonnes sont nullable. Aucune ligne n'a été supprimée.
 - Aucun compte, paiement, message ou fichier n'a été supprimé ou modifié pendant cet audit.
 
 ## 2. Références Auth et données qui restent à traiter
@@ -184,3 +184,13 @@ Contrôle du code actuellement déployé, le 24 novembre 2026 :
 - `admin-user-moderation` et `malachite-ai-manager` : JWT Supabase obligatoire ; les opérations sensibles contrôlent ensuite l'administrateur côté serveur/base.
 
 Le réglage `verify_jwt=false` n'est donc pas automatiquement une vulnérabilité : il faut vérifier le contrôle d'authentification interne de chaque fonction. Les fonctions listées ci-dessus ont été examinées dans leur code déployé. Les tests d'intégration complets contre les services externes restent distincts des contrôles statiques.
+
+
+## 14. Migration de préparation de suppression appliquée
+
+La migration `account_deletion_fk_cleanup` (PR #85) a été appliquée à Supabase production après revue :
+- `campagnes.cree_par` : nullable, FK vers `auth.users(id)`, `ON DELETE SET NULL`.
+- `demandes_support.traite_par` : FK vers `auth.users(id)`, `ON DELETE SET NULL`.
+- `signalements.traite_par` : FK vers `auth.users(id)`, `ON DELETE SET NULL`.
+
+Les trois contraintes et la nullabilité ont été relues après migration. Cette opération ne supprime aucune ligne et ne supprime aucun compte. Elle prépare uniquement la conservation des dossiers et de l'historique administratif si un administrateur ou créateur de campagne supprimait un jour son compte.
