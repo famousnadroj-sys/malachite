@@ -30,14 +30,17 @@ Les colonnes effectivement présentes en production ont été relues dans `infor
 
 Pour le périmètre actuel (conversation privée entre exactement deux personnes), utiliser un nom cohérent dans toute l'implémentation :
 
-- `public.conversation_threads` : identifiant UUID stable du fil et paire canonique `member_low/member_high`, avec contrainte unique sur la paire et contrainte `member_low < member_high`.
-- `public.conversation_members` : `conversation_id`, `user_id`, `active`, dates d'entrée/retrait. Clé primaire `(conversation_id,user_id)`.
+- `public.conversation_threads` : identifiant UUID stable du fil, dates de création/mise à jour ; aucune colonne contenant les UUID des participants.
+- `public.conversation_pair_index` : table de correspondance temporaire entre paire canonique `member_low/member_high` et `conversation_id`, avec contrainte unique sur la paire et `member_low < member_high`. Les deux UUID doivent référencer `auth.users` avec suppression en cascade afin que l'index de paire soit retiré avec le compte.
+- `public.conversation_members` : `conversation_id`, `user_id`, `active`, dates d'entrée/retrait. Clé primaire `(conversation_id,user_id)`, FK de `user_id` vers `auth.users` avec suppression en cascade.
 - `public.messages.conversation_id` : nullable au départ, FK vers `conversation_threads`.
 - `public.messages.sender_id` : nullable uniquement à la fin de la transition ; renseigne l'auteur sans dépendre de `de`.
 - `public.messages.sender_deleted_at` : date d'anonymisation.
 - Garder `de/a` pendant la transition rétrocompatible. Ne pas les supprimer avant que tous les clients, triggers, fonctions, politiques, notifications et chemins de médias aient migré.
 
 Les noms `conversation_threads` et `conversation_members` sont retenus pour ce brouillon. Ne pas mélanger ces noms avec l'ancien terme générique `conversations` dans les futurs fichiers SQL.
+
+La séparation entre `conversation_threads` et `conversation_pair_index` est volontaire : si les UUID des deux participants étaient stockés directement dans le fil, la conservation du fil après suppression laisserait un identifiant personnel dans la ligne conservée. À la suppression, la paire d'index et la membership de l'utilisateur supprimé disparaissent par cascade, tandis que le fil et les messages peuvent rester pour le participant survivant. Le workflow doit vérifier qu'il n'existe plus de dépendance applicative à l'index avant de supprimer Auth.
 
 ## 3. Séquence de migration — additive et sans interruption
 
