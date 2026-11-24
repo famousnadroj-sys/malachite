@@ -316,4 +316,36 @@ $function$;
 revoke all on function public.match_like_quota(), public.match_received_likes() from public, anon;
 grant execute on function public.match_like_quota(), public.match_received_likes() to authenticated;
 
+
+-- Match status must reflect current privacy, safety and compatibility, not only
+-- historical reciprocal likes. The existing public.est_match wrapper delegates here.
+create or replace function private.est_match(p_autre uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $function$
+  select auth.uid() is not null
+     and p_autre is not null
+     and p_autre <> auth.uid()
+     and exists (
+       select 1
+       from public.profiles me
+       where me.id = auth.uid()
+         and coalesce(me.profile_private, false) is false
+     )
+     and p_autre = any(private.match_relation_compatible_ids())
+     and exists (
+       select 1 from public.avis_match x
+       where x.user_id = auth.uid() and x.autre = p_autre and x.ok is true
+     )
+     and exists (
+       select 1 from public.avis_match y
+       where y.user_id = p_autre and y.autre = auth.uid() and y.ok is true
+     );
+$function$;
+
+revoke all on function private.est_match(uuid) from public, anon, authenticated;
+
 commit;
