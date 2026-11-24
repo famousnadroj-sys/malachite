@@ -158,3 +158,5 @@ Aucun déploiement avant :
 ## 9. Hors périmètre de ce commit
 
 Ce document n’ajoute aucune migration SQL, ne change aucun trigger, ne modifie aucune politique RLS, ne déploie aucune Edge Function et ne supprime aucune donnée. La migration existante `20261124120000_account_deletion_fk_cleanup.sql` ne prépare que trois références administratives avec `ON DELETE SET NULL` ; elle ne réalise pas la suppression de compte.
+
+**État production vérifié en lecture seule le 24 novembre 2026 :** l’historique Supabase du projet de production contient déjà `account_deletion_fk_cleanup`. Les trois contraintes `campagnes.cree_par`, `demandes_support.traite_par` et `signalements.traite_par` ont été relues dans `pg_constraint` et sont bien en `ON DELETE SET NULL`. Ce changement limité est donc déjà présent en production ; il ne faut pas le confondre avec une procédure complète de suppression de compte. Aucune autre migration de suppression complète n’apparaît dans l’historique consulté.
