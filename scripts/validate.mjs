@@ -160,21 +160,17 @@ const aiManager = fs.readFileSync('malachite-ai.js', 'utf8');
 for (const item of ['malAiLoadDashboard', 'malAiInsights', 'malAiQuickPrompt', 'malachite-ai-manager', 'history.slice(-9,-1)']) {
   if (!aiManager.includes(item)) throw new Error('AI Manager dashboard capability missing: ' + item);
 }
-const adStudio = fs.readFileSync('malachite-ad-studio.js', 'utf8');
-const adStudioTemp = path.join(os.tmpdir(), 'malachite-ad-studio.js');
-fs.writeFileSync(adStudioTemp, adStudio);
-const adStudioCheck = spawnSync(process.execPath, ['--check', adStudioTemp], { encoding: 'utf8' });
-if (adStudioCheck.status !== 0) { process.stderr.write(adStudioCheck.stderr || adStudioCheck.stdout); process.exit(adStudioCheck.status || 1); }
-for (const item of ['MediaRecorder', 'captureStream(24)', 'malCreateAdVideo', 'malRecordAdVoice', 'malGenerateAdVoiceAI', 'malCampaignDuration', 'malCampaignSourceVideo', 'video/webm']) {
-  if (!adStudio.includes(item)) throw new Error('Short video ad studio capability missing: ' + item);
-}
 const adCreativeFunction = fs.readFileSync('supabase/functions/malachite-ad-creative/index.ts', 'utf8');
-for (const item of ['auth.getUser(token)', 'malachite_ai_manager_is_admin', 'gemini-3.8-flash-lite-tts', 'responseModalities:["AUDIO"]', 'audio_base64', 'daily_voice_limit']) {
-  if (!adCreativeFunction.includes(item)) throw new Error('Secure AI ad voice endpoint requirement missing: ' + item);
+if (!adCreativeFunction.includes('advertising_generation_disabled') || !adCreativeFunction.includes('respond(410,')) {
+  throw new Error('Retired advertising endpoint must reject requests with HTTP 410.');
 }
-const campaignMedia = fs.readFileSync('malachite-campaigns.js', 'utf8');
-for (const item of ['video_path', 'media_type', 'malachite-campaign-media', 'playsinline controls']) {
-  if (!campaignMedia.includes(item)) throw new Error('Sponsored video publishing requirement missing: ' + item);
+const adminUi = fs.readFileSync('malachite-avatar-ui.js', 'utf8');
+if (adminUi.includes("malAdminPage==='campaigns'") || adminUi.includes("from('campagnes')") || adminUi.includes('📢 Publicité')) {
+  throw new Error('Advertising management must not remain available in the admin UI.');
+}
+const notificationUi = fs.readFileSync('malachite-user-experience.js', 'utf8');
+if (notificationUi.includes('value="promotion"') || notificationUi.includes("['promotion','Publicités']")) {
+  throw new Error('Promotional announcement category must not be offered at launch.');
 }
 const performanceGuard = fs.readFileSync('malachite-performance.js', 'utf8');
 if (!performanceGuard.includes('mal-low-power') || !performanceGuard.includes('navigator.deviceMemory') || !performanceGuard.includes('connection.saveData')) {
@@ -376,16 +372,8 @@ if (!frontend.includes("remove([receipt.path])")) {
 }
 
 
-const campaignModule = fs.readFileSync('malachite-campaigns.js', 'utf8');
-const campaignTemp = path.join(os.tmpdir(), 'malachite-campaigns.js');
-fs.writeFileSync(campaignTemp, campaignModule);
-const campaignCheck = spawnSync(process.execPath, ['--check', campaignTemp], { encoding: 'utf8' });
-if (campaignCheck.status !== 0) { process.stderr.write(campaignCheck.stderr || campaignCheck.stdout); process.exit(campaignCheck.status || 1); }
-for (const item of ['malachite-campaigns.js', 'malachite-static-v88']) {
-  if (!frontend.includes(item) && !sw.includes(item)) throw new Error('Campaign module release requirement missing: ' + item);
-}
-for (const item of ['campagnes', 'malachite-campaigns', 'SPONSORISÉ', 'malSaveCampaign', 'loadPublicCampaigns']) {
-  if (!campaignModule.includes(item) && !frontend.includes(item)) throw new Error('Campaign feature requirement missing: ' + item);
+for (const item of ['malachite-campaigns.js', 'malachite-ad-studio.js', 'campagnes', 'SPONSORISÉ']) {
+  if (frontend.includes(item)) throw new Error('Retired advertising source must not be loaded by the public site: ' + item);
 }
 const latestPaymentAdmin = frontend.slice(frontend.lastIndexOf('function admin0(){'), frontend.indexOf('function malShowLegal', frontend.lastIndexOf('function admin0(){')));
 if (!latestPaymentAdmin.includes('Confirmer reçu') || latestPaymentAdmin.includes('trtBatch()') || latestPaymentAdmin.includes('Valider ce lot')) {

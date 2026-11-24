@@ -231,7 +231,6 @@ async function loadAdm(){
  if(malAdminPage==='members'){tasks.push(sb.from('signalements').select('*').order('created_at',{ascending:false}).limit(100));keys.push('reports');tasks.push(sb.from('suspensions').select('user_id,depuis,motif').order('depuis',{ascending:false}));keys.push('suspensions')}
  if(malAdminPage==='settings'&&malSettingsPage==='support'){tasks.push(sb.from('demandes_support').select('*').order('created_at',{ascending:false}).limit(100));keys.push('support')}
  if(malAdminPage==='settings'&&malSettingsPage==='avis'){tasks.push(sb.from('avis_site').select('*').order('created_at',{ascending:false}).limit(50));keys.push('reviews')}
- if((malAdminPage==='campaigns'||(malAdminPage==='settings'&&malSettingsPage==='publicite'))){tasks.push(sb.from('campagnes').select('*').order('created_at',{ascending:false}).limit(40));keys.push('campaigns')}
  var results=await Promise.all(tasks),byKey={};keys.forEach(function(k,i){byKey[k]=results[i]});
  var pr=byKey.payments;if(pr.error){console.error('Chargement paiements',pr.error);alert('Impossible de charger les paiements. Réessaie.');return}
  admTotal=pr.count||0;adm=pr.data||[];
@@ -241,7 +240,6 @@ async function loadAdm(){
  if(byKey.suspensions){if(byKey.suspensions.error)console.warn('Suspensions',byKey.suspensions.error);else admSuspensions=byKey.suspensions.data||[]}
  if(byKey.support){if(byKey.support.error)console.warn('Support',byKey.support.error);else malSupportRows=byKey.support.data||[]}
  if(byKey.reviews){if(byKey.reviews.error)console.warn('Avis',byKey.reviews.error);else avs=byKey.reviews.data||[]}
- if(byKey.campaigns){if(byKey.campaigns.error){console.error('Campagnes publicitaires',byKey.campaigns.error);malCampaignRows=[]}else malCampaignRows=byKey.campaigns.data||[]}
 
  draw();
  malAiAutoAnalyzePayments(adm);
@@ -290,8 +288,8 @@ function supportAdmin(){return '<h2>🛟 Réclamations et assistance</h2><div cl
 async function malResolveSupport(id){var status=$('malStatus'+id).value,reply=$('malReply'+id).value.trim();var r=await sb.from('demandes_support').update({statut:status,reponse_admin:reply,traite_par:me.id,traite_le:new Date().toISOString()}).eq('id',id);if(r.error){alert('Erreur : '+r.error.message);return}await loadAdm()}
 function aiManagerPreview(){return '<section class="box list" style="margin-bottom:16px;border:1px solid var(--pink)"><div class="top"><div style="font-size:28px">🤖</div><div><b>Malachite AI Manager</b><div class="note">Centre de gestion intelligent · équipe de copilotes</div></div></div><div class="wall"><b>État : moteur IA Malachite existant</b><p class="note">Les copilotes s’appuient sur le moteur IA Malachite existant. Ils préparent analyses et recommandations ; les validations de paiements, sanctions et actions sensibles restent sous ton contrôle.</p></div><div class="g2"><div class="plan"><b>💳 Paiements</b><p>Détection des doublons, contrôle des références et suivi Premium.</p></div><div class="plan"><b>🛡️ Comptes</b><p>Détection des comportements anormaux et suspensions temporaires encadrées.</p></div><div class="plan"><b>🚩 Signalements</b><p>Classement par gravité et traitement des cas urgents.</p></div><div class="plan"><b>⭐ Avis & support</b><p>Réponses aux questions et regroupement des problèmes.</p></div></div><p class="note">Les paiements ambigus, sanctions définitives, contestations et actions irréversibles resteront soumis à ton contrôle. Chaque action sera journalisée.</p></section>'}
 function admin(){
- var tabs='<section class="mal-admin-tabs"><button class="'+(malAdminPage==='payments'?'sel':'')+'" onclick="malSetAdminPage(\'payments\')">💳 Paiements</button><button class="'+(malAdminPage==='members'?'sel':'')+'" onclick="malSetAdminPage(\'members\')">👥 Membres</button><button class="'+(malAdminPage==='copilots'?'sel':'')+'" onclick="malSetAdminPage(\'copilots\')">🤖 Copilotes</button><button class="'+(malAdminPage==='campaigns'?'sel':'')+'" onclick="malSetAdminPage(\'campaigns\')">📢 Publicité</button><button class="'+(malAdminPage==='settings'?'sel':'')+'" onclick="malSetAdminPage(\'settings\')">⚙️ Plus</button></section>';
- var body=malAdminPage==='payments'?admin0():malAdminPage==='members'?'<h2>Comptes et modération</h2>'+reportsAdmin()+suspensionsAdmin()+blockedPanel():malAdminPage==='copilots'?aiManagerPreview():malAdminPage==='campaigns'?campaignsAdmin():malSettings();
+ var tabs='<section class="mal-admin-tabs"><button class="'+(malAdminPage==='payments'?'sel':'')+'" onclick="malSetAdminPage(\'payments\')">💳 Paiements</button><button class="'+(malAdminPage==='members'?'sel':'')+'" onclick="malSetAdminPage(\'members\')">👥 Membres</button><button class="'+(malAdminPage==='copilots'?'sel':'')+'" onclick="malSetAdminPage(\'copilots\')">🤖 Copilotes</button><button class="'+(malAdminPage==='settings'?'sel':'')+'" onclick="malSetAdminPage(\'settings\')">⚙️ Plus</button></section>';
+ var body=malAdminPage==='payments'?admin0():malAdminPage==='members'?'<h2>Comptes et modération</h2>'+reportsAdmin()+suspensionsAdmin()+blockedPanel():malAdminPage==='copilots'?aiManagerPreview():malSettings();
  return '<section class="mal-admin"><h1>Administration</h1>'+tabs+body+'</section>';
 }
 function draw(keep){
