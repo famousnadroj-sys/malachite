@@ -1,5 +1,5 @@
--- Enforce the public projection of private profiles at the database boundary.
--- Private profile details remain in public.prives under owner-only RLS.
+-- Keep private-profile cards discoverable while exposing only the public projection.
+-- The owner's full private fields are retained in public.prives.prefs by save_my_profile.
 create or replace function private.enforce_private_profile_public_projection()
 returns trigger
 language plpgsql
