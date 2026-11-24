@@ -90,12 +90,12 @@ Contrôle agrégé effectué sur la base de production le 24 novembre 2026, sans
 - 70 messages au total.
 - 2 messages où `de = a` : ils ne peuvent pas être associés automatiquement à un fil privé A/B sans comprendre leur fonction.
 - 2 messages de type `call` : ils utilisent une URL Jitsi et ne doivent pas être traités comme un objet Storage.
-- 3 messages dont l'auteur a encore un compte dans `auth.users`, mais n'a plus de ligne `profiles`. Ce ne sont pas des comptes Auth manquants ; leur sémantique doit être identifiée avant le backfill.
+- 3 messages dont l'auteur a encore un compte dans `auth.users`, mais n'a plus de ligne `profiles`. Ce ne sont pas des comptes Auth manquants : ils peuvent rester éligibles au backfill de fil si la paire est valide, mais l'affichage du participant doit prévoir un profil absent et leur origine doit être examinée.
 - 0 destinataire sans profil et 0 expéditeur sans utilisateur Auth.
 - 54 reçus : 0 reçu orphelin et 0 incohérence entre `message_receipts.sender_id/recipient_id` et `messages.de/a`.
 - Répartition des messages : 38 sans média, 6 audio, 2 call, 1 document, 15 image, 8 vidéo.
 
-**Décision :** le backfill naïf de toutes les lignes `messages` est interdit. Les deux messages auto-adressés et les trois messages d'auteurs sans profil doivent être identifiés et classés (système, données historiques, cas particulier) avant de les inclure ou de les exclure. Les reçus sont cohérents au moment du contrôle, mais leurs FK Auth en cascade restent un risque au moment de supprimer l'utilisateur.
+**Décision :** le backfill naïf de toutes les lignes `messages` est interdit. Les deux messages auto-adressés doivent être exclus du modèle strict A/B jusqu'à classification. Les trois messages d'auteurs sans profil ne doivent pas être exclus automatiquement : les comptes Auth existent, donc ils restent candidats au backfill si `de <> a`, avec un traitement d'affichage sans profil. Les reçus sont cohérents au moment du contrôle, mais leurs FK Auth en cascade restent un risque au moment de supprimer l'utilisateur.
 
 ## 5. Tests d'intégration obligatoires à ajouter
 
