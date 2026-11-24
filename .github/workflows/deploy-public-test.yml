@@ -1,4 +1,4 @@
-name: Malachite public test deployment
+name: MALACHITE isolated Match preview validation
 on:
   push:
     branches:
@@ -6,32 +6,24 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
-  pages: write
-  id-token: write
-concurrency:
-  group: pages-preview
-  cancel-in-progress: true
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  validate-preview:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout the test branch
+      - name: Checkout isolated preview source
         uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
         with:
-          ref: preview/malachite-match-staging-clean
-      - name: Validate application JavaScript
+          node-version: 22
+      - name: Validate preview application JavaScript
+        run: node scripts/validate.mjs
+      - name: Verify Match frontend is present
         run: |
-          node --version
-          node scripts/validate.mjs
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v5
-      - name: Upload site
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: .
-      - name: Publish public test site
-        id: deployment
-        uses: actions/deploy-pages@v4
+          set -euo pipefail
+          grep -Fq 'function matchExperience' app-core.js
+          grep -Fq 'async function loadMatchData' app-core.js
+          test -f index.html
+          test -f manifest.webmanifest
+          test -f sw.js
+          echo "Match frontend source validation passed."
