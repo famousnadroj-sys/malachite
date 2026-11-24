@@ -23,3 +23,7 @@ create or replace function private.is_blocked_with(p_other uuid) returns boolean
    (b.user_id=(select auth.uid()) and b.cible=p_other)
    or (b.user_id=p_other and b.cible=(select auth.uid())))
 $$;
+
+-- The isolated fixture lets the authenticated test session arrange either side
+-- of a block; production policies are not changed by this test-only grant.
+grant select, insert, delete on public.blocages to authenticated;
