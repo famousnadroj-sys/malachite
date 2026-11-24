@@ -432,6 +432,14 @@ for (const item of [
 ]) {
   if (!configStatusMutationMigration.includes(item)) throw new Error('Authenticated clients must not directly mutate config or entitlement status records.');
 }
+const contactUnlockMigration = fs.readFileSync('supabase/migrations/20261124200500_lock_legacy_contact_unlock_table.sql', 'utf8').toLowerCase();
+if (!contactUnlockMigration.includes('revoke all privileges on table public.deblocages from anon, authenticated')) {
+  throw new Error('Members must not be able to grant themselves legacy contact unlocks.');
+}
+const contactUnlockTest = fs.readFileSync('supabase/tests/entitlement_status_runtime_checks.sql', 'utf8');
+for (const item of ['legacy_contact_unlock_table_must_not_be_directly_accessible', 'guarded_contact_rpc_must_preserve_legacy_entitlements']) {
+  if (!contactUnlockTest.includes(item)) throw new Error('Legacy contact unlock ACL runtime test is incomplete.');
+}
 const statusVisibilityMigration = fs.readFileSync('supabase/migrations/20261124200000_limit_entitlement_status_visibility.sql', 'utf8').toLowerCase();
 for (const item of ['read own entitlement status', 'user_id = (select auth.uid())', 'public.public_status_badges()', 'private.is_suspended', 'private.is_blocked_with', 'profile_private = false', 'premium_until > now()', 'verified_until > now()', 'boost_until > now()', 'revoke all on function public.public_status_badges() from public, anon']) {
   if (!statusVisibilityMigration.includes(item)) throw new Error('Entitlement timestamps must remain private behind the public boolean badge projection.');
