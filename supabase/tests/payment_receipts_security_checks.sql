@@ -67,6 +67,22 @@ begin
     raise exception 'payment_insert_policy_must_stay_disabled_until_activation';
   end if;
 
+  if has_table_privilege('authenticated','public.call_sessions','INSERT')
+     or has_table_privilege('authenticated','public.call_sessions','UPDATE')
+     or has_table_privilege('authenticated','public.call_sessions','DELETE') then
+    raise exception 'call_session_mutations_must_stay_disabled_until_secure_provider_ready';
+  end if;
+  if not has_table_privilege('authenticated','public.call_sessions','SELECT') then
+    raise exception 'call_history_select_must_remain_available';
+  end if;
+  if exists (
+    select 1 from pg_policies
+    where schemaname='public' and tablename='call_sessions'
+      and policyname in ('paid matched members can call','call participants can update')
+  ) then
+    raise exception 'call_session_mutation_policies_must_be_removed_until_secure_provider_ready';
+  end if;
+
   if not exists (
     select 1 from pg_indexes
     where schemaname='public' and tablename='paiements'
