@@ -50,7 +50,7 @@ begin
 
   if exists (
     select 1 from public.call_sessions cs
-    where (cs.caller_id = v_uid or cs.callee_id = v_uid or cs.caller_id = p_callee_id or cs.callee_id = v_uid)
+    where (cs.caller_id = v_uid or cs.callee_id = v_uid or cs.caller_id = p_callee_id or cs.callee_id = p_callee_id)
       and cs.status in ('pending','accepted')
       and cs.expires_at > now()
   ) then
