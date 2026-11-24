@@ -87,3 +87,87 @@ Aucun déploiement de suppression de compte et aucune migration destructive ne d
 - tests de non-régression entre deux comptes ;
 - contrôle des accès Storage et des sessions ;
 - approbation explicite avant tout changement de fournisseur ou dépense.
+
+
+## 9. Mise à jour après retrait des publicités (24 novembre 2026)
+
+La PR #88 a été fusionnée dans `main` au commit `df968cb58709c2dfdc60b2f341a601c28af6d2ab`. Les workflows de validation, de prévisualisation Match isolée et de publication Pages ont réussi.
+
+Actions appliquées à Supabase production :
+- Migration `retire_advertising_surfaces` appliquée avec succès.
+- Les buckets `malachite-campaigns` et `malachite-campaign-media` sont désormais privés.
+- Les politiques de lecture publique et les politiques client d'administration de ces deux buckets ont été supprimées.
+- Les politiques de la table `campagnes` ont été retirées : la table reste présente, sans accès par les rôles client.
+- Les deux buckets contenaient toujours zéro objet ; aucune donnée n'a été supprimée.
+- La table `campagnes` contenait zéro ligne et zéro campagne active lors du contrôle.
+- L'Edge Function `malachite-ad-creative` a été redéployée en version 6, avec JWT obligatoire, et renvoie désormais HTTP 410 `advertising_generation_disabled`. La fonction ne génère plus de publicité ni de voix publicitaire.
+- Les scripts publicitaires inutilisés ont été retirés du dépôt et l'interface d'administration ne propose plus de gestion des campagnes ni de catégorie promotionnelle.
+
+Les tables historiques et les migrations de création des campagnes sont conservées dans Git et dans la base. Aucun objet, enregistrement de campagne, compte ou paiement n'a été effacé.
+
+## 10. Résultats supplémentaires de l'audit Supabase
+
+### 10.1 Références et volumes observés
+
+Lecture seule de la structure et des nombres de lignes, le 24 novembre 2026 :
+
+| Table | Lignes observées | Référence utilisateur | Nullable |
+|---|---:|---|---|
+| `messages` | 70 | `de`, `a` | non |
+| `rendez_vous` | 1 | `de`, `a` | non |
+| `avis_match` | 11 | `user_id`, `autre` | non |
+| `avis_site` | 4 | `user_id` | non |
+| `signalements` | 2 | `de`, `profil` | non |
+| `paiements` | 8 | `user_id`, `cible` | `user_id` non |
+
+Aucune clé étrangère vers `auth.users` n'a été observée sur ces six tables. Les colonnes de référence listées sont actuellement NOT NULL. Par conséquent, une stratégie `ON DELETE SET NULL` nécessite d'abord une migration de nullabilité et des tests de compatibilité applicative ; elle ne peut pas être ajoutée telle quelle.
+
+Points à traiter avant implémentation :
+- `messages` : définir si le texte et les pièces jointes restent visibles au destinataire après anonymisation de l'expéditeur ; les messages peuvent contenir des informations personnelles dans leur contenu.
+- `rendez_vous` : définir le sort des rendez-vous et des lieux associés lorsqu'un participant supprime son compte.
+- `avis_match` : les lignes de relation peuvent être supprimées, mais cela doit être vérifié avec la logique Match et les tests de non-régression.
+- `avis_site` : décider si l'avis est supprimé ou conservé anonymisé ; son texte libre peut contenir des données personnelles.
+- `signalements` : conserver si nécessaire les éléments indispensables à la sécurité ou à un litige, avec accès restreint, et anonymiser les identifiants non nécessaires.
+- `paiements` : séparer les archives réellement comptables des déclarations de paiement. Le schéma actuel n'a pas de colonne de montant ; il ne suffit pas à démontrer qu'une ligne constitue une pièce justificative comptable. Ne pas transformer automatiquement toutes les déclarations en archives décennales.
+
+Aucune de ces six tables n'a été modifiée pendant ce contrôle.
+
+### 10.2 Conseils de sécurité Supabase
+
+Le contrôle des Security Advisors a signalé :
+- 11 tables avec RLS activé et sans politique : `private.admins`, `private.founder_finance_ledger`, `private.match_daily_like_events`, `public.admin_push_queue`, `public.admin_push_subscriptions`, `public.ai_manager_audit`, `public.ai_ops_runs`, `public.malachite_ai_alerts`, `public.malachite_ai_review_queue`, `public.malachite_ai_settings`, `public.malachite_referrals`. En l'absence de politique RLS, les rôles clients sont bloqués par défaut ; ces cas doivent être confirmés comme accès backend/service-role uniquement, pas « réparés » en ajoutant une politique large.
+- 9 fonctions `SECURITY DEFINER` exécutables par les utilisateurs authentifiés. Les définitions inspectées contrôlent l'identité ou l'autorisation dans le corps : les fonctions d'administration vérifient `private.is_admin()`, les fonctions Match exigent un utilisateur connecté et appliquent les règles de visibilité/blocage/suspension, et `start_call_session` contrôle l'éligibilité, le match réciproque, les blocages et l'expiration.
+- `get_malachite_referrer_preview(uuid)` est exécutable par `anon` et `authenticated`, mais ne renvoie que le prénom et le nom d'utilisateur d'un profil dont `profile_private=false`. Le client l'utilise sur la page de parrainage publique. C'est un accès public intentionnel aux données déjà déclarées publiques, à garder sous surveillance.
+- La protection contre les mots de passe compromis est signalée comme désactivée. Ce réglage doit être examiné dans Supabase Auth Dashboard ; il n'a pas été changé par cet audit.
+- Aucun avis de santé du projet n'a été retourné par le conseiller de santé.
+- 19 index inutilisés ont été signalés par l'analyse de performance. Ils ne doivent pas être supprimés automatiquement : le projet est encore en phase de test et certains chemins sont peu sollicités.
+
+Les alertes des Advisors sont des pistes de vérification, pas la preuve que chacune est une vulnérabilité exploitable. Les politiques RLS et les contrôles internes doivent être testés avec des sessions anon, utilisateur normal et administrateur.
+
+## 11. État de lancement mis à jour
+
+- Publicité et campagnes : interface retirée, accès client aux buckets/table supprimé, endpoint de génération désactivé.
+- Suppression de compte : toujours non implémentée ; le schéma exige une stratégie explicite par catégorie.
+- Appels : fonctionnalité non désactivée, mais non validée comme suffisamment sécurisée pour un lancement public tant qu'une authentification de participant Jitsi ou un fournisseur de conférence authentifié n'est pas en place.
+- Auth : protection des mots de passe compromis à examiner dans le tableau de bord.
+- Aucune suppression de compte, aucun changement de fournisseur d'appels, aucune migration de données utilisateur et aucun paiement n'ont été exécutés.
+
+
+## 12. Plan technique pour rétablir des appels authentifiés
+
+La documentation officielle Jitsi indique que l'authentification JWT est configurée sur le serveur Jitsi (notamment Prosody), et non simplement activée par l'application cliente. Pour une installation Docker, les paramètres officiels incluent `ENABLE_AUTH=1`, `AUTH_TYPE=jwt`, `JWT_APP_ID`, `JWT_APP_SECRET` et `JWT_ALLOW_EMPTY=0`. Le secret doit rester côté serveur.
+
+Architecture recommandée si une infrastructure contrôlée devient disponible :
+1. Déployer une instance Jitsi dédiée, avec HTTPS, Docker et configuration de domaine maîtrisée.
+2. Configurer l'authentification JWT sur Prosody et refuser les jetons vides.
+3. Créer une Edge Function MALACHITE d'émission de jeton. Elle valide le JWT Supabase, vérifie que l'utilisateur est le caller ou callee de la session acceptée, que la session n'est pas expirée/terminée et que l'accès reste autorisé.
+4. Signer un jeton Jitsi de courte durée, lié à une seule salle précise et à l'identité du participant. Ne jamais signer un nom de salle ou un rôle fournis librement par le navigateur.
+5. Transmettre le jeton signé à `JitsiMeetExternalAPI` depuis le client ; ne jamais exposer le secret Jitsi dans le JavaScript.
+6. Tester les cas autorisés et refusés sur deux appareils et deux réseaux : bon caller, bon callee, autre utilisateur, session expirée, salle incorrecte, jeton expiré, utilisateur bloqué et tentative sans JWT.
+
+La documentation Jitsi décrit aussi les mécanismes d'authentification JWT et les options de Docker :
+- https://jitsi.github.io/handbook/docs/devops-guide/token-authentication/
+- https://jitsi.github.io/handbook/docs/devops-guide/authentication/
+- https://jitsi.github.io/handbook/docs/devops-guide/devops-guide-docker/
+
+Cette architecture n'est pas déployée. Elle nécessite un serveur que MALACHITE contrôle, des secrets protégés et des essais réels. Aucun fournisseur payant, hébergement ou changement de prestataire n'a été choisi ni activé.
