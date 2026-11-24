@@ -37,7 +37,7 @@ function av(p){var u=p&&p.photoUrls&&p.photoUrls[0],a=p&&p.avatar;if(a&&a.type==
 async function rep(id){var motif=prompt('Pourquoi souhaites-tu signaler ce profil ?\n\nMotifs possibles : faux profil, harcèlement, contenu inapproprié, spam ou autre. Décris brièvement le problème :');if(motif===null)return;motif=motif.trim();if(!motif){alert('Le motif est obligatoire.');return}if(motif.length>300){alert('300 caractères maximum.');return}var r=await sb.from('signalements').insert({de:me.id,profil:id,motif:motif});if(r.error){alert('Le signalement n’a pas été enregistré : '+r.error.message);return}alert('Merci. Ton signalement a bien été transmis à la modération.')}
 function others(){return profs.filter(function(p){return p.id!=me.id&&blocked.indexOf(p.id)<0}).sort(function(a,b){return (on((st[b.id]||{}).boost_until)?1:0)-(on((st[a.id]||{}).boost_until)?1:0)})}
 function storagePath(bucket,value){if(!value)return '';var marker='/storage/v1/object/public/'+bucket+'/';var i=String(value).indexOf(marker);if(i>=0)return decodeURIComponent(String(value).slice(i+marker.length).split('?')[0]);return String(value)}
-async function signedUrl(bucket,path,download){if(!path)return '';var r=download?await sb.storage.from(bucket).createSignedUrl(path,3600,{download:true}):await sb.storage.from(bucket).createSignedUrl(path,3600);return r.error?'':r.data.signedUrl}
+async function signedUrl(bucket,path,download){if(!path)return '';var ttl=bucket==='profile-photos'?300:3600;var r=download?await sb.storage.from(bucket).createSignedUrl(path,ttl,{download:true}):await sb.storage.from(bucket).createSignedUrl(path,ttl);return r.error?'':r.data.signedUrl}
 async function malRefreshAvatar(img,userId){if(!img||img.dataset.refreshing==='1')return;img.dataset.refreshing='1';try{var p=mine&&mine.id===userId?mine:profs.find(function(x){return x.id===userId});var path=p&&p.avatar&&p.avatar.imagePath;if(!path)return;var url=await signedUrl('profile-photos',path);if(url){p.avatar.imageUrl=url;img.src=url}}catch(e){console.warn('Renouvellement du lien avatar différé.',e)}finally{img.dataset.refreshing='0'}}
 var profilePhotoSignedCache=Object.create(null);
 async function resolveProfilePhotos(p){
@@ -62,12 +62,12 @@ async function resolveProfilePhotos(p){
  await Promise.all(Object.keys(groups).map(async function(bucket){
   var paths=Object.keys(groups[bucket]);if(!paths.length)return;
   try{
-   var result=await sb.storage.from(bucket).createSignedUrls(paths,3600);
+   var result=await sb.storage.from(bucket).createSignedUrls(paths,300);
    if(result.error)throw result.error;
    (result.data||[]).forEach(function(item,index){
     var path=item.path||paths[index],url=item.signedUrl||'';
     if(!url)return;
-    profilePhotoSignedCache[bucket+'|'+path]={url:url,expiresAt:now+3500000};
+    profilePhotoSignedCache[bucket+'|'+path]={url:url,expiresAt:now+270000};
     (groups[bucket][path]||[]).forEach(function(slot){
      if(slot==='avatar')p.avatar.imageUrl=url;else resolved[slot]=url;
     });
@@ -107,12 +107,12 @@ async function resolveProfilePhotosBatch(profiles){
  await Promise.all(Object.keys(groups).map(async function(bucket){
   var paths=Object.keys(groups[bucket]);if(!paths.length)return;
   try{
-   var result=await sb.storage.from(bucket).createSignedUrls(paths,3600);
+   var result=await sb.storage.from(bucket).createSignedUrls(paths,300);
    if(result.error)throw result.error;
    (result.data||[]).forEach(function(item,index){
     var path=item.path||paths[index],url=item.signedUrl||'';
     if(!url)return;
-    profilePhotoSignedCache[bucket+'|'+path]={url:url,expiresAt:now+3500000};
+    profilePhotoSignedCache[bucket+'|'+path]={url:url,expiresAt:now+270000};
     (groups[bucket][path]||[]).forEach(function(job){
      if(job.slot==='avatar')job.profile.avatar.imageUrl=url;else job.resolved[job.slot]=url;
     });
