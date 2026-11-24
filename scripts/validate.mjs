@@ -256,6 +256,16 @@ if (!frontend.includes('resolveMessagesMedia(priorityMedia).then(function()') ||
 if (!frontend.includes("Promise.all([sb.from('avis_match').select('ok')")) throw new Error('Conversation match checks must run concurrently.');
 if (!frontend.includes("sb.channel('msgs-'+me.id)")) throw new Error('Per-user Realtime message updates must remain enabled.');
 if (!frontend.includes('async function resolveMessagesMedia(rows)') || !frontend.includes("createSignedUrls(paths,300)")) throw new Error('Chat media URLs must be resolved in batches.');
+const chatMediaResolverStart = frontend.indexOf('async function resolveMessagesMedia(rows)');
+const chatMediaResolverEnd = frontend.indexOf('function patchMessageMedia', chatMediaResolverStart);
+const chatMediaResolver = frontend.slice(chatMediaResolverStart, chatMediaResolverEnd);
+if (!chatMediaResolver.includes('uid=me&&me.id') ||
+    !chatMediaResolver.includes("uid+'|'+bucket+'|'+path") ||
+    !chatMediaResolver.includes('expiresAt=now+270000') ||
+    chatMediaResolver.includes('3500000')) {
+  throw new Error('Private media URL caches must be user-scoped and expire before their five-minute signed URLs.');
+}
+
 if (!frontend.includes("filter:'a=eq.'+me.id") || !frontend.includes("filter:'de=eq.'+me.id")) throw new Error('Realtime messages must be filtered to the signed-in user.');
 if (!frontend.includes("preload=\"none\"")) throw new Error('Chat videos must not preload all media data.');
 if (!frontend.includes('async function loadOlderMessages()')) throw new Error('Chat history must load older messages incrementally.');
