@@ -600,9 +600,8 @@ function matchBox(){var o=open;if(blockedCurrent)return '<div class="mrow">🚫 
 if(av2===null)return '<div class="mrow pop"><span>Vous avez bien discuté ?</span><button class="b1" onclick="avis(true)">💗 Ça match</button><button onclick="avis(false)">Pas pour moi</button></div>';
 if(av2===false)return '<div class="mrow"><span class="note">Tu as répondu « Pas pour moi ».</span><button onclick="avis(true)">Changer d’avis</button></div>';
 if(!mutual)return '<div class="mrow pop"><span>💗 Ton « Ça match » est envoyé. On attend l’autre personne.</span></div>';
-var h='<div class="mrow pop" style="border:2px solid var(--pink)"><b>🎉 Match !</b><button class="b1" onclick="rdvFor=\''+o+'\';go(\'rdv\')">📅 Rendez-vous</button><button disabled title="Les appels sécurisés seront réactivés après leur mise en place">📹 Appel indisponible</button>'+(ct?'':'<button onclick="payOpen=!payOpen;lastSig=\'\';loadChat()">🔓 Contact 1 $</button>')+'</div>';
+var h='<div class="mrow pop" style="border:2px solid var(--pink)"><b>🎉 Match !</b><button class="b1" onclick="rdvFor=\''+o+'\';go(\'rdv\')">📅 Rendez-vous</button><span class="note">Continuez à discuter ici en toute simplicité.</span></div>';
 if(ct)h+='<div class="mrow">📞 <b>'+esc(ct.nom||'')+'</b> · <a href="tel:'+esc(ct.tel||'')+'">'+esc(ct.tel||'pas de numéro')+'</a></div>';
-else if(payOpen)h+='<div class="mrow" style="display:block">Envoie 1 $ au <b>'+esc(NUM)+'</b> par Airtel Money (gratuit en Premium), puis écris le code reçu par SMS.<div class="send" style="margin-top:6px"><input id="uc" placeholder="Code de transaction"><button onclick="payC()">Débloquer</button></div><div class="note" id="um"></div></div>';
 return h}
 async function ensureMatchNotice(id){
  if(!id||matchNoticeChecked[id])return;
