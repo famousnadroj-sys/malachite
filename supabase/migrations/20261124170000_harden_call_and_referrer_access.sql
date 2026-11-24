@@ -118,3 +118,6 @@ as $function$
     )
   limit 1
 $function$;
+comment on function public.get_malachite_referrer_preview(uuid) is
+  'Intentionally public read-only referral preview; exposes only public, non-suspended profile fields. Authenticated viewers are additionally filtered for blocks.';
+
