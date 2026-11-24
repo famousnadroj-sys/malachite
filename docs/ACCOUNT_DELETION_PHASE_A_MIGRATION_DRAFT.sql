@@ -92,6 +92,7 @@ do $backfill$
 declare
   pair_row record;
   v_thread_id uuid;
+  v_new_thread_id uuid;
 begin
   for pair_row in
     select distinct least(m.de, m.a) as member_low,
@@ -108,20 +109,25 @@ begin
 
     if v_thread_id is null then
       insert into public.conversation_threads default values
-      returning id into v_thread_id;
+      returning id into v_new_thread_id;
 
       insert into public.conversation_pair_index(
         member_low, member_high, conversation_id
       ) values (
-        pair_row.member_low, pair_row.member_high, v_thread_id
+        pair_row.member_low, pair_row.member_high, v_new_thread_id
       )
       on conflict (member_low, member_high) do nothing;
 
-      -- Handle a concurrent insert without creating a dangling mapping.
       select i.conversation_id into v_thread_id
       from public.conversation_pair_index i
       where i.member_low = pair_row.member_low
         and i.member_high = pair_row.member_high;
+
+      -- If another writer won the unique pair race, remove our unused thread.
+      if v_thread_id is distinct from v_new_thread_id then
+        delete from public.conversation_threads
+        where id = v_new_thread_id;
+      end if;
     end if;
   end loop;
 end;
