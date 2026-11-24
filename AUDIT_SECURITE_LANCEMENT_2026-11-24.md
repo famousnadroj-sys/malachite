@@ -4,7 +4,7 @@
 
 - PR GitHub : #113 — ouverte, non fusionnée.
 - Branche : `security/private-profile-access-v3`.
-- Commit audité : `07e0dfd684b5b38cd4d8e4a556872e9f1109e76e`.
+- Commit audité : à re-vérifier sur le HEAD courant de la PR avant fusion.
 - CI sur ce commit : tous les jobs de validation réussis, y compris le runtime PostgreSQL isolé.
 - Aucune fusion, aucun déploiement et aucune modification SQL du projet Supabase connecté n'ont été effectués.
 
@@ -22,6 +22,14 @@
 - Les tests couvrent le refus par défaut, l'absence de ligne créée, l'impossibilité d'accepter sans fournisseur, les suspensions, les blocages et les sessions/rendez-vous.
 
 **Important :** JaaS n'est pas encore configuré. Le code contient toujours l'ancien domaine public `meet.jit.si`, mais le chemin applicatif est verrouillé et le RPC serveur refuse les nouvelles sessions tant que le drapeau reste désactivé. Ne jamais activer le drapeau avant d'avoir déployé et testé l'émetteur JWT JaaS.
+
+### Inscription — âge minimum vérifié côté serveur
+
+- Le formulaire d'inscription vérifie déjà 18 à 100 ans côté navigateur, mais ce contrôle client ne suffit pas.
+- L'audit de la fonction RPC `public.save_my_profile` a confirmé qu'elle acceptait auparavant une absence d'âge dans le champ privé `profile_age` ; la contrainte SQL `age >= 18` accepte également `NULL`.
+- La migration `20261124250000_enforce_profile_age_server_side.sql` exige désormais un âge entier de 18 à 100 ans dans le stockage privé du propriétaire, impose la cohérence avec l'âge public quand le profil est public et conserve l'âge hors de la ligne publique pour les profils privés.
+- Le test PostgreSQL isolé couvre âge absent, âge inférieur à 18, âge public absent, âge incohérent, âge valide de 18 ans et profil privé avec âge de 100 ans.
+- CI vérifiée sur le commit `a084a8590552b658a985a211e0ab72010b4f2ea7` : validation statique, tests SQL d'accès privé, tests d'âge, tests d'appels, de reçus, de suppressions FK et runtime Match réussis.
 
 ### Publicités et campagnes
 
@@ -51,6 +59,14 @@ Références de remédiation :
 - SECURITY DEFINER exécutable par anon : https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable
 - Protection des mots de passe compromis : https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection
 
+### Suppression de compte — fonction utilisateur manquante
+
+- Aucun parcours « supprimer mon compte » n'a été trouvé dans `app-core.js` et aucun Edge Function de suppression n'est présent dans `supabase/functions`.
+- L'audit en lecture seule des clés étrangères du projet Supabase montre que plusieurs données relationnelles se suppriment en cascade depuis `auth.users` (profil, données privées, blocages, sessions d'appel, statuts, notifications, reçus et références Match).
+- Les objets Storage (photos et médias) ne sont pas supprimés par ces clés étrangères. Une suppression du compte sans nettoyage Storage laisserait des fichiers orphelins.
+- Une suppression sûre nécessite une Edge Function authentifiée, une confirmation/réauthentification, un nettoyage ciblé des fichiers appartenant au compte, une suppression Admin Auth et des tests de non-suppression des données d'autres membres.
+- Cette fonction n'a pas été créée ni déployée ; c'est un bloqueur de lancement.
+
 ## Bloqueurs et validations encore nécessaires
 
 1. Créer/configurer un compte JaaS et une API key ; garder la clé privée uniquement dans les secrets Supabase.
@@ -58,9 +74,9 @@ Références de remédiation :
 3. Utiliser le domaine JaaS `8x8.vc`, jamais `meet.jit.si`, pour les appels sécurisés.
 4. Activer la protection des mots de passe compromis dans Supabase Auth.
 5. Identifier formellement l'environnement du projet Supabase connecté avant toute application de migration.
-6. Vérifier la stratégie de sauvegarde et effectuer un véritable test de restauration. Aucun flux applicatif complet de sauvegarde/restauration n'a été validé pendant cet audit.
-7. Effectuer les essais réels avec deux comptes et deux appareils/navigateurs.
-8. Préparer les paiements uniquement après accord explicite et après la SIM Airtel Money dédiée ; aucune intégration Airtel Developer ou Visa n'a été activée.
+6. Construire et tester le parcours de suppression de compte et le nettoyage des fichiers Storage appartenant au membre.\n7. Vérifier la stratégie de sauvegarde et effectuer un véritable test de restauration. Aucun flux applicatif complet de sauvegarde/restauration n'a été validé pendant cet audit.
+8. Effectuer les essais réels avec deux comptes et deux appareils/navigateurs.
+9. Préparer les paiements uniquement après accord explicite et après la SIM Airtel Money dédiée ; aucune intégration Airtel Developer ou Visa n'a été activée.
 
 ## Règle de sécurité
 
