@@ -58,6 +58,18 @@ do $$ begin
  exception when sqlstate 'P0001' then
    if sqlerrm <> 'call_blocked' then raise; end if;
  end;
+ delete from public.blocages
+ where user_id='40000000-0000-0000-0000-000000000001'
+   and cible='10000000-0000-0000-0000-000000000001';
+ if not exists (
+   select 1 from public.start_call_session(
+     '90000000-0000-0000-0000-000000000005',
+     '40000000-0000-0000-0000-000000000001',
+     'room-valid-mutual-match-01','audio',now()+interval '1 minute')
+   where status='pending'
+ ) then
+   raise exception 'valid_mutual_match_call_was_rejected';
+ end if;
  begin
    perform * from public.start_call_session(
      '90000000-0000-0000-0000-000000000001',
