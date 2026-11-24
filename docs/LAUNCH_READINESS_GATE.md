@@ -33,7 +33,7 @@ Ce document définit les contrôles humains obligatoires avant d'autoriser la pu
 - [ ] Nouvelle SIM Airtel Money dédiée reçue et titulaire/récupération vérifiés ; aucun ancien numéro ne doit être réutilisé sans confirmation explicite.
 - [ ] Prix Premium et Boost approuvés par le propriétaire, durée et avantages alignés sur le code.
 - [ ] Procédure de vérification des paiements et des reçus testée de bout en bout.
-- [ ] Fournisseur d'appels sécurisé configuré et testé si les appels sont annoncés comme disponibles. Sinon, conserver les appels désactivés et ne pas vendre le Pass Appels.
+- [ ] Fournisseur d'appels sécurisé configuré et testé si les appels sont annoncés comme disponibles. Le code actuel garde `SECURE_JITSI_PROVIDER_READY=false`, charge l'API publique `meet.jit.si` uniquement derrière ce verrou et ne contient pas d'Edge Function de jeton JaaS vérifiée. Il faut implémenter et tester le backend de jetons avant toute activation. Sinon, conserver les appels désactivés et ne pas vendre le Pass Appels.
 
 ## 5. Publication et exploitation
 
