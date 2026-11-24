@@ -20,6 +20,44 @@ do $$ begin
  if exists(select 1 from public.get_malachite_referrer_preview('30000000-0000-0000-0000-000000000001')) then
    raise exception 'private_referrer_preview_leaked';
  end if;
+
+ -- Active, public, unblocked referrals remain visible.
+ if not exists (
+   select 1 from public.get_malachite_referrer_preview('40000000-0000-0000-0000-000000000001')
+   where prenom='Available' and username='available_user'
+ ) then
+   raise exception 'active_referrer_preview_regressed';
+ end if;
+ -- Blocking either direction must suppress the preview and prevent calls.
+ insert into public.blocages(user_id,cible)
+ values ('10000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000001');
+ if exists(select 1 from public.get_malachite_referrer_preview('40000000-0000-0000-0000-000000000001')) then
+   raise exception 'viewer_blocked_referrer_preview_leaked';
+ end if;
+ begin
+   perform * from public.start_call_session(
+     '90000000-0000-0000-0000-000000000003',
+     '40000000-0000-0000-0000-000000000001',
+     'room-blocked-forward-01','audio',now()+interval '1 minute');
+   raise exception 'viewer_blocked_call_was_allowed';
+ exception when sqlstate 'P0001' then
+   if sqlerrm <> 'call_blocked' then raise; end if;
+ end;
+ delete from public.blocages where user_id='10000000-0000-0000-0000-000000000001';
+ insert into public.blocages(user_id,cible)
+ values ('40000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001');
+ if exists(select 1 from public.get_malachite_referrer_preview('40000000-0000-0000-0000-000000000001')) then
+   raise exception 'referrer_blocked_viewer_preview_leaked';
+ end if;
+ begin
+   perform * from public.start_call_session(
+     '90000000-0000-0000-0000-000000000004',
+     '40000000-0000-0000-0000-000000000001',
+     'room-blocked-reverse-01','audio',now()+interval '1 minute');
+   raise exception 'reverse_blocked_call_was_allowed';
+ exception when sqlstate 'P0001' then
+   if sqlerrm <> 'call_blocked' then raise; end if;
+ end;
  begin
    perform * from public.start_call_session(
      '90000000-0000-0000-0000-000000000001',
