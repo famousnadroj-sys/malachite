@@ -28,6 +28,9 @@ declare
   v_day date := (now() at time zone 'Africa/Lubumbashi')::date;
   v_new_like boolean := false;
   v_used integer := 0;
+  v_target_private boolean := true;
+  v_my_rel jsonb := '[]'::jsonb;
+  v_target_rel jsonb := '[]'::jsonb;
 begin
   if v_uid is null or new.user_id is distinct from v_uid then
     raise exception 'match_auth_required';
@@ -50,6 +53,49 @@ begin
   end if;
 
   if v_new_like then
+    -- Enforce candidate eligibility in the database; the frontend filter is not a security boundary.
+    select coalesce(p.profile_private, true)
+      into v_target_private
+    from public.profiles p
+    where p.id = new.autre;
+
+    if not found then
+      raise exception 'match_invalid_target';
+    end if;
+    if v_target_private then
+      raise exception 'match_private_target';
+    end if;
+    if private.is_suspended(new.autre) then
+      raise exception 'match_target_suspended';
+    end if;
+
+    -- Relationship intentions remain private. Only a boolean decision is made here.
+    select case when jsonb_typeof(p.prefs->'rel') = 'array'
+                then p.prefs->'rel' else '[]'::jsonb end
+      into v_my_rel
+    from public.prives p
+    where p.id = v_uid;
+    v_my_rel := coalesce(v_my_rel, '[]'::jsonb);
+
+    select case when jsonb_typeof(p.prefs->'rel') = 'array'
+                then p.prefs->'rel' else '[]'::jsonb end
+      into v_target_rel
+    from public.prives p
+    where p.id = new.autre;
+    v_target_rel := coalesce(v_target_rel, '[]'::jsonb);
+
+    if jsonb_array_length(v_my_rel) > 0
+       and jsonb_array_length(v_target_rel) > 0
+       and not exists (
+         select 1
+         from jsonb_array_elements_text(v_my_rel) mine(value)
+         where mine.value in (
+           select jsonb_array_elements_text(v_target_rel)
+         )
+       ) then
+      raise exception 'match_incompatible_target';
+    end if;
+
     -- Serialize free-member like attempts to prevent parallel requests
     -- from exceeding the daily allowance.
     perform pg_advisory_xact_lock(hashtextextended(v_uid::text, 0));
