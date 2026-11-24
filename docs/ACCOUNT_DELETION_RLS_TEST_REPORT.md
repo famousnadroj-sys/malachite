@@ -1,8 +1,8 @@
 # MALACHITE — Rapport de test RLS pour la suppression de compte
 
 **Branche :** `security/account-deletion-design-v1`  
-**Commit testé :** `636ee4ca2819f191bb0fec204ecb0234c72a73a8`  
-**Workflow :** [GitHub Actions — run 45487646787](https://github.com/famousnadroj-sys/malachite/actions/runs/45487646787)  
+**Commit testé :** `27a062028c3a240ce46f39a7973a4174d93b795d`  
+**Workflow :** [GitHub Actions — run 45488037670](https://github.com/famousnadroj-sys/malachite/actions/runs/45488037670)  
 **Résultat :** succès sur PostgreSQL 17 jetable.
 
 ## Portée du test
@@ -13,7 +13,9 @@ Le fichier `supabase/tests/account_deletion_rls_contract.sql` crée un schéma i
 - **B (membre restant)** : lit les deux messages conservés dans le fil A-B, dont le message de A avec `sender_id = NULL` et une date d’anonymisation.
 - **C et D (fil indépendant)** : chacun ne lit que le message de son propre fil ; ils ne lisent pas les messages A-B.
 
-Les deux contrats SQL — comportement et RLS — s’exécutent dans la même étape GitHub Actions. Le job est terminé avec `success`.
+Les trois contrats SQL — comportement, RLS et backfill — s’exécutent dans la même étape GitHub Actions. Le job est terminé avec `success`.
+
+Le contrat de backfill vérifie également que les messages A→B et B→A sont rattachés au même identifiant de conversation stable, que les participants sont créés une seule fois et que tous les messages historiques du jeu d’essai sont migrés.
 
 ## Ce que ce succès prouve
 
