@@ -544,7 +544,6 @@ for (const item of [
   "async function malUploadPaymentReceipt(file)",
   "sb.storage.from('payment-receipts').upload",
   "createSignedUrl(x.receipt_path,300)",
-  "id=\"malReceipt\"",
   "receipt_path:receipt.path",
 ]) {
   if (!frontend.includes(item)) throw new Error('Payment receipt workflow missing: ' + item);
@@ -552,6 +551,9 @@ for (const item of [
 
 if (!frontend.includes("remove([receipt.path])")) {
   throw new Error('Failed payment inserts must clean up unlinked private receipt files.');
+}
+if (frontend.includes('id="malReceipt"')) {
+  throw new Error('Payment receipt upload form must remain hidden while payment intake is paused.');
 }
 
 
