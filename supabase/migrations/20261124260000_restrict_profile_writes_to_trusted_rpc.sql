@@ -141,19 +141,19 @@ begin
   end if;
 
   v_type := p_avatar->>'type';
-  if v_type not in ('pro-vector','humanforge-3d')
-     or jsonb_typeof(p_avatar->'config') <> 'object' then
+  if v_type is null or v_type not in ('pro-vector','humanforge-3d')
+     or jsonb_typeof(p_avatar->'config') is distinct from 'object' then
     raise exception 'Type ou configuration d’avatar invalide';
   end if;
 
   if v_type = 'pro-vector' then
-    if p_avatar->>'version' <> '3'
+    if p_avatar->>'version' is distinct from '3'
        or p_avatar ? 'imagePath'
        or (p_avatar - array['type','version','config']::text[]) <> '{}'::jsonb then
       raise exception 'Avatar vectoriel invalide';
     end if;
   elsif v_type = 'humanforge-3d' then
-    if p_avatar->>'version' <> '1'
+    if p_avatar->>'version' is distinct from '1'
        or coalesce(p_avatar->>'imagePath','') !~ (
          '^' || v_uid::text || '/avatar-[0-9]+[.]pngrevoke all on function public.save_my_profile(jsonb, jsonb) from public, anon;
 grant execute on function public.save_my_profile(jsonb, jsonb) to authenticated;
