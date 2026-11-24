@@ -89,7 +89,6 @@ async function malAttachPendingSignupAvatar(){
  var up=await sb.storage.from('profile-photos').upload(path,blob,{contentType:'image/png',upsert:false});
  if(up.error)throw up.error;
  var avatar={type:'humanforge-3d',version:1,config:saved.config,imagePath:path};
- avatar.imageUrl=await signedUrl('profile-photos',path);
  var result=await sb.rpc('update_my_avatar',{p_avatar:avatar});
  if(result.error||!result.data){await sb.storage.from('profile-photos').remove([path]);throw result.error||new Error('Profil non prêt.')}
  mine=Object.assign({},mine||{},result.data);await resolveProfilePhotos(mine);
