@@ -34,6 +34,22 @@ begin
     raise exception 'payment_destination_config_must_be_preserved_for_admin_reconfiguration';
   end if;
 
+  if has_table_privilege('authenticated','public.call_sessions','INSERT')
+     or has_table_privilege('authenticated','public.call_sessions','DELETE') then
+    raise exception 'call_session_creation_and_deletion_must_be_disabled';
+  end if;
+  if not has_table_privilege('authenticated','public.call_sessions','SELECT')
+     or not has_table_privilege('authenticated','public.call_sessions','UPDATE') then
+    raise exception 'existing_call_history_must_remain_readable_and_updatable';
+  end if;
+  if exists (
+    select 1 from pg_policies
+    where schemaname='public' and tablename='call_sessions'
+      and policyname='paid matched members can call'
+  ) then
+    raise exception 'paid_call_insert_policy_must_be_removed_until_provider_ready';
+  end if;
+
   if exists (
     select 1 from pg_policies
     where schemaname='public' and tablename='paiements'
@@ -70,6 +86,26 @@ begin
   end;
 end
 $blocked_insert$;
+
+do $blocked_call$
+begin
+  begin
+    insert into public.call_sessions(caller_id,callee_id,status,expires_at)
+    values(auth.uid(),'50000000-0000-0000-0000-000000000002','pending',now()+interval '2 minutes');
+    raise exception 'call_session_insert_was_accepted';
+  exception when insufficient_privilege then
+    null;
+  end;
+end
+$blocked_call$;
+
+do $existing_call_history$
+begin
+  if (select count(*) from public.call_sessions) <> 1 then
+    raise exception 'existing_call_session_history_not_readable';
+  end if;
+end
+$existing_call_history$;
 
 do $history_read$
 begin
