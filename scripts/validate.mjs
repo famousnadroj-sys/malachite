@@ -193,7 +193,7 @@ if (frontend.includes("if(t==='me'&&mine&&me){var uid=me.id,target=mine;resolveP
   throw new Error('Moi tab must not start a duplicate profile-photo signing request.');
 }
 const appCore = frontendScripts[0];
-if (!appCore.includes("if(keepWarmCache){sub();") || !appCore.includes("loadMatchData().then(function(){if(me&&me.id===uid&&(tab===\'home\'||tab===\'search\'))draw(true)})")) throw new Error('Warm profile cache must refresh Match data without repeating the full profile reload.');
+if (!appCore.includes("if(keepWarmCache){sub();") || !appCore.includes("loadMatchData().then(function(){if(me&&me.id===uid&&(tab===\'home\'||tab===\'search\'||tab===\'match\'))draw(true)})")) throw new Error('Warm profile cache must refresh Match data without repeating the full profile reload.');
 if (!appCore.includes("if(tab!=='chat'&&!msgRealtimeReady)")) throw new Error('Message polling must be fallback-only when realtime is unavailable.');
 if (!appCore.includes('setInterval(poll,120000)') || !appCore.includes('setInterval(beat,120000)')) throw new Error('Background polling must use reduced intervals.');
 if (!performanceGuard.includes('html.mal-low-power *{animation:none!important')) throw new Error('Low-power devices must disable costly visual effects.');
