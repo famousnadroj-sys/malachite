@@ -290,7 +290,7 @@ if (!frontend.includes("on('broadcast',{event:'typing'}")) throw new Error('Real
 if (!frontend.includes('oninput="setTyping()"') || !frontend.includes('class="chat-typing"')) throw new Error('Typing indicator UI and composer hook are missing.');
 if (!frontend.includes('class="conv-avatar" onclick="event.stopPropagation();viewProf')) throw new Error('Conversation avatar must open the immersive member profile.');
 if (!frontend.includes('async function viewProf(id,startIndex)') || !frontend.includes("window.malOpenProfile=async function(id,startIndex)") || !frontend.includes("layer.className='mal-profile-viewer'")) throw new Error('Immersive profile viewer must remain available.');
-if (!frontend.includes('href="https://famousnadroj-sys.github.io/malachite/preview/"') || !frontend.includes('Ouvrir MALACHITE · environnement de test')) throw new Error('Founder dashboard must open the isolated Match preview, not production.');
+if (!frontend.includes('href="https://famousnadroj-sys.github.io/malachite/preview/"') || !frontend.includes('Ouvrir la prévisualisation Match')) throw new Error('Founder dashboard must open the isolated Match preview, not production.');
 
 const appCoreSource = fs.readFileSync('app-core.js', 'utf8');
 if (appCoreSource.includes("ADM='famousnadroj@gmail.com'") || appCoreSource.includes('me.email===ADM') || appCoreSource.includes('me.email!==ADM') || appCoreSource.includes('me.email==ADM')) throw new Error('Admin UI must not use a client-side email allow-list.');
