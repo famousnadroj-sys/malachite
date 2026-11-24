@@ -24,7 +24,7 @@ create temporary table migrated_messages (
   body text not null
 ) on commit drop;
 
-create temporary table conversation_members (
+create temporary table quarantined_legacy_messages (\n  id bigint primary key,\n  reason text not null\n) on commit drop;\n\ncreate temporary table conversation_members (
   conversation_id uuid not null references conversation_threads(id),
   user_id uuid not null,
   active boolean not null default true,
@@ -34,7 +34,7 @@ create temporary table conversation_members (
 insert into legacy_messages(id,de,a,body) values
  (1,'20000000-0000-0000-0000-00000000000a','20000000-0000-0000-0000-00000000000b','A vers B'),
  (2,'20000000-0000-0000-0000-00000000000b','20000000-0000-0000-0000-00000000000a','B vers A'),
- (3,'20000000-0000-0000-0000-00000000000c','20000000-0000-0000-0000-00000000000d','C vers D');
+ (3,'20000000-0000-0000-0000-00000000000c','20000000-0000-0000-0000-00000000000d','C vers D'),\n (4,'20000000-0000-0000-0000-00000000000a','20000000-0000-0000-0000-00000000000a','self/system candidate'),\n (5,'20000000-0000-0000-0000-00000000000b','20000000-0000-0000-0000-00000000000b','self/system candidate');\n\n-- Do not invent a two-person thread for self-addressed rows. Keep them visible\n-- in a quarantine set for separate classification; never silently drop them.\ninsert into quarantined_legacy_messages(id,reason)\nselect id,'self_addressed_requires_classification'\nfrom legacy_messages where de = a;
 
 -- Canonicalize the pair so A->B and B->A become one thread.
 insert into conversation_threads(member_low,member_high)
@@ -76,6 +76,18 @@ begin
   select count(*) into message_count from migrated_messages;
   if message_count <> 3 then
     raise exception 'FAIL: expected all legacy messages to be backfilled, found %',message_count;
+  end if;
+
+  if (select count(*) from quarantined_legacy_messages) <> 2 then
+    raise exception 'FAIL: self-addressed messages must be quarantined, not silently mapped';
+  end if;
+
+  if exists (
+    select 1 from migrated_messages m
+    join legacy_messages l using (id)
+    where l.de = l.a
+  ) then
+    raise exception 'FAIL: self-addressed message entered the two-person conversation model';
   end if;
 
   select count(distinct conversation_id) into ab_threads
