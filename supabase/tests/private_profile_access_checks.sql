@@ -1,11 +1,13 @@
 begin;
 
 -- Authenticated profile reads must be explicitly granted and remain filtered by RLS.
-do $ begin
+do $profile_grant$
+begin
   if not has_table_privilege('authenticated','public.profiles','SELECT') then
     raise exception 'authenticated_profile_select_grant_missing';
   end if;
-end $;
+end
+$profile_grant$;
 
 -- The migration must remove the legacy data-rewriting trigger.
 do $$
