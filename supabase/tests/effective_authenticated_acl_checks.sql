@@ -10,12 +10,16 @@ begin
   foreach t in array array[
     'call_sessions','config','login_names','paiements','statuts','prives'
   ] loop
-    if not has_table_privilege('authenticated',format('public.%I',t),'SELECT') then
+    if t='config' then
+      if has_table_privilege('authenticated',format('public.%I',t),'SELECT') then
+        raise exception 'payment_destination_config_must_remain_hidden';
+      end if;
+    elsif not has_table_privilege('authenticated',format('public.%I',t),'SELECT') then
       raise exception 'authenticated_select_missing:%',t;
     end if;
 
     foreach v_priv in array array['INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER'] loop
-      v_expected := (t='paiements' and v_priv='INSERT');
+      v_expected := false;
       if has_table_privilege('authenticated',format('public.%I',t),v_priv) <> v_expected then
         raise exception 'unexpected_table_acl:%:%',t,v_priv;
       end if;
@@ -28,15 +32,14 @@ begin
       if has_column_privilege('authenticated',format('public.%I',t),c.column_name,'UPDATE') then
         raise exception 'unexpected_column_update:%:%',t,c.column_name;
       end if;
-      if has_column_privilege('authenticated',format('public.%I',t),c.column_name,'INSERT')
-         and t<>'paiements' then
+      if has_column_privilege('authenticated',format('public.%I',t),c.column_name,'INSERT') then
         raise exception 'unexpected_column_insert:%:%',t,c.column_name;
       end if;
     end loop;
   end loop;
 
-  if not has_table_privilege('authenticated','public.paiements','INSERT') then
-    raise exception 'payment_submission_insert_must_remain_available';
+  if has_table_privilege('authenticated','public.paiements','INSERT') then
+    raise exception 'payment_intake_must_remain_paused';
   end if;
   if not has_function_privilege('authenticated','public.update_my_call_session_status(uuid,text)','EXECUTE')
      or has_function_privilege('anon','public.update_my_call_session_status(uuid,text)','EXECUTE') then
