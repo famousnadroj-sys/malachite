@@ -30,7 +30,6 @@ function restoreMalView(){
 }
 var malAuthBooted=false;
 function go(t){
- if(t==='home'&&typeof loadPublicCampaigns==='function')loadPublicCampaigns();
  if(t==="centre"&&!me){malShowLegal();return}
  document.querySelectorAll(".sheetbg,.viewer,.lbx").forEach(function(e){e.remove()});
  tab=t;msg="";lastSig="";clearInterval(timer);persistMalView();
