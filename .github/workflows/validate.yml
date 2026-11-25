@@ -93,6 +93,7 @@ jobs:
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/private_profile_access_fixture.sql
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261124150100_secure_private_profile_access.sql
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261124210000_restore_authenticated_profile_reads.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261125150000_allow_published_public_profile_avatar_reads.sql
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/private_profile_access_checks.sql
 
   profile-age-enforcement:
