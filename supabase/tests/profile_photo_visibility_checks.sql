@@ -17,11 +17,15 @@ set local role authenticated;
 select set_config('request.jwt.claim.sub','30000000-0000-0000-0000-000000000001',true);
 -- Print only synthetic fixture paths so a failed visibility assertion is diagnosable.
 select name from storage.objects where bucket_id='profile-photos' order by name;
-do $$
+select count(*) as visible_published_photo_count from storage.objects where bucket_id='profile-photos';
+do $
+declare
+ visible_count integer;
 begin
  -- A third party must see only the two published images of the public profile.
- if (select count(*) from storage.objects where bucket_id='profile-photos') <> 2 then
-  raise exception 'other_member_must_only_read_published_public_photos';
+ select count(*) into visible_count from storage.objects where bucket_id='profile-photos';
+ if visible_count <> 2 then
+  raise exception 'other_member_must_only_read_published_public_photos; actual_count=%', visible_count;
  end if;
  if exists(select 1 from storage.objects where name='10000000-0000-0000-0000-000000000001/hidden.jpg') then
   raise exception 'private_extra_photo_visible';
