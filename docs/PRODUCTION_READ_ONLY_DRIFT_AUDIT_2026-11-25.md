@@ -269,3 +269,25 @@ Additional call-provider checks:
 **Severity / decision:** this is a confirmed production-versus-staging security drift, not a hypothetical CI finding. In production, authenticated clients retain direct INSERT on payments and calls, UPDATE on call sessions, SELECT on payment-destination config, and direct INSERT on profiles / UPDATE on private profile data. The corresponding staging ACL lockdown is effective. Do not publish a frontend that assumes the staging RPC/ACL model while production remains in this state.
 
 **No remediation was applied to production.** Applying the ordered security migration set requires an explicit production change window, a verified restorable backup, and a reviewed migration plan. Do not apply isolated revokes ad hoc: the frontend and trusted RPCs must be deployed in a coordinated order, and the production migration ledger must be reconciled first.
+
+
+## Expanded table ACL matrix — same query on both environments (25 November 2026)
+
+The follow-up inspected SELECT/INSERT/UPDATE/DELETE for `anon` and SELECT/INSERT/UPDATE/DELETE for `authenticated` across ten application tables. No row data was read.
+
+| Table | Staging authenticated grants | Production authenticated grants | Assessment |
+|---|---|---|---|
+| `profiles` | SELECT only | INSERT, UPDATE, DELETE; SELECT denied by direct ACL | Critical drift; profile writes must go through trusted RPC |
+| `prives` | SELECT only | SELECT, INSERT, UPDATE, DELETE | Critical drift; private profile writes must be owner-validated RPC-only |
+| `login_names` | SELECT only | SELECT, INSERT, UPDATE, DELETE | Critical drift; username mapping must not be client-writable |
+| `config` | none | SELECT, INSERT, UPDATE, DELETE | Critical drift; contains payment destination configuration |
+| `paiements` | SELECT only | SELECT, INSERT, UPDATE, DELETE | Critical drift; intake is intended to remain paused |
+| `call_sessions` | SELECT only | SELECT, INSERT, UPDATE, DELETE | Critical drift; calls are intended to remain paused pending secure provider |
+| `statuts` | SELECT only | SELECT, INSERT, UPDATE, DELETE | Critical drift; entitlement state must not be client-writable |
+| `messages` | SELECT, INSERT, UPDATE, DELETE | same | Existing application DML path; RLS and message-specific checks still require independent review |
+| `avis_match` | SELECT, INSERT, UPDATE, DELETE | same | Existing Match DML path; RLS and relationship checks still require independent review |
+| `rendez_vous` | SELECT, INSERT, DELETE | same | Existing appointment path; participant-specific RLS remains essential |
+
+All tested `anon` table privileges are denied in both environments. The staging profile ACL deliberately denies direct SELECT while RLS and approved views/RPCs supply the allowed read surface; do not infer that the application should have unrestricted direct table SELECT.
+
+This expanded matrix also shows why a blanket revoke across every table would be unsafe: message, Match-like and appointment operations retain selected direct DML in staging by design. Production remediation must follow the exact reviewed migration set and its negative/positive RLS tests, not a broad generated revoke.
