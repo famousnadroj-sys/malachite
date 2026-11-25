@@ -66,6 +66,7 @@
   if(callInbox){try{sb.removeChannel(callInbox)}catch(e){}callInbox=null}
   callInboxUserId=null;incoming=null;
  }
+ function updateCallStatus(id,status){return sb.rpc('update_my_call_session_status',{p_id:id,p_status:status}).then(function(r){if(r.error)throw r.error;return Array.isArray(r.data)?r.data[0]:r.data})}
  function startInbox(){
   // Do not advertise or accept incoming calls until a signed JaaS provider is configured.
   if(!SECURE_JITSI_PROVIDER_READY||!me)return;var uid=me.id;
@@ -77,7 +78,7 @@
    if(!row||row.status!=='pending'||new Date(row.expires_at)<=new Date())return;
    if(!me||me.id!==uid)return;
    if(callState||callBusy||incoming){
-    if(!incoming||incoming.id!==row.id)sb.from('call_sessions').update({status:'rejected'}).eq('id',row.id).eq('callee_id',uid).eq('status','pending').then(function(){});
+    if(!incoming||incoming.id!==row.id)updateCallStatus(row.id,'rejected').catch(function(e){console.warn('Refus appel concurrent',e)});
     return;
    }
    incoming=row;var p=prof(row.caller_id)||{},name=p.prenom||'Un membre';
@@ -88,14 +89,14 @@
  async function acceptIncoming(){
   if(!SECURE_JITSI_PROVIDER_READY){alert('Les appels sont temporairement indisponibles : la sécurisation des salles est en cours.');return}
   var row=incoming;if(!row||!me)return;
-  var r=await sb.from('call_sessions').update({status:'accepted'}).eq('id',row.id).eq('callee_id',me.id).eq('status','pending').select('id,caller_id,callee_id,mode,room,status,expires_at').maybeSingle();
-  if(r.error||!r.data||r.data.status!=='accepted'||new Date(r.data.expires_at).getTime()<=Date.now()){
+  var r=await updateCallStatus(row.id,'accepted');
+  if(!r||r.status!=='accepted'||new Date(r.expires_at).getTime()<=Date.now()){
    alert('Impossible d’accepter : cet appel n’est plus en attente ou a expiré.');incoming=null;closeUI();return
   }
-  callState={id:r.data.id,caller:false,caller_id:r.data.caller_id,callee_id:r.data.callee_id,mode:r.data.mode,room:r.data.room,status:r.data.status};
+  callState={id:r.id,caller:false,caller_id:r.caller_id,callee_id:r.callee_id,mode:r.mode,room:r.room,status:r.status};
   incoming=null;await joinJitsi(callState);
  }
- async function rejectIncoming(){var row=incoming;if(row&&me)await sb.from('call_sessions').update({status:'rejected'}).eq('id',row.id).eq('callee_id',me.id).eq('status','pending');incoming=null;closeUI()}
+ async function rejectIncoming(){var row=incoming;if(row&&me)await updateCallStatus(row.id,'rejected').catch(function(e){console.warn('Refus appel',e)});incoming=null;closeUI()}
  window.malAcceptCall=acceptIncoming;window.malRejectCall=rejectIncoming;
  async function hasPass(){
   var s=await sb.from('statuts').select('premium_until').eq('user_id',me.id).maybeSingle();
@@ -134,7 +135,7 @@
    if(!created||!created.id)throw new Error('La base n’a pas confirmé la création de l’appel.');
    callState={id:created.id,caller:true,caller_id:created.caller_id,callee_id:created.callee_id,mode:created.mode,room:created.room,status:created.status};
    overlay(mode==='video'?'Appel vidéo en cours':'Appel audio en cours','<p>Appel envoyé à '+esc((prof(target)||{}).prenom||'ton match')+'. En attente de réponse…</p>','<button class="hangup" onclick="malHangup()">Annuler l’appel</button>',false);
-   callState.timeout=setTimeout(async function(){if(callState&&callState.id===id&&callState.status==='pending'){await sb.from('call_sessions').update({status:'expired'}).eq('id',id);finishCall(false);alert('Aucune réponse. Réessaie plus tard.')}},90000);
+   callState.timeout=setTimeout(async function(){if(callState&&callState.id===id&&callState.status==='pending'){await updateCallStatus(id,'expired').catch(function(e){console.warn('Expiration appel',e)});finishCall(false);alert('Aucune réponse. Réessaie plus tard.')}},90000);
   }catch(e){console.error('Appel Malachite',e);var em=e&&e.message?e.message:'erreur inconnue';if(em.indexOf('call_entitlement_required')>=0)em='Les appels nécessitent Premium actif ou un Pass Appels validé.';else if(em.indexOf('mutual_match_required')>=0)em='Appel impossible : ce membre ne figure pas comme match réciproque dans la base. Ouvre un match confirmé.';else if(em.indexOf('call_already_active')>=0)em='Un appel est déjà en cours pour toi ou ce membre. Termine-le avant de recommencer.';else if(em.indexOf('row-level security')>=0||em.indexOf('42501')>=0)em='La base a refusé la création de l’appel. Réessaie après reconnexion.';alert('Appel impossible : '+em);if(sessionChannel){sb.removeChannel(sessionChannel);sessionChannel=null}callState=null}
   finally{callBusy=false}
  }
@@ -207,7 +208,7 @@
   var s=callState;if(s&&s.timeout)clearTimeout(s.timeout);
   clearInterval(callClockTimer);callClockTimer=null;callStartedAt=0;joiningCallId=null;audioOutputDevices=[];
   if(jitsiApi){var api=jitsiApi;jitsiApi=null;try{api.dispose()}catch(e){}}
-  if(updateServer&&s&&me&&s.status!=='ended'&&s.status!=='rejected'&&s.status!=='expired')await sb.from('call_sessions').update({status:'ended'}).eq('id',s.id);
+  if(updateServer&&s&&me&&s.status!=='ended'&&s.status!=='rejected'&&s.status!=='expired')await updateCallStatus(s.id,'ended').catch(function(e){console.warn('Fin appel côté serveur',e)});
   closeUI();callState=null;callBusy=false;if(sessionChannel){sb.removeChannel(sessionChannel);sessionChannel=null}
  }
  window.malHangup=function(){finishCall(true)};
