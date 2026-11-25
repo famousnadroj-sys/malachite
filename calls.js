@@ -3,6 +3,8 @@
 (function(){
  'use strict';
  var photoCache=Object.create(null),callInbox=null,callInboxUserId=null,sessionChannel=null,callState=null,incoming=null,jitsiApi=null,callBusy=false,joiningCallId=null,callClockTimer=null,callStartedAt=0,audioOutputDevices=[],offerStatusFor=null,offerStatusPending=false;
+ // Fail closed until JaaS JWT authentication is configured and verified server-side.
+ var SECURE_JITSI_PROVIDER_READY=false;
  if(typeof PRIX==='object')PRIX.Appels='1 $ / 7 jours';
 
  function readPhotoCache(key,now){
@@ -14,12 +16,14 @@
  function writePhotoCache(key,value){photoCache[key]=value;try{localStorage.setItem('mal_photo_cache:'+key,JSON.stringify(value))}catch(e){}}
  async function resolveProfilesPhotosFast(list){
   list=list||[];
+  var uid=me&&me.id;
+  if(!uid)return list;
   var groups=Object.create(null),resolved=Object.create(null),refs=[],now=Date.now();
   list.forEach(function(p){
    if(!p)return;p.photoUrls=[];
    (p.photos||[]).filter(Boolean).forEach(function(raw,index){
     var s=String(raw),bucket=s.indexOf('/storage/v1/object/public/photos/')>=0?'photos':'profile-photos';
-    var path=storagePath(bucket,raw),key=bucket+'|'+path,item={p:p,index:index,key:key,bucket:bucket,path:path};
+    var path=storagePath(bucket,raw),key=uid+'|'+bucket+'|'+path,item={p:p,index:index,key:key,bucket:bucket,path:path};
     refs.push(item);
     var cached=readPhotoCache(key,now);
     if(cached)resolved[key]=cached.url;
@@ -31,16 +35,18 @@
    for(var offset=0;offset<paths.length;offset+=100){
     var batch=paths.slice(offset,offset+100);
     try{
-     var result=await sb.storage.from(bucket).createSignedUrls(batch,3600);
+     var result=await sb.storage.from(bucket).createSignedUrls(batch,300);
      if(result.error)throw result.error;
+     if(!me||me.id!==uid)return;
      (result.data||[]).forEach(function(value,index){
       var path=value.path||batch[index],url=value.signedUrl||'';
       if(!url)return;
-      var key=bucket+'|'+path;resolved[key]=url;writePhotoCache(key,{url:url,exp:now+3500000});
+      var key=uid+'|'+bucket+'|'+path;resolved[key]=url;writePhotoCache(key,{url:url,exp:now+270000});
      });
     }catch(error){console.warn('Photos profil: signature groupée impossible',error)}
    }
   }));
+  if(!me||me.id!==uid)return list;
   refs.forEach(function(item){var url=resolved[item.key];if(url)item.p.photoUrls.push(url)});
   return list;
  }
@@ -61,7 +67,8 @@
   callInboxUserId=null;incoming=null;
  }
  function startInbox(){
-  if(!me)return;var uid=me.id;
+  // Do not advertise or accept incoming calls until a signed JaaS provider is configured.
+  if(!SECURE_JITSI_PROVIDER_READY||!me)return;var uid=me.id;
   if(callInbox&&callInboxUserId===uid)return;
   if(callInbox)stopCallInbox();
   callInboxUserId=uid;
@@ -79,6 +86,7 @@
   }).subscribe(function(status){if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED'){if(callInboxUserId===uid){callInbox=null;callInboxUserId=null}console.warn('Réception des appels indisponible : '+status)}});
  }
  async function acceptIncoming(){
+  if(!SECURE_JITSI_PROVIDER_READY){alert('Les appels sont temporairement indisponibles : la sécurisation des salles est en cours.');return}
   var row=incoming;if(!row||!me)return;
   var r=await sb.from('call_sessions').update({status:'accepted'}).eq('id',row.id).eq('callee_id',me.id).eq('status','pending').select('id,caller_id,callee_id,mode,room,status,expires_at').maybeSingle();
   if(r.error||!r.data||r.data.status!=='accepted'||new Date(r.data.expires_at).getTime()<=Date.now()){
@@ -98,6 +106,7 @@
  }
  function subscribeReady(ch){return new Promise(function(resolve,reject){var done=false,t=setTimeout(function(){if(!done){done=true;reject(new Error('Le service temps réel ne répond pas.'))}},12000);ch.subscribe(function(status,error){if(done)return;if(status==='SUBSCRIBED'){done=true;clearTimeout(t);resolve()}else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED'){done=true;clearTimeout(t);reject(error||new Error('Connexion Realtime impossible'))}})})}
  async function startCall(mode){
+  if(!SECURE_JITSI_PROVIDER_READY){alert('Les appels sont temporairement indisponibles : la sécurisation des salles est en cours.');return}
   if(!me||!open){alert('Ouvre une conversation avant d’appeler.');return}
   if(mode!=='audio'&&mode!=='video')mode='audio';
   if(!mutual){alert('Appel impossible : un match réciproque est nécessaire.');return}
@@ -136,6 +145,7 @@
   });
  }
  async function joinJitsi(state){
+  if(!SECURE_JITSI_PROVIDER_READY)throw new Error('Authentification JaaS non configurée : accès à la salle refusé.');
   if(!state||!callState||callState.id!==state.id||joiningCallId===state.id||jitsiApi)return;
   joiningCallId=state.id;
   try{
@@ -223,17 +233,17 @@
   sb.from('statuts').select('premium_until').eq('user_id',uid).maybeSingle().then(function(r){
    if(r.error)throw r.error;
    if(!me||me.id!==uid)return;
-   st[uid]=r.data||{};offerStatusFor=uid;
+   var ownStatus=st[uid]||{};ownStatus.premium_active=!!(r.data&&r.data.premium_until&&new Date(r.data.premium_until).getTime()>Date.now());st[uid]=ownStatus;offerStatusFor=uid;
    if(tab==='offres'&&typeof draw==='function')draw(true);
   }).catch(function(e){console.warn('Vérification Premium pour les offres',e)}).finally(function(){offerStatusPending=false});
  }
  window.offres=function(){
   refreshOfferPremiumStatus();
-  var premiumActive=!!(me&&st[me.id]&&st[me.id].premium_until&&new Date(st[me.id].premium_until).getTime()>Date.now());
+  var premiumActive=!!(me&&st[me.id]&&st[me.id].premium_active);
   var callsCard=premiumActive?'<div class="plan" style="border:2px solid var(--pink)"><h3>📞 Appels audio + vidéo</h3><p>Inclus dans ton Premium actif : aucun paiement supplémentaire pour les appels.</p></div>':'<div class="plan"><h3>📞 Pass Appels audio + vidéo <span>1 $ / 7 jours</span></h3><p>Appels audio et vidéo avec tes matchs pendant 7 jours après validation. Si tu passes à Premium, ce pass n’est plus nécessaire : les appels sont inclus.</p></div>';
   var callOption=premiumActive?'':'<option value="Appels">Pass Appels audio + vidéo — 1 USD / 7 jours</option>';
   var airtelNumber=NUM?'<div class="card"><b>Numéro Airtel Money destinataire</b><div style="font-size:20px;font-weight:800;letter-spacing:1px">'+esc(NUM)+'</div></div>':'<p class="note">Numéro Airtel Money non configuré.</p>';var orangeNumber=ORANGE?'<div class="card"><b>Numéro Orange Money destinataire</b><div style="font-size:20px;font-weight:800;letter-spacing:1px">'+esc(ORANGE)+'</div></div>':'<p class="note">Numéro Orange Money non configuré.</p>';
-  return '<h2>⭐ Nos offres</h2><div class="list"><div class="plan"><h3>Gratuit <span>0 $</span></h3><p>Profil, découverte, likes, messages illimités dans les conversations existantes, jusqu’à 15 nouvelles conversations initiées par jour et 1 rendez-vous par semaine.</p></div><div class="plan" style="border:2px solid var(--pink)"><h3>👑 Premium <span>2 $ / 30 jours</span></h3><p>Tout le confort Premium pendant 30 jours : appels audio et vidéo inclus, nouvelles conversations sans quota, rendez-vous illimités et accès aux coordonnées de tes matchs sans payer le déblocage contact séparément. À l’expiration, les avantages Premium s’arrêtent automatiquement ; renouvelle pour les retrouver.</p></div>'+callsCard+'<div class="plan"><h3>🔥 Boost <span>0,50 $ / 24 h</span></h3><p>Ton profil passe en priorité en haut de Découvrir pendant 24 heures pour augmenter sa visibilité. Le Boost n’ajoute pas de fonctionnalités de messagerie ou d’appel.</p></div></div><h2>💳 Payer et soumettre le code de transaction</h2><div class="box list"><p>1. Choisis l’offre et le moyen de paiement configuré. 2. Envoie exactement le montant affiché au numéro destinataire ci-dessous. 3. Copie la référence de transaction reçue d’Airtel Money. 4. Soumets cette référence. L’accès est activé seulement après vérification par l’administrateur, après vérification manuelle.</p>'+airtelNumber+orangeNumber+'<label>Offre<select id="of"><option value="Premium">Premium — 2 USD / 30 jours (appels inclus)</option>'+callOption+'<option value="Boost">Boost — 0,50 USD / 24 heures</option></select></label><label>Moyen de paiement<select id="malOperator"><option value="airtel">Airtel Money</option><option value="orange">Orange Money</option></select></label><label>Code de transaction<input id="cd" maxlength="100" autocomplete="off" placeholder="Référence exacte reçue après transfert"></label><p class="note">Ne communique jamais ton PIN ni ton code OTP. Choisis le réseau correspondant au transfert : la référence est vérifiée avec ce réseau.</p><label>Justificatif de paiement (JPEG, PNG ou WebP · 5 Mo maximum)<input id="malReceipt" type="file" accept="image/jpeg,image/png,image/webp"></label><button class="b1" id="malSubmitPayment" onclick="pay()">Soumettre le paiement avec justificatif</button><div class="note" id="pm" aria-live="polite"></div></div><section id="malPaymentHistory"><h3>Suivi de mes demandes</h3><p class="note">Chargement…</p></section>';
+  return '<h2>⭐ Nos offres</h2><div class="list"><div class="plan"><h3>Gratuit <span>0 $</span></h3><p>Profil, découverte, likes, messages illimités dans les conversations existantes, jusqu’à 15 nouvelles conversations initiées par jour et 1 rendez-vous par semaine.</p></div><div class="plan" style="border:2px solid var(--pink)"><h3>👑 Premium <span>2 $ / 30 jours</span></h3><p>Tout le confort Premium pendant 30 jours : appels audio et vidéo inclus, nouvelles conversations sans quota, rendez-vous illimités et accès aux coordonnées de tes matchs après un match réciproque. À l’expiration, les avantages Premium s’arrêtent automatiquement ; renouvelle pour les retrouver.</p></div>'+callsCard+'<div class="plan"><h3>🔥 Boost <span>0,50 $ / 24 h</span></h3><p>Ton profil passe en priorité en haut de Découvrir pendant 24 heures pour augmenter sa visibilité. Le Boost n’ajoute pas de fonctionnalités de messagerie ou d’appel.</p></div></div><h2>💳 Payer et soumettre le code de transaction</h2><div class="box list"><p>1. Choisis l’offre et le moyen de paiement configuré. 2. Envoie exactement le montant affiché au numéro destinataire ci-dessous. 3. Copie la référence de transaction reçue d’Airtel Money. 4. Soumets cette référence. L’accès est activé seulement après vérification par l’administrateur, après vérification manuelle.</p>'+airtelNumber+orangeNumber+'<label>Offre<select id="of"><option value="Premium">Premium — 2 USD / 30 jours (appels inclus)</option>'+callOption+'<option value="Boost">Boost — 0,50 USD / 24 heures</option></select></label><label>Moyen de paiement<select id="malOperator"><option value="airtel">Airtel Money</option><option value="orange">Orange Money</option></select></label><label>Code de transaction<input id="cd" maxlength="100" autocomplete="off" placeholder="Référence exacte reçue après transfert"></label><p class="note">Ne communique jamais ton PIN ni ton code OTP. Choisis le réseau correspondant au transfert : la référence est vérifiée avec ce réseau.</p><label>Justificatif de paiement (JPEG, PNG ou WebP · 5 Mo maximum)<input id="malReceipt" type="file" accept="image/jpeg,image/png,image/webp"></label><button class="b1" id="malSubmitPayment" onclick="pay()">Soumettre le paiement avec justificatif</button><div class="note" id="pm" aria-live="polite"></div></div><section id="malPaymentHistory"><h3>Suivi de mes demandes</h3><p class="note">Chargement…</p></section>';
  };
  async function loadMyPayments(){
   var node=document.getElementById('malPaymentHistory');if(!node||!me)return;

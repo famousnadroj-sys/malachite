@@ -648,7 +648,7 @@
     if (typeof window.refreshOfferPremiumStatus === 'function') window.refreshOfferPremiumStatus();
     var user = currentUser();
     var status = window.st && user && window.st[user.id] ? window.st[user.id] : {};
-    var premiumActive = !!(status.premium_until && new Date(status.premium_until).getTime() > Date.now());
+    var premiumActive = !!status.premium_active;
     var airtel = window.NUM || '';
     var orange = window.ORANGE || '';
     var steps = '<div class="mal-offer-steps">' +
@@ -665,7 +665,7 @@
         '<article class="mal-offer-card"><h3>Gratuit <span class="price">0 USD</span></h3><p>Découvrir, aimer et discuter avec tes matchs.</p></article>' +
         '<article class="mal-offer-card featured"><h3>Premium <span class="price">2 USD / 30 jours</span></h3><p>Messages sans quota, rendez-vous illimités et appels audio/vidéo inclus.</p></article>' +
         '<article class="mal-offer-card"><h3>Boost <span class="price">0,50 USD / 24 h</span></h3><p>Ton profil remonte en priorité dans Découvrir.</p></article>' +
-        '<article class="mal-offer-card"><h3>Déblocage contact <span class="price">1 USD</span></h3><p>Accès aux coordonnées après un match réciproque. Inclus avec Premium.</p></article>' +
+
         (premiumActive ? '<article class="mal-offer-card"><h3>Appels audio et vidéo</h3><p>Déjà inclus dans ton Premium actif.</p></article>' : '<article class="mal-offer-card"><h3>Pass Appels <span class="price">1 USD / 7 jours</span></h3><p>Appels audio et vidéo avec tes matchs pendant 7 jours.</p></article>') +
         '</div><button type="button" class="mal-offer-next" onclick="malSetOfferPage(2)">Comparer les avantages →</button>';
     } else if (offerPage === 2) {
@@ -675,7 +675,7 @@
         '<tr><td>Rendez-vous</td><td>1 / semaine</td><td class="yes">Illimités</td></tr>' +
         '<tr><td>Appels audio et vidéo</td><td class="no">Pass séparé</td><td class="yes">Inclus</td></tr>' +
         '<tr><td>Boost de visibilité</td><td>Option payante</td><td>Option payante</td></tr>' +
-        '</tbody></table></div><div class="mal-offer-card"><h3>Options à la carte</h3><p>Boost : 0,50 USD / 24 h · Contact : 1 USD / personne · Pass Appels : 1 USD / 7 jours (inutile avec Premium actif).</p></div>' +
+        '</tbody></table></div>' +
         '<button type="button" class="mal-offer-next" onclick="malSetOfferPage(3)">Choisir et payer →</button>';
     } else {
       var callOption = premiumActive ? '' : '<option value="Appels">Pass Appels — 1 USD / 7 jours</option>';

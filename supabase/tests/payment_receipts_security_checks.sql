@@ -6,6 +6,13 @@ declare
   v_limit bigint;
   v_mime text[];
 begin
+  if has_table_privilege('authenticated','public.paiements','UPDATE') then
+    raise exception 'authenticated_direct_payment_update_must_be_revoked';
+  end if;
+  if has_table_privilege('authenticated','public.paiements','DELETE') then
+    raise exception 'authenticated_direct_payment_delete_must_be_revoked';
+  end if;
+
   if not exists (
     select 1 from information_schema.columns
     where table_schema='public' and table_name='paiements' and column_name='receipt_path'
