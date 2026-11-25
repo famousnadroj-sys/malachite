@@ -1,7 +1,8 @@
 create schema if not exists auth;
 create schema if not exists private;
+create table auth.users(id uuid primary key);
 do $$ begin if not exists(select 1 from pg_roles where rolname='authenticated') then create role authenticated nologin; end if; end $$;
-create table public.profiles(id uuid primary key);
+create table public.profiles(id uuid primary key references auth.users(id), prenom text not null);
 create table public.suspensions(user_id uuid primary key);
 create table public.blocages(user_id uuid not null,cible uuid not null);
 create table public.messages(id bigint primary key,de uuid not null,a uuid not null,texte text not null default '');
