@@ -85,8 +85,8 @@ if (serviceWorkerCheck.status !== 0) {
   process.exit(serviceWorkerCheck.status || 1);
 }
 
-if (!frontend.includes("msgs.length-4") || !frontend.includes("fetchpriority")) {
-  throw new Error('Recent conversation photos must load eagerly with high priority for the newest visible images.');
+if (!frontend.includes("msgs.length-4") || !frontend.includes("fetchpriority") || !frontend.includes("Chargement de la photo")) {
+  throw new Error('Recent conversation photos must load eagerly with high priority and show a loading state.');
 }
 const i18n = fs.readFileSync('i18n.js', 'utf8');
 const i18nTemp = path.join(os.tmpdir(), 'malachite-i18n.js');
