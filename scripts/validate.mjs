@@ -74,8 +74,15 @@ if (!serviceWorker.includes('cache.match(request, { ignoreSearch: true })') ||
     !serviceWorker.includes('event.waitUntil(refresh.then(() => undefined))')) {
   throw new Error('Static assets must refresh their cache in the background while serving cached files immediately.');
 }
-if (!serviceWorker.includes('(auth|rest|storage|functions)') || !serviceWorker.includes('/v1/')) {
+if (!serviceWorker.includes('(auth|rest|storage|functions)') || !serviceWorker.includes('url.pathname')) {
   throw new Error('Supabase API and private data requests must stay outside the static asset cache.');
+}
+const serviceWorkerTemp = path.join(os.tmpdir(), 'malachite-sw.js');
+fs.writeFileSync(serviceWorkerTemp, serviceWorker);
+const serviceWorkerCheck = spawnSync(process.execPath, ['--check', serviceWorkerTemp], { encoding: 'utf8' });
+if (serviceWorkerCheck.status !== 0) {
+  process.stderr.write(serviceWorkerCheck.stderr || serviceWorkerCheck.stdout);
+  process.exit(serviceWorkerCheck.status || 1);
 }
 
 if (!frontend.includes("msgs.length-4") || !frontend.includes("fetchpriority")) {
