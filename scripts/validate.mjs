@@ -68,10 +68,10 @@ if (!frontend.includes('target===me.id')) {
 
 
 const mobileNavigationStyle = html.slice(html.indexOf('<style id="mal-mobile-nav-scroll">'), html.indexOf('</style>', html.indexOf('<style id="mal-mobile-nav-scroll">')) + 8);
-if (!mobileNavigationStyle.includes('#nav{justify-content:flex-start;overflow-x:auto') ||
+if (!mobileNavigationStyle.includes('@media(max-width:600px){#nav{justify-content:flex-start;overflow-x:auto') ||
     !mobileNavigationStyle.includes('scrollbar-width:none') ||
-    !mobileNavigationStyle.includes('#nav button{flex:0 0 64px;min-width:64px}')) {
-  throw new Error('Mobile bottom navigation must remain horizontally scrollable with stable touch targets.');
+    !mobileNavigationStyle.includes('#nav button{flex:0 0 64px;min-width:64px}}')) {
+  throw new Error('Mobile navigation scrolling must be limited to small screens and retain stable touch targets.');
 }
 
 const serviceWorker = fs.readFileSync('sw.js', 'utf8');
