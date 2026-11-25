@@ -577,3 +577,12 @@ const legacyLaunchFooter = 'Les offres payantes disponibles au lancement sont Pr
 if (!html.includes(approvedLaunchFooter) || html.includes(legacyLaunchFooter)) {
   throw new Error('Public launch pricing copy must use the approved, non-promissory wording.');
 }
+
+const mobileNavigationStyle = html.slice(html.indexOf('<style id="mal-mobile-nav-scroll">'), html.indexOf('</style>', html.indexOf('<style id="mal-mobile-nav-scroll">')) + 8);
+if (!mobileNavigationStyle.includes('@media(max-width:600px){#nav{justify-content:flex-start;overflow-x:auto') ||
+    !mobileNavigationStyle.includes('scrollbar-width:none') ||
+    !mobileNavigationStyle.includes('#nav button{flex:0 0 64px;min-width:64px}}') ||
+    !mobileNavigationStyle.includes('touch-action:pan-x') ||
+    !mobileNavigationStyle.includes('overscroll-behavior-x:contain')) {
+  throw new Error('Mobile navigation must scroll horizontally on small screens with stable touch targets and controlled overscroll.');
+}
