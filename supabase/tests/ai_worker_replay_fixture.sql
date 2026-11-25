@@ -20,7 +20,10 @@ values('malachite_ai_worker_hmac','isolated-test-secret-do-not-use-in-production
 on conflict(name) do update set decrypted_secret=excluded.decrypted_secret;
 
 create or replace function cron.schedule(jobname text, schedule text, command text)
-returns bigint language sql as $$ select 1::bigint $$;
+returns bigint language sql as $ select 1::bigint $;
+
+create or replace function cron.unschedule(job_id bigint)
+returns boolean language sql as $ select true $;
 
 create or replace function public.verify_malachite_ai_worker_signature(
   p_timestamp text,p_body text,p_signature text
