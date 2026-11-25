@@ -67,13 +67,6 @@ if (!frontend.includes('target===me.id')) {
 }
 
 
-const mobileNavigationStyle = html.slice(html.indexOf('<style id="mal-mobile-nav-scroll">'), html.indexOf('</style>', html.indexOf('<style id="mal-mobile-nav-scroll">')) + 8);
-if (!mobileNavigationStyle.includes('@media(max-width:600px){#nav{justify-content:flex-start;overflow-x:auto') ||
-    !mobileNavigationStyle.includes('scrollbar-width:none') ||
-    !mobileNavigationStyle.includes('#nav button{flex:0 0 64px;min-width:64px}}')) {
-  throw new Error('Mobile navigation scrolling must be limited to small screens and retain stable touch targets.');
-}
-
 const serviceWorker = fs.readFileSync('sw.js', 'utf8');
 const navigationStart = serviceWorker.indexOf('if (request.mode === "navigate") {');
 const navigationEnd = serviceWorker.indexOf('const staticPaths', navigationStart);
@@ -550,7 +543,46 @@ if (!memberExperience.includes("rpc('create_my_action_notification'")) throw new
 // MALACHITE WORLD was intentionally removed; no obsolete prototype files are required by this site build.
 console.log('Legacy MALACHITE WORLD checks skipped: feature is not part of the current product.');
 
-if (!mobileNavigationStyle.includes('touch-action:pan-x') ||
+// Founder finance UI must require the server-verified admin state before rendering,
+// loading finance data, or triggering the founder dashboard.
+const founderFinance = fs.readFileSync('malachite-founder-finance.js', 'utf8');
+if ((founderFinance.match(/!window\.malAdminAuthorized/g) || []).length < 2 ||
+    !founderFinance.includes('window.malAdminAuthorized && window.tab === "founder"')) {
+  throw new Error('Founder finance UI must be gated by the server-verified admin authorization state.');
+}
+const adminRpcMigration = fs.readFileSync('supabase/migrations/202611200002_harden_malachite_ai_admin_rpc.sql', 'utf8');
+if (!adminRpcMigration.includes('security invoker') ||
+    !adminRpcMigration.includes('private.is_admin()') ||
+    !adminRpcMigration.includes('revoke all on function public.malachite_ai_manager_is_admin() from public, anon') ||
+    !adminRpcMigration.includes('grant execute on function public.malachite_ai_manager_is_admin() to authenticated')) {
+  throw new Error('Admin authorization RPC must remain invoker-scoped and unavailable to anon/public.');
+}
+
+// The refresh handler must reject an unauthenticated/non-admin UI state before
+// making the finance RPC. Keep the check ahead of any request to avoid leaking
+// even response metadata through the client.
+const financeRefreshStart = founderFinance.indexOf('window.malFounderFinanceRefresh = async function ()');
+const financeRefreshEnd = founderFinance.indexOf('    };', financeRefreshStart);
+const financeRefreshSource = financeRefreshStart >= 0 && financeRefreshEnd > financeRefreshStart
+  ? founderFinance.slice(financeRefreshStart, financeRefreshEnd)
+  : '';
+const financeAdminGuard = financeRefreshSource.indexOf('!window.malAdminAuthorized');
+const financeRpcCall = financeRefreshSource.indexOf('window.sb.rpc("founder_business_overview"');
+if (financeAdminGuard < 0 || financeRpcCall < 0 || financeAdminGuard > financeRpcCall) {
+  throw new Error('Finance refresh must verify the admin UI state before invoking the finance RPC.');
+}
+
+const approvedLaunchFooter = 'Les seules offres payantes prévues au lancement sont Premium, Boost et Pass Appels. Les conditions et tarifs seront communiqués avant leur activation.';
+const legacyLaunchFooter = 'Les offres payantes disponibles au lancement sont Premium, Boost et Pass Appels.';
+if (!html.includes(approvedLaunchFooter) || html.includes(legacyLaunchFooter)) {
+  throw new Error('Public launch pricing copy must use the approved, non-promissory wording.');
+}
+
+const mobileNavigationStyle = html.slice(html.indexOf('<style id="mal-mobile-nav-scroll">'), html.indexOf('</style>', html.indexOf('<style id="mal-mobile-nav-scroll">')) + 8);
+if (!mobileNavigationStyle.includes('@media(max-width:600px){#nav{justify-content:flex-start;overflow-x:auto') ||
+    !mobileNavigationStyle.includes('scrollbar-width:none') ||
+    !mobileNavigationStyle.includes('#nav button{flex:0 0 64px;min-width:64px}}') ||
+    !mobileNavigationStyle.includes('touch-action:pan-x') ||
     !mobileNavigationStyle.includes('overscroll-behavior-x:contain')) {
-  throw new Error('Mobile navigation must support intentional horizontal touch scrolling without page-level overscroll.');
+  throw new Error('Mobile navigation must scroll horizontally on small screens with stable touch targets and controlled overscroll.');
 }
