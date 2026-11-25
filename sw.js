@@ -37,23 +37,35 @@ self.addEventListener("fetch", (event) => {
   if (request.headers.has("Authorization")) return;
   if (request.mode === "navigate") {
     // Serve the cached app shell immediately, then refresh it in the background.
-    // This avoids making every return visit wait for a slow mobile connection.
-    const cachedPage = caches.match("./");
+    const cachePromise = caches.open(CACHE).catch(() => null);
+    const cachedPage = cachePromise.then((cache) => cache ? cache.match("./") : null);
     const networkPage = fetch(request).then((response) => {
-      if (response && response.ok) {
-        const copy = response.clone();
-        event.waitUntil(caches.open(CACHE).then((cache) => cache.put("./", copy)));
-      }
-      return response;
+      if (!response || !response.ok) return response;
+      return cachePromise.then((cache) => cache ? cache.put("./", response.clone()) : undefined)
+        .then(() => response, () => response);
     }).catch(() => null);
     event.waitUntil(networkPage.then(() => undefined));
     event.respondWith(
-      cachedPage.then((cached) => cached || networkPage).then((response) => response || caches.match("./"))
+      cachedPage.then((cached) => cached || networkPage).then((response) => response || Response.error())
     );
     return;
   }
   const staticPaths = APP_SHELL.map((path) => new URL(path, self.registration.scope).pathname);
-  if (staticPaths.includes(url.pathname)) event.respondWith(caches.match(request).then((cached) => cached || fetch(request)));
+  if (staticPaths.includes(url.pathname)) {
+    // Start the network refresh and register its lifetime before the fetch event handler returns.
+    const cachePromise = caches.open(CACHE).catch(() => null);
+    const refresh = fetch(request).then((response) => {
+      if (!response || !response.ok) return response;
+      return cachePromise.then((cache) => cache ? cache.put(request, response.clone()) : undefined)
+        .then(() => response);
+    }).catch(() => null);
+    event.waitUntil(refresh.then(() => undefined));
+    event.respondWith(
+      cachePromise.then((cache) => cache ? cache.match(request, { ignoreSearch: true }) : null)
+        .then((cached) => cached || refresh)
+        .then((response) => response || Response.error())
+    );
+  }
 });
 
 self.addEventListener("notificationclick", (event) => {
