@@ -144,3 +144,15 @@ Recommended follow-up before launch: implement an atomic rate-limit RPC with bot
 ### Edge Function conclusion
 
 No immediate proof of an unauthenticated administrative action was found in these three retrieved handlers: push administration checks a live admin session or a Vault secret, and the AI worker checks a short-lived HMAC. Nevertheless, request-size bounds, rate limiting and replay protections need work before launch. The username login endpoint is public by design and needs stronger abuse controls. This review covers only these three functions, not every deployed Edge Function.
+
+
+
+### Remaining production functions configured with gateway JWT verification
+
+The other three active production Edge Functions were also retrieved read-only:
+
+- `admin-user-moderation` (version 5, `verify_jwt=true`): independently verifies the Bearer token with `auth.getUser`, then calls the database `moderate_user` RPC using the user-scoped client. The database allow-list is authoritative, self-moderation is rejected, and the source says the RPC prevents suspending another administrator. It uses the service-role client only after the RPC succeeds for follow-up administrative work. Add request-size bounds and explicit abuse throttling; verify the database RPC audit trail and failure behavior with negative tests.
+- `malachite-ai-manager` (version 24, `verify_jwt=true`): independently verifies the user token and requires `malachite_ai_manager_is_admin() = true` before using the service-role client. The reviewed actions include dashboard/operations and human-reviewed tasks. It parses JSON before authentication and has no visible body-size bound in the handler. Add bounded request parsing and rate/concurrency limits; continue to keep privileged actions behind explicit admin authorization and human approval.
+- `malachite-ad-creative` (version 6, `verify_jwt=true`): source is a small disabled/placeholder response handler; it does not appear to use a service-role client or perform privileged writes. Advertising surfaces remain excluded from the launch scope. Keep this function disabled or unreachable until a separately approved product decision; do not reintroduce ads in the current launch scope.
+
+Production SQL ACLs for the inspected privileged RPCs were also checked: `get_malachite_push_secrets` and `verify_malachite_ai_worker_signature` are executable by `service_role` (and postgres), not by `authenticated`; `malachite_ai_manager_is_admin` and `moderate_user` are executable by authenticated users but are designed to enforce the caller's admin allow-list internally. This is an ACL snapshot, not a substitute for negative authorization tests.
