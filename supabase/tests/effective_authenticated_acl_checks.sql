@@ -34,9 +34,6 @@ begin
          and not (t='call_sessions' and c.column_name='status') then
         raise exception 'unexpected_column_update:%:%',t,c.column_name;
       end if;
-      if has_column_privilege('authenticated',format('public.%I',t),c.column_name,'DELETE') then
-        raise exception 'unexpected_column_delete:%:%',t,c.column_name;
-      end if;
     end loop;
   end loop;
 
