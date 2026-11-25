@@ -94,3 +94,10 @@ La protection contre les mots de passe divulgués est désactivée. Le projet es
 - Cette preuve confirme que le chemin de publication Pages par branche reste actif et contourne le verrou du workflow personnalisé.
 - Le réglage du dépôt n'est pas modifiable via les actions GitHub disponibles dans cette session. Un administrateur doit aller dans Settings → Pages → Build and deployment → Source et sélectionner **GitHub Actions**. Après modification, vérifier qu'un push de test ne déclenche plus le workflow dynamique de publication par branche et que seul le workflow contrôlé publie.
 - Ne pas fusionner de PR ou pousser de changement sur `main` avant cette fermeture : la publication du site peut être déclenchée indépendamment du garde-fou applicatif.
+
+
+## Protection de la branche main
+
+- Lecture de `GET /repos/.../rulesets` : aucune ruleset de dépôt renvoyée (`[]`).
+- Lecture de `branches/main/protection` : refusée par GitHub avec HTTP 403 « Resource not accessible by integration ». L'état de la protection classique de branche est donc **inconnu**, pas réputé désactivé.
+- Les outils GitHub disponibles ne permettent pas de créer ou modifier les protections de branche. Après fermeture du contournement Pages, l'administrateur doit vérifier que `main` exige une PR, les checks `Malachite validation`, `Match isolated PostgreSQL runtime` et `Malachite release integration contract`, et interdit les pushes directs/force pushes.
