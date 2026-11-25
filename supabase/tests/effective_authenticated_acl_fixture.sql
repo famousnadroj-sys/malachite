@@ -29,11 +29,13 @@ language sql security definer set search_path=''
 as $function$ select * from public.call_sessions where false $function$;
 grant execute on function public.start_call_session(uuid,uuid,text,text,timestamptz) to authenticated;
 
--- Seed both table-level and column-level ACLs to prove the migration removes
--- historical grants rather than only fixing a fresh schema.
+-- Seed historical table-level grants.
 grant select, insert, update, delete, truncate, references, trigger
 on table public.call_sessions, public.config, public.login_names,
 public.paiements, public.statuts, public.prives to authenticated;
+
+-- Seed historical column grants for all three client principals. This catches
+-- ACLs inherited from PUBLIC and direct anon grants, not only authenticated.
 grant update (caller_id, callee_id, status, expires_at)
 on public.call_sessions to authenticated;
 grant insert (user_id, username), update (username)
@@ -42,6 +44,19 @@ grant update (status, expires_at), insert (user_id, status)
 on public.statuts to authenticated;
 grant update (prefs), insert (id, prefs)
 on public.prives to authenticated;
+
+grant update (status), insert (room)
+on public.call_sessions to anon;
+grant update (valeur), insert (cle, valeur)
+on public.config to anon;
+grant update (username), insert (user_id, username)
+on public.login_names to public;
+grant update (status), insert (user_id, status)
+on public.paiements to anon;
+grant update (expires_at), insert (user_id, status)
+on public.statuts to public;
+grant update (prefs), insert (id, prefs)
+on public.prives to anon;
 
 insert into public.call_sessions(id,caller_id,callee_id,room,mode,status,expires_at) values
  ('70000000-0000-0000-0000-000000000001','70000000-0000-0000-0000-000000000002','70000000-0000-0000-0000-000000000003','test-room-accept','audio','pending',now()+interval '90 seconds'),
