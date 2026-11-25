@@ -549,3 +549,8 @@ if (!memberExperience.includes("rpc('create_my_action_notification'")) throw new
 
 // MALACHITE WORLD was intentionally removed; no obsolete prototype files are required by this site build.
 console.log('Legacy MALACHITE WORLD checks skipped: feature is not part of the current product.');
+
+if (!mobileNavigationStyle.includes('touch-action:pan-x') ||
+    !mobileNavigationStyle.includes('overscroll-behavior-x:contain')) {
+  throw new Error('Mobile navigation must support intentional horizontal touch scrolling without page-level overscroll.');
+}
