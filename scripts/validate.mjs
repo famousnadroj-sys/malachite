@@ -557,3 +557,17 @@ if (!adminRpcMigration.includes('security invoker') ||
     !adminRpcMigration.includes('grant execute on function public.malachite_ai_manager_is_admin() to authenticated')) {
   throw new Error('Admin authorization RPC must remain invoker-scoped and unavailable to anon/public.');
 }
+
+// The refresh handler must reject an unauthenticated/non-admin UI state before
+// making the finance RPC. Keep the check ahead of any request to avoid leaking
+// even response metadata through the client.
+const financeRefreshStart = founderFinance.indexOf('window.malFounderFinanceRefresh = async function ()');
+const financeRefreshEnd = founderFinance.indexOf('    };', financeRefreshStart);
+const financeRefreshSource = financeRefreshStart >= 0 && financeRefreshEnd > financeRefreshStart
+  ? founderFinance.slice(financeRefreshStart, financeRefreshEnd)
+  : '';
+const financeAdminGuard = financeRefreshSource.indexOf('!window.malAdminAuthorized');
+const financeRpcCall = financeRefreshSource.indexOf('window.sb.rpc("founder_business_overview"');
+if (financeAdminGuard < 0 || financeRpcCall < 0 || financeAdminGuard > financeRpcCall) {
+  throw new Error('Finance refresh must verify the admin UI state before invoking the finance RPC.');
+}
