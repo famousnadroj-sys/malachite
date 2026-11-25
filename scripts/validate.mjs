@@ -474,7 +474,7 @@ for (const item of [
 ]) {
   if (!frontend.includes(item)) throw new Error('Launch payment safety requirement missing: ' + item);
 }
-if (!frontend.includes("Tarif à confirmer") || frontend.includes("1 USD / 7 jours après activation") || frontend.includes("USD 1 / 7 days after secure calls are activated")) throw new Error("Call pass price must remain unapproved until secure provider activation.");
+if (!frontend.includes("Tarif à confirmer") || !calls.includes("Tarif à confirmer avant activation") || frontend.includes("1 USD / 7 jours après activation") || frontend.includes("USD 1 / 7 days after secure calls are activated") || frontend.includes("USD 1 / siku 7") || frontend.includes("1 USD / mikolo 7") || frontend.includes("1 USD / bilumbu 7") || calls.includes("1 USD / 7 jours") || calls.includes("1 $ / 7 jours") || calls.includes("USD 1 / 7 days")) throw new Error("Call pass price must remain unapproved until secure provider activation.");
 if (!frontend.includes("if(!MAL_PAYMENTS_ENABLED)") ||
     !calls.includes("if(window.MAL_PAYMENTS_ENABLED!==true)") ||
     !frontend.includes("var payload={offre:data.offer,code:data.code,operateur:data.operator,receipt_path:receipt.path}") ||
