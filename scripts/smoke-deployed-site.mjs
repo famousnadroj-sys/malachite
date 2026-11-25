@@ -100,7 +100,10 @@ const previewHtml = await get("preview/", "MALACHITE · ENVIRONNEMENT DE TEST");
 if (!/<meta\s+name="robots"\s+content="noindex,nofollow">/i.test(previewHtml)) {
   throw new Error("La prévisualisation de test doit porter une balise noindex.");
 }
-await get("robots.txt", "Disallow: /preview/");
+const robotsTxt = await get("robots.txt", "Sitemap:");
+if (/Disallow:\s*\/preview\//i.test(robotsTxt)) {
+  throw new Error("The preview must remain crawlable so search engines can read its noindex directive.");
+}
 if (previewHtml.includes("tscsmemsvgacqioncash") ||
     previewHtml.includes("sb_publishable_XDpqSzsPNeVduv6aGyjuoA_suakeFN0")) {
   throw new Error("Production Supabase configuration leaked into the Match preview HTML.");
