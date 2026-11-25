@@ -17,7 +17,7 @@ insert into storage.objects(bucket_id,name) values
  ('photos','10000000-0000-0000-0000-000000000001/30000000-0000-0000-0000-000000000001/legacy-private.jpg');
 set local role authenticated;
 select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000001',true);
-do $ begin
+do $body$ begin
  if current_user <> 'authenticated' then raise exception 'chat_test_role_not_authenticated'; end if;
  if not private.is_suspended('30000000-0000-0000-0000-000000000001') then raise exception 'fixture_suspension_lookup_failed'; end if;
  if not (select relrowsecurity from pg_class where oid='public.messages'::regclass) then raise exception 'message_rls_not_enabled'; end if;
@@ -41,7 +41,7 @@ do $ begin
  if (select count(*) from storage.objects where bucket_id='chat-media') <> 1 then raise exception 'orphan_media_visible_to_sender'; end if;
  if (select count(*) from storage.objects where bucket_id='photos') <> 1 then raise exception 'legacy_suspended_media_visible_to_sender'; end if;
  if (select count(*) from public.messages) <> 1 then raise exception 'sender_can_read_message_to_suspended_member'; end if;
-end $$;
+end $body$;
 select set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
 do $$ begin
  if (select count(*) from storage.objects where bucket_id='chat-media') <> 1 then raise exception 'recipient_cannot_read_attached_media'; end if;
