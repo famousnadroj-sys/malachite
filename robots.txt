@@ -1,5 +1,5 @@
 User-agent: *
 Allow: /
-Disallow: /preview/
+# Preview pages carry a noindex,nofollow meta tag; allow crawlers to read it.
 
 Sitemap: https://famousnadroj-sys.github.io/malachite/sitemap.xml
