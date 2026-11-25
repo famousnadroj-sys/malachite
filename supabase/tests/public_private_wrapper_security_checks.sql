@@ -30,7 +30,14 @@ begin
     if not exists(select 1 from pg_proc where oid=v_oid and proconfig @> array['search_path=""']) then
       raise exception 'advisor_function_empty_search_path_required: %', v_signature;
     end if;
-    if v_signature = 'public.get_malachite_referrer_preview(uuid)' then
+    if v_signature = 'public.start_call_session(uuid,uuid,text,text,timestamptz)' then
+      -- Calls remain paused: the ACL normalization migration revokes client execution.
+      if has_function_privilege('anon',v_oid,'EXECUTE')
+         or has_function_privilege('authenticated',v_oid,'EXECUTE') then
+        raise exception 'paused_call_rpc_must_not_be_client_executable';
+      end if;
+      continue;
+    elsif v_signature = 'public.get_malachite_referrer_preview(uuid)' then
       if not has_function_privilege('anon',v_oid,'EXECUTE')
          or not has_function_privilege('authenticated',v_oid,'EXECUTE') then
         raise exception 'public_referral_preview_grant_missing';
@@ -100,12 +107,9 @@ begin
   begin perform public.admin_malachite_referrals(); raise exception 'admin_referrals_accepted_non_admin'; exception when others then if sqlerrm <> 'forbidden' then raise; end if; end;
   begin perform public.founder_business_overview(null,null); raise exception 'founder_business_overview_accepted_non_admin'; exception when others then if sqlerrm <> 'forbidden' then raise; end if; end;
   begin perform * from public.founder_finance_summary(null,null); raise exception 'founder_finance_summary_accepted_non_admin'; exception when others then if sqlerrm <> 'forbidden' then raise; end if; end;
-  begin perform * from public.start_call_session(
-    '90000000-0000-0000-0000-000000000001'::uuid,
-    '90000000-0000-0000-0000-000000000002'::uuid,
-    'room-unauthenticated-01','audio',now()+interval '1 minute');
-    raise exception 'start_call_session_accepted_missing_identity';
-  exception when others then if sqlerrm <> 'not_authenticated' then raise; end if; end;
+  if has_function_privilege('authenticated','public.start_call_session(uuid,uuid,text,text,timestamptz)','EXECUTE') then
+    raise exception 'paused_call_rpc_must_not_be_client_executable';
+  end if;
   if exists(select 1 from public.get_malachite_referrer_preview('00000000-0000-0000-0000-000000000001'::uuid)) then
     raise exception 'empty_referral_preview_returned_rows';
   end if;
