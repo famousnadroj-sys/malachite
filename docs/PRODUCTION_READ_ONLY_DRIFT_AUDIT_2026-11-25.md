@@ -156,3 +156,39 @@ The other three active production Edge Functions were also retrieved read-only:
 - `malachite-ad-creative` (version 6, `verify_jwt=true`): source is a small disabled/placeholder response handler; it does not appear to use a service-role client or perform privileged writes. Advertising surfaces remain excluded from the launch scope. Keep this function disabled or unreachable until a separately approved product decision; do not reintroduce ads in the current launch scope.
 
 Production SQL ACLs for the inspected privileged RPCs were also checked: `get_malachite_push_secrets` and `verify_malachite_ai_worker_signature` are executable by `service_role` (and postgres), not by `authenticated`; `malachite_ai_manager_is_admin` and `moderate_user` are executable by authenticated users but are designed to enforce the caller's admin allow-list internally. This is an ACL snapshot, not a substitute for negative authorization tests.
+
+
+
+## Account-deletion dependency inventory (production read-only, 25 November 2026)
+
+A catalog query inspected foreign keys referencing `auth.users` or `public.profiles`, plus likely user-identity columns in `public` and `private`. This is a schema inventory, not a deletion rehearsal.
+
+### Important existing cascade behavior
+
+The production schema currently has `ON DELETE CASCADE` paths for identity/profile rows and multiple user-linked records, including:
+- `profiles`, `prives`, `login_names`, `statuts`, `suspensions`
+- `messages` is not in the returned FK list, but `message_receipts` cascades on either sender or recipient deletion
+- `call_sessions` cascades on caller or callee deletion
+- `blocages`, `malachite_referrals`, `demandes_support.user_id`, `admin_push_subscriptions`
+- internal `private.admins` and `private.match_daily_like_events`
+
+Audit-oriented columns that use `ON DELETE SET NULL` include `admin_actions.admin_id`, `campagnes.cree_par`, `demandes_support.traite_par`, `signalements.traite_par`, and `user_notifications.related_user_id`.
+
+### User references without a declared FK
+
+The schema also contains user-shaped columns that did not appear in the FK inventory, including:
+- `messages.de` and `messages.a`
+- `paiements.user_id`
+- `rendez_vous.de` and `rendez_vous.a`
+- `signalements.de`
+- `avis_match.user_id`, `avis_site.user_id`, `deblocages.user_id`
+- `ai_manager_audit.admin_id`
+- `private.founder_finance_ledger` has a `reference_code` and `country_code` but the inspected name-pattern query did not establish a user ownership field there.
+
+The exact absence of a foreign key does not prove that a field is unused or safe to erase. Application logic, JSON payloads, Storage paths, audit rows and external payment references may still depend on it.
+
+### Deletion design consequence
+
+A direct `auth.admin.deleteUser` would cascade-delete some records while leaving other rows that may retain the UUID, personal content, payment history or legal evidence. It could also erase both sides of a shared receipt/call record because either participant is a cascade parent. No deletion was attempted.
+
+Before implementation, define per-table treatment (erase, anonymize, retain with access restriction, or preserve as legally required), especially for `messages`, `paiements`, `signalements`, `avis_*`, `rendez_vous`, support and moderation audit records. The deletion worker must explicitly handle shared records and media references before deleting the Auth identity last. This remains blocked on approved retention rules and a synthetic-data rehearsal.
