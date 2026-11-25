@@ -26,17 +26,23 @@ jobs:
           ref: website/public-launch-cleanup-2026-11-24
           path: public-source
 
+      - name: Checkout current main baseline
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: main-source
+
       - name: Checkout isolated Match preview
         uses: actions/checkout@v4
         with:
           ref: preview/malachite-match-staging-clean
           path: preview-source
 
-      - name: Verify public index is only a footer overlay on the secured app index
+      - name: Verify public index is only a footer overlay on current main
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          app = Path("app-source/index.html").read_text(encoding="utf-8")
+          app = Path("main-source/index.html").read_text(encoding="utf-8")
           public = Path("public-source/index.html").read_text(encoding="utf-8")
           old = '<p style="margin:6px 0 0">Les offres payantes disponibles au lancement sont Premium, Boost et Pass Appels.</p>'
           new = '<p style="margin:6px 0 0">Les seules offres payantes prévues au lancement sont Premium, Boost et Pass Appels. Les conditions et tarifs seront communiqués avant leur activation.</p>'
@@ -54,7 +60,17 @@ jobs:
           mkdir -p _site/icons _site/preview/icons
           cp app-source/index.html app-source/*.js app-source/*.html app-source/manifest.webmanifest app-source/sw.js app-source/.nojekyll _site/
           cp app-source/icons/malachite.svg _site/icons/
-          cp public-source/index.html public-source/decouvrir.html public-source/404.html _site/
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("_site/index.html")
+          html = path.read_text(encoding="utf-8")
+          old = '<p style="margin:6px 0 0">Les offres payantes disponibles au lancement sont Premium, Boost et Pass Appels.</p>'
+          new = '<p style="margin:6px 0 0">Les seules offres payantes prévues au lancement sont Premium, Boost et Pass Appels. Les conditions et tarifs seront communiqués avant leur activation.</p>'
+          if html.count(old) != 1:
+              raise SystemExit("Secured app index does not contain the expected launch footer exactly once.")
+          path.write_text(html.replace(old, new, 1), encoding="utf-8")
+          PY
+          cp public-source/decouvrir.html public-source/404.html _site/
           cp public-source/robots.txt public-source/sitemap.xml _site/
           rm -f _site/partenaires.html
           cp preview-source/index.html preview-source/*.js preview-source/*.html preview-source/manifest.webmanifest preview-source/sw.js preview-source/.nojekyll _site/preview/
