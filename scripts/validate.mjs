@@ -542,3 +542,18 @@ if (!memberExperience.includes("rpc('create_my_action_notification'")) throw new
 
 // MALACHITE WORLD was intentionally removed; no obsolete prototype files are required by this site build.
 console.log('Legacy MALACHITE WORLD checks skipped: feature is not part of the current product.');
+
+// Founder finance UI must require the server-verified admin state before rendering,
+// loading finance data, or triggering the founder dashboard.
+const founderFinance = fs.readFileSync('malachite-founder-finance.js', 'utf8');
+if ((founderFinance.match(/!window\.malAdminAuthorized/g) || []).length < 2 ||
+    !founderFinance.includes('window.malAdminAuthorized && window.tab === "founder"')) {
+  throw new Error('Founder finance UI must be gated by the server-verified admin authorization state.');
+}
+const adminRpcMigration = fs.readFileSync('supabase/migrations/202611200002_harden_malachite_ai_admin_rpc.sql', 'utf8');
+if (!adminRpcMigration.includes('security invoker') ||
+    !adminRpcMigration.includes('private.is_admin()') ||
+    !adminRpcMigration.includes('revoke all on function public.malachite_ai_manager_is_admin() from public, anon') ||
+    !adminRpcMigration.includes('grant execute on function public.malachite_ai_manager_is_admin() to authenticated')) {
+  throw new Error('Admin authorization RPC must remain invoker-scoped and unavailable to anon/public.');
+}
