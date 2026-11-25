@@ -489,6 +489,22 @@ if (!aiWorker.includes('CONFIGURED_MODEL.startsWith("gemini-2.5-") ? "gemini-3.5
   throw new Error('AI worker must use the verified Gemini model fallback.');
 }
 
+const aiWorkerReplayMigration = fs.readFileSync('supabase/migrations/20261125170000_prevent_malachite_ai_worker_replay.sql', 'utf8').toLowerCase();
+for (const item of [
+  'request_id uuid primary key',
+  "p_body::jsonb ->> 'request_id'",
+  'on conflict (request_id) do nothing',
+  'returning request_id into v_claimed',
+  "interval '1 day'",
+  "grant execute on function public.verify_malachite_ai_worker_signature(text,text,text)",
+  "jsonb_build_object('trigger', 'cron', 'request_id', gen_random_uuid()::text)"
+]) {
+  if (!aiWorkerReplayMigration.includes(item)) throw new Error('AI worker replay protection requirement missing: ' + item);
+}
+if (!aiWorker.includes('"verify_malachite_ai_worker_signature"') || !aiWorker.includes('p_body: bodyText')) {
+  throw new Error('AI worker must verify the exact signed request body before execution.');
+}
+
 const privilegeMigration = fs.readFileSync('supabase/migrations/20261120223753_revoke_authenticated_table_bypass_privileges.sql', 'utf8').toLowerCase();
 for (const item of ['revoke truncate, references, trigger on all tables in schema public from authenticated', 'alter default privileges for role postgres in schema public', 'revoke all on tables from anon', 'revoke all on sequences from anon']) {
   if (!privilegeMigration.includes(item)) throw new Error('Database table privilege hardening missing: ' + item);
