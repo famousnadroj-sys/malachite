@@ -244,3 +244,28 @@ The migration now revokes each enumerated column privilege from its actual grant
 Validation on updated PR #122 head `768da87c91648dcac099e06fd0b601629ab276ef`: all 15 Malachite validation jobs and the isolated Match PostgreSQL runtime job passed. A separate production transaction tested the dynamic revoke syntax against disposable test tables and was rolled back; no production ACL or application data was changed.
 
 This correction remains on the PR branch and is not deployed to production.
+
+
+## Direct ACL comparison — staging versus production (25 November 2026, latest recheck)
+
+Read-only PostgreSQL privilege checks were run against both projects using the same query.
+
+| Effective privilege | Staging | Production |
+|---|---:|---:|
+| authenticated INSERT on `paiements` | denied | **granted** |
+| authenticated INSERT on `call_sessions` | denied | **granted** |
+| authenticated UPDATE on `call_sessions` | denied | **granted** |
+| authenticated SELECT on `config` | denied | **granted** |
+| authenticated INSERT on `profiles` | denied | **granted** |
+| authenticated UPDATE on `prives` | denied | **granted** |
+
+Additional call-provider checks:
+- Staging has `private.call_provider_config`; production does not.
+- Staging denies EXECUTE on `public.start_call_session(uuid,uuid,text,text,timestamptz)` to both `anon` and `authenticated`.
+- Production denies `anon` but still grants EXECUTE to `authenticated`.
+- Staging defines `public.update_my_call_session_status(uuid,text)` but keeps it non-executable by client roles; production does not yet define it.
+- Both projects currently have zero unexpired call sessions.
+
+**Severity / decision:** this is a confirmed production-versus-staging security drift, not a hypothetical CI finding. In production, authenticated clients retain direct INSERT on payments and calls, UPDATE on call sessions, SELECT on payment-destination config, and direct INSERT on profiles / UPDATE on private profile data. The corresponding staging ACL lockdown is effective. Do not publish a frontend that assumes the staging RPC/ACL model while production remains in this state.
+
+**No remediation was applied to production.** Applying the ordered security migration set requires an explicit production change window, a verified restorable backup, and a reviewed migration plan. Do not apply isolated revokes ad hoc: the frontend and trusted RPCs must be deployed in a coordinated order, and the production migration ledger must be reconciled first.
