@@ -467,13 +467,14 @@ console.log('Malachite frontend, PWA, private media, SQL policy and Admin securi
 for (const item of [
   "Paiements temporairement désactivés",
   "Tarif à confirmer",
-  "1 USD / 7 jours après activation",
+  "Tarif à confirmer",
   "var MAL_PAYMENTS_ENABLED=false;",
   "operateur:data.operator",
   "Ne transfère aucun argent.",
 ]) {
   if (!frontend.includes(item)) throw new Error('Launch payment safety requirement missing: ' + item);
 }
+if (!frontend.includes("Tarif à confirmer") || frontend.includes("1 USD / 7 jours après activation") || frontend.includes("USD 1 / 7 days after secure calls are activated")) throw new Error("Call pass price must remain unapproved until secure provider activation.");
 if (!frontend.includes("if(!MAL_PAYMENTS_ENABLED)") ||
     !calls.includes("if(window.MAL_PAYMENTS_ENABLED!==true)") ||
     !frontend.includes("var payload={offre:data.offer,code:data.code,operateur:data.operator,receipt_path:receipt.path}") ||
