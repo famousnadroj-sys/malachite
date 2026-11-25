@@ -67,6 +67,41 @@ if (!frontend.includes('target===me.id')) {
 }
 
 
+const serviceWorker = fs.readFileSync('sw.js', 'utf8');
+const navigationStart = serviceWorker.indexOf('if (request.mode === "navigate") {');
+const navigationEnd = serviceWorker.indexOf('const staticPaths', navigationStart);
+const navigationSource = navigationStart >= 0 && navigationEnd > navigationStart ? serviceWorker.slice(navigationStart, navigationEnd) : '';
+if (!navigationSource.includes('const cachedPage = cachePromise.then') ||
+    navigationSource.indexOf('event.waitUntil(networkPage.then(() => undefined))') < 0 ||
+    navigationSource.indexOf('event.waitUntil(networkPage.then(() => undefined))') > navigationSource.indexOf('event.respondWith(')) {
+  throw new Error('Navigation cache refresh must be registered before respondWith and remain inside the fetch event lifetime.');
+}
+if (!serviceWorker.includes('cache.match(request, { ignoreSearch: true })') ||
+    !serviceWorker.includes('const refresh = fetch(request)') ||
+    !serviceWorker.includes('cache.put(request, response.clone())') ||
+    !serviceWorker.includes('event.waitUntil(refresh.then(() => undefined))')) {
+  throw new Error('Static assets must refresh their cache in the background while serving cached files immediately.');
+}
+if (!serviceWorker.includes('(auth|rest|storage|functions)') || !serviceWorker.includes('url.pathname')) {
+  throw new Error('Supabase API and private data requests must stay outside the static asset cache.');
+}
+const serviceWorkerTemp = path.join(os.tmpdir(), 'malachite-sw.js');
+fs.writeFileSync(serviceWorkerTemp, serviceWorker);
+const serviceWorkerCheck = spawnSync(process.execPath, ['--check', serviceWorkerTemp], { encoding: 'utf8' });
+if (serviceWorkerCheck.status !== 0) {
+  process.stderr.write(serviceWorkerCheck.stderr || serviceWorkerCheck.stdout);
+  process.exit(serviceWorkerCheck.status || 1);
+}
+const chatMediaPatch = fs.readFileSync('app-core.js', 'utf8');
+const patchMediaStart = chatMediaPatch.indexOf('function patchMessageMedia(rows){');
+const patchMediaEnd = chatMediaPatch.indexOf('async function resolveMessageMedia', patchMediaStart);
+const patchMediaSource = patchMediaStart >= 0 && patchMediaEnd > patchMediaStart ? chatMediaPatch.slice(patchMediaStart, patchMediaEnd) : '';
+if (!patchMediaSource.includes('new Map()') || !patchMediaSource.includes('nodeById.set') || !patchMediaSource.includes('indexById.set') || patchMediaSource.includes('Array.from(box.querySelectorAll')) {
+  throw new Error('Chat media patching must index visible message nodes and message positions once, not rescan the DOM per photo.');
+}
+if (!frontend.includes("msgs.length-4") || !frontend.includes("fetchpriority") || !frontend.includes("Chargement de la photo")) {
+  throw new Error('Recent conversation photos must load eagerly with high priority and show a loading state.');
+}
 const discoveryStart = frontend.indexOf('function discoverCard(p){');
 const discoveryEnd = frontend.indexOf('function home()', discoveryStart);
 const discoverySource = discoveryStart >= 0 && discoveryEnd > discoveryStart ? frontend.slice(discoveryStart, discoveryEnd) : '';
