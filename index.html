@@ -729,7 +729,7 @@ body.mal-chat-mode .recbar{position:fixed!important;left:0!important;right:0!imp
     if(coreStarted)return;coreStarted=true;
     var core=document.createElement("script");core.src="./app-core.js";
     core.onload=function(){
-      var calls=document.createElement("script");calls.src="./calls.js?v=20261124-photo-cache-v3";calls.async=false;
+      var calls=document.createElement("script");calls.src="./calls.js?v=20261122-call-init-v2";calls.async=false;
       calls.onerror=function(){console.error("Le module d’appels MALACHITE n’a pas pu être chargé.");};
       document.head.appendChild(calls);
     };
