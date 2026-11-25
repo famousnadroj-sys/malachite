@@ -68,6 +68,14 @@ if (!frontend.includes('target===me.id')) {
 
 
 const serviceWorker = fs.readFileSync('sw.js', 'utf8');
+const navigationStart = serviceWorker.indexOf('if (request.mode === "navigate") {');
+const navigationEnd = serviceWorker.indexOf('const staticPaths', navigationStart);
+const navigationSource = navigationStart >= 0 && navigationEnd > navigationStart ? serviceWorker.slice(navigationStart, navigationEnd) : '';
+if (!navigationSource.includes('const cachedPage = cachePromise.then') ||
+    navigationSource.indexOf('event.waitUntil(networkPage.then(() => undefined))') < 0 ||
+    navigationSource.indexOf('event.waitUntil(networkPage.then(() => undefined))') > navigationSource.indexOf('event.respondWith(')) {
+  throw new Error('Navigation cache refresh must be registered before respondWith and remain inside the fetch event lifetime.');
+}
 if (!serviceWorker.includes('cache.match(request, { ignoreSearch: true })') ||
     !serviceWorker.includes('const refresh = fetch(request)') ||
     !serviceWorker.includes('cache.put(request, response.clone())') ||
