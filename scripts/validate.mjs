@@ -78,6 +78,9 @@ if (!serviceWorker.includes("if (/\\\\/(auth|rest|storage|functions)\\\\/v1\\\\/
   throw new Error('Supabase API and private data requests must stay outside the static asset cache.');
 }
 
+if (!frontend.includes("msgs.length-4") || !frontend.includes("fetchpriority")) {
+  throw new Error('Recent conversation photos must load eagerly with high priority for the newest visible images.');
+}
 const i18n = fs.readFileSync('i18n.js', 'utf8');
 const i18nTemp = path.join(os.tmpdir(), 'malachite-i18n.js');
 fs.writeFileSync(i18nTemp, i18n);
