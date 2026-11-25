@@ -1,8 +1,12 @@
 begin;
-insert into public.profiles(id) values
+insert into auth.users(id) values
  ('10000000-0000-0000-0000-000000000001'),
  ('20000000-0000-0000-0000-000000000001'),
  ('30000000-0000-0000-0000-000000000001');
+insert into public.profiles(id,prenom) values
+ ('10000000-0000-0000-0000-000000000001','Caller'),
+ ('20000000-0000-0000-0000-000000000001','Recipient'),
+ ('30000000-0000-0000-0000-000000000001','Suspended');
 insert into public.suspensions values ('30000000-0000-0000-0000-000000000001');
 insert into public.statuts values ('10000000-0000-0000-0000-000000000001',now()+interval '1 day');
 insert into public.avis_match values
