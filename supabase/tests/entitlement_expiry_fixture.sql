@@ -35,7 +35,7 @@ as $$ select false $$;
 
 create or replace function private.check_my_entitlement_expirations()
 returns integer language sql security definer set search_path=''
-as $ select 0 $;
+as $body$ select 0 $body$;
 
 create or replace function public.check_my_entitlement_expirations()
 returns integer language sql security definer set search_path=''
