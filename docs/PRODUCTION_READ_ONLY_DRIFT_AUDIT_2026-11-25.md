@@ -201,3 +201,11 @@ Before implementation, define per-table treatment (erase, anonymize, retain with
 - The PR branch contains later security migrations dated 17:00–27:00 on 24 November; they are not recorded as applied in production. This is consistent with the read-only deployment boundary and explains why production still shows the older table ACLs and policies. It is not evidence that the branch migrations failed.
 - The current PR head is `e2703f2a04c581f88e7a681ebed57b910d328ea8`. On that exact SHA, GitHub reports `Malachite validation` successful with 14/14 jobs and `Match isolated PostgreSQL runtime` successful.
 - PR #122 remains open, draft, unmerged, and GitHub reports `mergeable_state=clean`. No deployment or migration was executed.
+
+
+
+### ACL interpretation clarification
+
+A first inventory using `information_schema.role_column_grants` showed effective column-level access rows for several tables. A follow-up inspection of `pg_class.relacl` and `pg_attribute.attacl` clarified that the broad INSERT/UPDATE/DELETE rights on `paiements`, `call_sessions`, `config`, `login_names`, `prives` and `statuts` are still present as **old table-level ACLs in production**, not independent per-column grants. The production `profiles` table has explicit per-column SELECT ACLs; the broad old INSERT/UPDATE rights are table-level.
+
+This is consistent with the production migration ledger ending at `20261124122733`: the PR's later revocation migrations have not yet been applied. The branch's post-migration CI assertions check the restricted table privileges and the negative write paths. No production permission was changed. This clarification supersedes any interpretation of the initial role-column-grant listing as proof of surviving per-column write grants.
