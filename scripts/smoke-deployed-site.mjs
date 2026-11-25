@@ -4,7 +4,8 @@ const siteUrl = process.env.SITE_URL;
 if (!siteUrl) throw new Error("SITE_URL is required from the GitHub Pages deployment output.");
 
 const base = new URL(siteUrl);
-if (base.protocol !== "https:") throw new Error("The deployed site must use HTTPS.");
+const localSmoke = base.hostname === "127.0.0.1" || base.hostname === "localhost";
+if (base.protocol !== "https:" && !localSmoke) throw new Error("The deployed site must use HTTPS.");
 if (!base.pathname.endsWith("/")) base.pathname += "/";
 
 async function get(path, expectedText = null) {
@@ -30,6 +31,9 @@ async function get(path, expectedText = null) {
 }
 
 const productionHtml = await get("", "MALACHITE");
+if (!productionHtml.includes("offres payantes prévues au lancement")) {
+  throw new Error("La page d'accueil doit présenter les offres comme prévues, pas comme déjà actives.");
+}
 if (productionHtml.includes("MALACHITE · ENVIRONNEMENT DE TEST") ||
     productionHtml.includes("sbawknyxcjslvhknomkd")) {
   throw new Error("Staging content or configuration leaked into the production page.");
@@ -50,12 +54,64 @@ const productionAssets = [
 ];
 for (const [path, marker] of productionAssets) await get(path, marker);
 
+const appCore = await get("app-core.js", "rpc('update_my_preferences'");
+if (appCore.includes("from('config').select('cle,valeur')") ||
+    appCore.includes("NUM='';ORANGE=''")) {
+  throw new Error("Payment destination numbers must not be loaded into the public browser.");
+}
+const calls = await get("calls.js", "if(window.MAL_PAYMENTS_ENABLED!==true)");
+const avatarUi = await get("malachite-avatar-ui.js", "var MAL_PAYMENTS_ENABLED=false;");
+const offerUi = await get("malachite-user-experience.js", "Paiements temporairement désactivés");
+for (const retiredValue of [
+  "Premium — 2 USD / mois",
+  "Boost — 0,50 USD / 24 h",
+  "+243 993 315 532",
+  "+243 848 775 992",
+]) {
+  if ([appCore,calls,avatarUi,offerUi].some(content => content.includes(retiredValue))) {
+    throw new Error(`Un prix non approuvé ou un ancien numéro de paiement est encore publié : ${retiredValue}`);
+  }
+}
+if (!avatarUi.includes("if(!MAL_PAYMENTS_ENABLED)") ||
+    !offerUi.includes("Ne transfère aucun argent.")) {
+  throw new Error("Payment intake must fail closed until the owner confirms the launch settings.");
+}
+if (!calls.includes("var SECURE_JITSI_PROVIDER_READY=false;") ||
+    !calls.includes("if(!SECURE_JITSI_PROVIDER_READY||!me)return;") ||
+    calls.includes("var oldMatch=window.matchBox") ||
+    calls.includes("window.thread=function") ||
+    calls.includes('onclick="call(&quot;audio&quot;)')) {
+  throw new Error("Call controls must stay unavailable until the secure provider is configured.");
+}
+
+const discoveryHtml = await get("decouvrir.html", "Pass Appels");
+for (const retiredValue of ["2 $", "0,50 $", "Pour 30 jours", "Pour 24 heures"]) {
+  if (discoveryHtml.includes(retiredValue)) {
+    throw new Error(`Un tarif ou une durée non approuvés sont encore publiés : ${retiredValue}`);
+  }
+}
+await get("404.html", "ERREUR 404");
+const sitemap = await get("sitemap.xml", "<urlset");
+if (sitemap.includes("partenaires.html")) {
+  throw new Error("La page Partenaires retirée est encore présente dans le sitemap public.");
+}
+
 const previewHtml = await get("preview/", "MALACHITE · ENVIRONNEMENT DE TEST");
+if (!/<meta\s+name="robots"\s+content="noindex,nofollow">/i.test(previewHtml)) {
+  throw new Error("La prévisualisation de test doit porter une balise noindex.");
+}
+const robotsTxt = await get("robots.txt", "Sitemap:");
+if (/Disallow:\s*\/preview\//i.test(robotsTxt)) {
+  throw new Error("The preview must remain crawlable so search engines can read its noindex directive.");
+}
 if (previewHtml.includes("tscsmemsvgacqioncash") ||
     previewHtml.includes("sb_publishable_XDpqSzsPNeVduv6aGyjuoA_suakeFN0")) {
   throw new Error("Production Supabase configuration leaked into the Match preview HTML.");
 }
 const previewCore = await get("preview/app-core.js", "sbawknyxcjslvhknomkd.supabase.co");
+if (!previewCore.includes("function matchExperience")) {
+  throw new Error("Le preview doit charger le parcours Match isolé.");
+}
 if (previewCore.includes("tscsmemsvgacqioncash") ||
     previewCore.includes("sb_publishable_XDpqSzsPNeVduv6aGyjuoA_suakeFN0")) {
   throw new Error("Production Supabase configuration leaked into the Match preview JavaScript.");

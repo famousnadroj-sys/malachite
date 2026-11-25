@@ -13,7 +13,8 @@ Ce document prépare la rédaction des pages publiques. Il ne constitue ni un av
 - Les appels audio/vidéo utilisent actuellement Jitsi Meet public (`meet.jit.si`).
 - Les paiements ne sont pas automatisés par un prestataire de paiement : les preuves sont examinées manuellement par l'administration.
 - Le stockage des justificatifs de paiement utilise un bucket privé avec accès contrôlé.
-- Les seules offres payantes prévues au lancement sont Premium (2 USD / 30 jours), Boost (0,50 USD / 24 h) et Pass Appels (1 USD / 7 jours). Premium inclut les appels.
+- Les seules offres payantes prévues au lancement sont Premium, Boost et Pass Appels. L'utilisateur a confirmé le Pass Appels à 1 USD par semaine et le principe selon lequel Premium inclut les appels (sans achat séparé du Pass Appels).
+- Les montants et durées exacts de Premium et Boost ne sont pas explicitement approuvés ; les valeurs 2 USD / 30 jours et 0,50 USD / 24 h présentes dans le code ne doivent pas être présentées comme définitives.
 - Aucun déverrouillage payant de contact, publicité ou sponsoring n'est prévu au lancement.
 
 Ces faits doivent être revalidés à chaque changement technique.
@@ -36,7 +37,8 @@ Ne pas publier de promesses sur les durées, les lieux d'hébergement, les trans
 - [ ] Procédure de demande d'accès, rectification, opposition, effacement et réclamation.
 - [ ] Procédure de réponse à une violation de données.
 - [ ] Vérification des formalités applicables auprès de l'autorité compétente en RDC.
-- [ ] Vérification des exigences applicables aux mineurs et décision documentée sur l'âge minimum.
+- Le code d'inscription bloque actuellement les moins de 18 ans et la base possède une contrainte `profiles.age >= 18`. Toutefois, `profiles.age` accepte `NULL`, la fonction `save_my_profile` ne vérifie `profile_age` que lorsqu'il est fourni et la projection d'un profil privé met l'âge public à `NULL`. Le contrôle serveur n'est donc pas robuste contre l'omission de l'âge ; corriger et tester tous les chemins d'écriture avant lancement.
+- [ ] Faire confirmer juridiquement l'âge minimum de 18 ans et vérifier les mesures de prévention adaptées.
 
 ## 3. Plan de rédaction de la politique de confidentialité
 

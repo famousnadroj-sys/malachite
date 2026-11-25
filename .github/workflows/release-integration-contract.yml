@@ -1,0 +1,147 @@
+name: Malachite release integration contract
+
+on:
+  push:
+    branches: [website/public-launch-cleanup-2026-11-24]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  release-integration:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout secured application candidate
+        uses: actions/checkout@v4
+        with:
+          ref: security/rebased-private-profile-access-v4
+          path: app-source
+
+      - name: Checkout public launch pages
+        uses: actions/checkout@v4
+        with:
+          ref: website/public-launch-cleanup-2026-11-24
+          path: public-source
+
+      - name: Checkout current main baseline
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: main-source
+
+      - name: Checkout isolated Match preview
+        uses: actions/checkout@v4
+        with:
+          ref: preview/malachite-match-staging-clean
+          path: preview-source
+
+      - name: Verify public index is only a footer overlay on current main
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          app = Path("main-source/index.html").read_text(encoding="utf-8")
+          public = Path("public-source/index.html").read_text(encoding="utf-8")
+          old = '<p style="margin:6px 0 0">Les offres payantes disponibles au lancement sont Premium, Boost et Pass Appels.</p>'
+          new = '<p style="margin:6px 0 0">Les seules offres payantes prévues au lancement sont Premium, Boost et Pass Appels. Les conditions et tarifs seront communiqués avant leur activation.</p>'
+          if app.count(old) != 1 or app.replace(old, new, 1) != public:
+              raise SystemExit("Public index must preserve the secured app index and change only the approved launch footer.")
+          PY
+      - name: Assemble non-deployable release artifact
+        env:
+          PROD_SUPABASE_REF: tscsmemsvgacqioncash
+          STAGING_SUPABASE_REF: sbawknyxcjslvhknomkd
+          PROD_PUBLISHABLE_KEY: sb_publishable_XDpqSzsPNeVduv6aGyjuoA_suakeFN0
+          STAGING_PUBLISHABLE_KEY: sb_publishable_rXT4ztk4NLX-PeK2spwzqg_UcKMnRD5
+        run: |
+          set -euo pipefail
+          mkdir -p _site/icons _site/preview/icons
+          cp app-source/index.html app-source/*.js app-source/*.html app-source/manifest.webmanifest app-source/sw.js app-source/.nojekyll _site/
+          cp app-source/icons/malachite.svg _site/icons/
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("_site/index.html")
+          html = path.read_text(encoding="utf-8")
+          old = '<p style="margin:6px 0 0">Les offres payantes disponibles au lancement sont Premium, Boost et Pass Appels.</p>'
+          new = '<p style="margin:6px 0 0">Les seules offres payantes prévues au lancement sont Premium, Boost et Pass Appels. Les conditions et tarifs seront communiqués avant leur activation.</p>'
+          if html.count(old) != 1:
+              raise SystemExit("Secured app index does not contain the expected launch footer exactly once.")
+          path.write_text(html.replace(old, new, 1), encoding="utf-8")
+          PY
+          cp public-source/decouvrir.html public-source/404.html _site/
+          cp public-source/robots.txt public-source/sitemap.xml _site/
+          rm -f _site/partenaires.html
+          cp preview-source/index.html preview-source/*.js preview-source/*.html preview-source/manifest.webmanifest preview-source/sw.js preview-source/.nojekyll _site/preview/
+          cp preview-source/icons/malachite.svg _site/preview/icons/
+          python3 - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+          root = Path("_site/preview")
+          replacements = {
+              os.environ["PROD_SUPABASE_REF"]: os.environ["STAGING_SUPABASE_REF"],
+              os.environ["PROD_PUBLISHABLE_KEY"]: os.environ["STAGING_PUBLISHABLE_KEY"],
+          }
+          counts = {old: 0 for old in replacements}
+          for path in root.rglob("*"):
+              if not path.is_file():
+                  continue
+              try:
+                  content = path.read_text(encoding="utf-8")
+              except UnicodeDecodeError:
+                  continue
+              for old, new in replacements.items():
+                  counts[old] += content.count(old)
+                  content = content.replace(old, new)
+              path.write_text(content, encoding="utf-8")
+          if not all(counts.values()):
+              raise SystemExit("Preview build failed: production Supabase configuration was not fully replaced.")
+          for path in root.rglob("*"):
+              if not path.is_file():
+                  continue
+              try:
+                  content = path.read_text(encoding="utf-8")
+              except UnicodeDecodeError:
+                  continue
+              if any(old in content for old in replacements):
+                  raise SystemExit(f"Production Supabase configuration remains in preview: {path}")
+          html_path = root / "index.html"
+          html = html_path.read_text(encoding="utf-8")
+          banner = '<div id="mal-staging-banner" role="status">MALACHITE · ENVIRONNEMENT DE TEST · DONNÉES DE TEST UNIQUEMENT</div>'
+          style = '<style>#mal-staging-banner{position:sticky;top:0;z-index:99999;background:#7c2d12;color:#fff;text-align:center;padding:8px 12px;font:700 12px system-ui;letter-spacing:.04em}</style>'
+          if "</head>" not in html or not re.search(r"<body\b[^>]*>", html, flags=re.I):
+              raise SystemExit("Preview build failed: expected HTML head/body elements were not found.")
+          if not re.search(r'<meta\s+name=["\']robots["\']', html, flags=re.I):
+              html = html.replace("</head>", '<meta name="robots" content="noindex,nofollow"></head>', 1)
+          if 'id="mal-staging-banner"' not in html:
+              html = html.replace("</head>", style + "</head>", 1)
+              html, count = re.subn(r"(<body\b[^>]*>)", lambda match: match.group(1) + banner, html, count=1, flags=re.I)
+              if count != 1:
+                  raise SystemExit("Preview build failed: could not insert staging banner.")
+          if 'name="robots" content="noindex,nofollow"' not in html:
+              raise SystemExit("Preview build failed: staging preview must remain noindex.")
+          html_path.write_text(html, encoding="utf-8")
+          PY
+          touch _site/.nojekyll
+          test -f _site/index.html
+          test -f _site/decouvrir.html
+          test -f _site/icons/malachite.svg
+          test -f _site/preview/index.html
+          test -f _site/preview/icons/malachite.svg
+
+      - name: Smoke-test the assembled artifact without publishing
+        working-directory: public-source
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8765 --directory "$GITHUB_WORKSPACE/_site" >/tmp/malachite-release-smoke.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for attempt in {1..15}; do
+            if curl -fsS http://127.0.0.1:8765/ >/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          SITE_URL=http://127.0.0.1:8765/ node scripts/smoke-deployed-site.mjs
