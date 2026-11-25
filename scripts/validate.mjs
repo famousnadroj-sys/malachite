@@ -542,3 +542,9 @@ if (!memberExperience.includes("rpc('create_my_action_notification'")) throw new
 
 // MALACHITE WORLD was intentionally removed; no obsolete prototype files are required by this site build.
 console.log('Legacy MALACHITE WORLD checks skipped: feature is not part of the current product.');
+const headMarkup = html.slice(0, html.indexOf('</head>'));
+if (!headMarkup.includes('rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces') ||
+    !headMarkup.includes('media="print" onload="this.media=\'all\'"') ||
+    headMarkup.includes('rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces')) {
+  throw new Error('Optional Google Fonts must remain non-render-blocking with the system-font fallback.');
+}
