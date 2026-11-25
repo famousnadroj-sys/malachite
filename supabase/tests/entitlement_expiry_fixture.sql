@@ -33,6 +33,10 @@ create or replace function private.entitlement_is_active(p_user_id uuid,p_offer 
 returns boolean language sql stable security definer set search_path=''
 as $$ select false $$;
 
+create or replace function private.check_my_entitlement_expirations()
+returns integer language sql security definer set search_path=''
+as $ select 0 $;
+
 create or replace function public.check_my_entitlement_expirations()
 returns integer language sql security definer set search_path=''
 as $$ select private.check_my_entitlement_expirations() $$;
