@@ -18,7 +18,7 @@ select set_config('request.jwt.claim.sub','30000000-0000-0000-0000-000000000001'
 -- Print only synthetic fixture paths so a failed visibility assertion is diagnosable.
 select name from storage.objects where bucket_id='profile-photos' order by name;
 select count(*) as visible_published_photo_count from storage.objects where bucket_id='profile-photos';
-do $
+do $photo_visibility$
 declare
  visible_count integer;
 begin
@@ -34,7 +34,7 @@ begin
   raise exception 'unlisted_public_photo_visible';
  end if;
 end
-$$;
+$photo_visibility$;
 
 select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000001',true);
 do $$
