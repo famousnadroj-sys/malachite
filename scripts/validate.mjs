@@ -67,6 +67,13 @@ if (!frontend.includes('target===me.id')) {
 }
 
 
+const chatMediaPatch = fs.readFileSync('app-core.js', 'utf8');
+const patchMediaStart = chatMediaPatch.indexOf('function patchMessageMedia(rows){');
+const patchMediaEnd = chatMediaPatch.indexOf('async function resolveMessageMedia', patchMediaStart);
+const patchMediaSource = patchMediaStart >= 0 && patchMediaEnd > patchMediaStart ? chatMediaPatch.slice(patchMediaStart, patchMediaEnd) : '';
+if (!patchMediaSource.includes('new Map()') || !patchMediaSource.includes('nodeById.set') || !patchMediaSource.includes('indexById.set') || patchMediaSource.includes('Array.from(box.querySelectorAll')) {
+  throw new Error('Chat media patching must index visible message nodes and message positions once, not rescan the DOM per photo.');
+}
 const i18n = fs.readFileSync('i18n.js', 'utf8');
 const i18nTemp = path.join(os.tmpdir(), 'malachite-i18n.js');
 fs.writeFileSync(i18nTemp, i18n);
