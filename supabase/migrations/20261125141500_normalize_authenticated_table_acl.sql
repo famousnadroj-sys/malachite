@@ -48,7 +48,7 @@ declare
   v_session public.call_sessions;
 begin
   if v_uid is null then raise exception 'not_authenticated'; end if;
-  if p_status not in ('accepted','rejected','expired','ended') then
+  if p_status is null or p_status not in ('accepted','rejected','expired','ended') then
     raise exception 'invalid_call_status';
   end if;
 
