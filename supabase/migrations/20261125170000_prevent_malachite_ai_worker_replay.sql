@@ -26,7 +26,7 @@ declare
   v_claimed uuid;
 begin
   if p_timestamp is null or p_body is null or p_signature is null
-     or length(p_body) > 8192 then
+     or octet_length(p_body) > 8192 then
     return false;
   end if;
   if p_timestamp !~ '^[0-9]{10}$' or p_signature !~ '^[0-9a-f]{64}$' then
