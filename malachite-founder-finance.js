@@ -40,7 +40,7 @@
 
   function installFinanceDashboard() {
     window.founderDashboard = function () {
-      if (!window.me || !window.me.id) {
+      if (!window.me || !window.me.id || !window.malAdminAuthorized) {
         return '<section class="card"><h2>Accès réservé</h2><p class="note">Cet espace est privé.</p></section>';
       }
 
@@ -73,7 +73,7 @@
       var panel = document.getElementById("malFounderFinancePanel");
       var target = document.getElementById("malFounderFinanceResults");
       if (!panel || !target) return;
-      if (!window.me || !window.me.id) {
+      if (!window.me || !window.me.id || !window.malAdminAuthorized) {
         target.innerHTML = '<p class="err">Accès refusé.</p>';
         return;
       }
@@ -133,7 +133,7 @@
       }
     };
 
-    if (window.me && window.me.id && window.tab === "founder" && typeof window.draw === "function") {
+    if (window.me && window.me.id && window.malAdminAuthorized && window.tab === "founder" && typeof window.draw === "function") {
       window.draw(true);
     }
   }
