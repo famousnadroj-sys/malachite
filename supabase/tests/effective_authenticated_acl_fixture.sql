@@ -26,7 +26,7 @@ create or replace function public.start_call_session(
   p_id uuid,p_callee_id uuid,p_room text,p_mode text,p_expires_at timestamptz
 ) returns setof public.call_sessions
 language sql security definer set search_path=''
-as $ select * from public.call_sessions where false $;
+as $function$ select * from public.call_sessions where false $function$;
 grant execute on function public.start_call_session(uuid,uuid,text,text,timestamptz) to authenticated;
 
 -- Seed both table-level and column-level ACLs to prove the migration removes
