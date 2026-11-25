@@ -67,6 +67,17 @@ if (!frontend.includes('target===me.id')) {
 }
 
 
+const serviceWorker = fs.readFileSync('sw.js', 'utf8');
+if (!serviceWorker.includes('cache.match(request, { ignoreSearch: true })') ||
+    !serviceWorker.includes('const refresh = fetch(request)') ||
+    !serviceWorker.includes('cache.put(request, response.clone())') ||
+    !serviceWorker.includes('event.waitUntil(refresh.then(() => undefined))')) {
+  throw new Error('Static assets must refresh their cache in the background while serving cached files immediately.');
+}
+if (!serviceWorker.includes("if (/\\\\/(auth|rest|storage|functions)\\\\/v1\\\\//.test(url.pathname)) return;")) {
+  throw new Error('Supabase API and private data requests must stay outside the static asset cache.');
+}
+
 const i18n = fs.readFileSync('i18n.js', 'utf8');
 const i18nTemp = path.join(os.tmpdir(), 'malachite-i18n.js');
 fs.writeFileSync(i18nTemp, i18n);
