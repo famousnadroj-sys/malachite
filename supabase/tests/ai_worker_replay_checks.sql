@@ -1,6 +1,18 @@
 begin;
 do $checks$
 declare
+  v_job_count integer;
+  v_job_command text;
+begin
+  select count(*), min(command) into v_job_count, v_job_command
+  from cron.job where jobname='malachite-ai-ops-worker';
+  if v_job_count <> 1 or v_job_command not like '%request_id%' then
+    raise exception 'legacy_worker_cron_job_not_replaced_exactly_once';
+  end if;
+end
+$checks$;
+do $checks$
+declare
   v_ts text;
   v_body text;
   v_nonce uuid := '10000000-0000-4000-8000-000000000001';
