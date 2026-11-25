@@ -17,7 +17,7 @@ jobs:
       - name: Checkout secured application candidate
         uses: actions/checkout@v4
         with:
-          ref: security/profile-write-authorization-v1
+          ref: security/rebased-private-profile-access-v4
           path: app-source
 
       - name: Checkout public launch pages
