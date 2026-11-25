@@ -629,14 +629,7 @@
     document.head.appendChild(style);
   }
 
-  window.malSetPaymentNumber = function () {
-    var selector = document.getElementById('malOperator');
-    var target = document.getElementById('malPayNumber');
-    if (!selector || !target) return;
-    var orange = selector.value === 'orange';
-    var number = orange ? (window.ORANGE || '') : (window.NUM || '');
-    target.textContent = (orange ? 'Orange Money : ' : 'Airtel Money : ') + (number || 'Numéro non configuré');
-  };
+  window.malSetPaymentNumber = function () { return; };
 
   window.malSetOfferPage = function (page) {
     offerPage = Math.max(1, Math.min(3, Number(page) || 1));
@@ -649,52 +642,18 @@
     var user = currentUser();
     var status = window.st && user && window.st[user.id] ? window.st[user.id] : {};
     var premiumActive = !!status.premium_active;
-    var airtel = window.NUM || '';
-    var orange = window.ORANGE || '';
-    var steps = '<div class="mal-offer-steps">' +
-      [1, 2, 3].map(function (page) {
-        var label = page === 1 ? 'Découvrir' : page === 2 ? 'Comparer' : 'Souscrire';
-        return '<button type="button" class="' + (offerPage === page ? 'active' : '') + '" onclick="malSetOfferPage(' + page + ')">' + page + '. ' + label + '</button>';
-      }).join('') + '</div>';
-    var intro = '<div class="mal-offer-intro"><div><span class="ml-auth-kicker">MALACHITE · OFFRES</span><h2>' +
-      (offerPage === 1 ? 'Choisis ton expérience.' : offerPage === 2 ? 'Compare en un coup d’œil.' : 'Finalise ton paiement.') +
-      '</h2><p>' + (offerPage === 1 ? 'Des avantages simples, sans texte inutile.' : offerPage === 2 ? 'Les différences essentielles entre les offres.' : 'Envoie ton paiement et conserve ta référence.') + '</p></div></div>';
-    var body = '';
-    if (offerPage === 1) {
-      body = '<div class="mal-offer-grid">' +
-        '<article class="mal-offer-card"><h3>Gratuit <span class="price">0 USD</span></h3><p>Découvrir, aimer et discuter avec tes matchs.</p></article>' +
-        '<article class="mal-offer-card featured"><h3>Premium <span class="price">2 USD / 30 jours</span></h3><p>Messages sans quota, rendez-vous illimités et appels audio/vidéo inclus.</p></article>' +
-        '<article class="mal-offer-card"><h3>Boost <span class="price">0,50 USD / 24 h</span></h3><p>Ton profil remonte en priorité dans Découvrir.</p></article>' +
-
-        (premiumActive ? '<article class="mal-offer-card"><h3>Appels audio et vidéo</h3><p>Déjà inclus dans ton Premium actif.</p></article>' : '<article class="mal-offer-card"><h3>Pass Appels <span class="price">1 USD / 7 jours</span></h3><p>Appels audio et vidéo avec tes matchs pendant 7 jours.</p></article>') +
-        '</div><button type="button" class="mal-offer-next" onclick="malSetOfferPage(2)">Comparer les avantages →</button>';
-    } else if (offerPage === 2) {
-      body = '<div class="mal-offer-card"><table class="mal-offer-table"><thead><tr><th>Avantage</th><th>Gratuit</th><th>Premium</th></tr></thead><tbody>' +
-        '<tr><td>Découvrir et aimer</td><td class="yes">✓</td><td class="yes">✓</td></tr>' +
-        '<tr><td>Nouvelles conversations</td><td>15 / jour</td><td class="yes">Illimitées</td></tr>' +
-        '<tr><td>Rendez-vous</td><td>1 / semaine</td><td class="yes">Illimités</td></tr>' +
-        '<tr><td>Appels audio et vidéo</td><td class="no">Pass séparé</td><td class="yes">Inclus</td></tr>' +
-        '<tr><td>Boost de visibilité</td><td>Option payante</td><td>Option payante</td></tr>' +
-        '</tbody></table></div>' +
-        '<button type="button" class="mal-offer-next" onclick="malSetOfferPage(3)">Choisir et payer →</button>';
-    } else {
-      var callOption = premiumActive ? '' : '<option value="Appels">Pass Appels — 1 USD / 7 jours</option>';
-      body = '<div class="mal-offer-pay"><div class="mal-offer-card"><h3>Numéro destinataire</h3>' +
-        '<p id="malPayNumber">Airtel Money : ' + (airtel ? esc(airtel) : 'Numéro non configuré') + '</p>' +
-        '<p class="note">Le numéro change selon le réseau choisi.</p>' +
-        '</div><div class="box list"><label>Offre<select id="of"><option value="Premium">Premium — 2 USD / 30 jours</option>' + callOption +
-        '<option value="Boost">Boost — 0,50 USD / 24 h</option></select></label>' +
-        '<label>Moyen de paiement<select id="malOperator" onchange="malSetPaymentNumber()"><option value="airtel">Airtel Money</option><option value="orange">Orange Money</option></select></label>' +
-        '<p class="note">Effectue le transfert au numéro affiché, puis saisis la référence exacte du SMS et joins le reçu.</p>' +
-        '<label>Référence du transfert<input id="cd" maxlength="100" autocomplete="off" placeholder="Référence exacte du SMS"></label>' +
-        '<label>Capture du SMS de confirmation de paiement<input id="malReceipt" type="file" accept="image/jpeg,image/png,image/webp"></label><p class="note">Après le paiement : ouvrez le SMS de confirmation et faites une capture d’écran où l’on voit clairement que le paiement a réussi, le montant et la référence. Envoyez uniquement cette image ici — aucun autre document n’est nécessaire. Si la confirmation apparaît dans votre application de paiement plutôt que par SMS, faites une capture de ce message. Image JPEG, PNG ou WebP, 5 Mo maximum.</p>' +
-        '<button class="b1 big" id="malSubmitPayment" type="button" onclick="pay()">Soumettre ma demande</button>' +
-        '<div class="note" id="pm" aria-live="polite">Activation après vérification du paiement.</div></div>' +
-        '<section id="malPaymentHistory"><h3>Suivi de mes demandes</h3><p class="note">Chargement…</p></section></div>';
-    }
-    return '<section class="mal-offer-wizard">' + intro + steps + body +
-      (offerPage > 1 ? '<button type="button" class="mal-offer-back" onclick="malSetOfferPage(' + (offerPage - 1) + ')">← Retour</button>' : '') +
-      '</section>';
+    var callsCard = premiumActive
+      ? '<article class="mal-offer-card"><h3>Appels audio et vidéo</h3><p>Inclus dans Premium, mais les appels sécurisés ne sont pas encore disponibles.</p></article>'
+      : '<article class="mal-offer-card"><h3>Pass Appels <span class="price">1 USD / 7 jours après activation</span></h3><p>Les appels audio et vidéo ne sont pas encore disponibles. Aucun paiement ne peut être effectué avant leur activation sécurisée.</p></article>';
+    var body = '<div class="mal-offer-grid">' +
+      '<article class="mal-offer-card"><h3>Gratuit <span class="price">0 USD</span></h3><p>Découvrir, aimer et discuter avec tes matchs.</p></article>' +
+      '<article class="mal-offer-card featured"><h3>Premium <span class="price">Tarif à confirmer</span></h3><p>Messages sans quota et rendez-vous illimités. Les appels seront inclus dès leur activation sécurisée.</p></article>' +
+      '<article class="mal-offer-card"><h3>Boost <span class="price">Tarif à confirmer</span></h3><p>Ton profil remontera en priorité dans Découvrir pendant la durée annoncée avant activation.</p></article>' +
+      callsCard +
+      '</div><div class="mal-offer-card"><h3>Paiements temporairement désactivés</h3><p>Ne transfère aucun argent. Les tarifs Premium et Boost ainsi que le numéro de réception seront confirmés avant l’ouverture des paiements.</p></div>' +
+      '<section id="malPaymentHistory"><h3>Suivi de mes demandes</h3><p class="note">Chargement…</p></section>';
+    var intro = '<div class="mal-offer-intro"><div><span class="ml-auth-kicker">MALACHITE · OFFRES</span><h2>Découvre les offres.</h2><p>Les fonctions payantes seront ouvertes après validation des tarifs, du moyen de réception et des appels sécurisés.</p></div></div>';
+    return '<section class="mal-offer-wizard">' + intro + body + '</section>';
   }
   window.offres = renderOffers;
 

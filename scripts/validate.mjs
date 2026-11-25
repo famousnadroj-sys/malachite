@@ -4,7 +4,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 const html = fs.readFileSync('index.html', 'utf8');
-const frontendFiles = ['app-core.js', 'malachite-avatar-ui.js', 'malachite-chat-ui.js', 'malachite-avatar-helper.js', 'malachite-living-engine.js', 'malachite-premium-profiles.js'];
+const frontendFiles = ['app-core.js', 'malachite-avatar-ui.js', 'malachite-chat-ui.js', 'malachite-avatar-helper.js', 'malachite-living-engine.js', 'malachite-premium-profiles.js', 'malachite-user-experience.js'];
 const frontendScripts = frontendFiles.map((file) => fs.readFileSync(file, 'utf8'));
 const frontend = [html, ...frontendScripts].join('\n');
 const serviceWorker = fs.readFileSync('sw.js', 'utf8');
@@ -23,7 +23,8 @@ for (const [index, source] of frontendScripts.entries()) {
 
 const requiredFrontend = [
   "profiles').select('id,username,prenom,age",
-  "from('prives').upsert({id:me.id,prefs:merged})",
+  "rpc('update_my_preferences',{p_preferences:pr})",
+  "rpc('update_my_avatar',{p_avatar:avatar})",
   "from('chat-media').upload",
   "from('profile-photos').upload",
   "createSignedUrl",
@@ -40,6 +41,12 @@ const requiredFrontend = [
 for (const item of requiredFrontend) {
   if (!frontend.includes(item)) throw new Error('Frontend requirement missing: ' + item);
 }
+if (frontend.includes("from('prives').upsert(")) throw new Error('Private preference writes must use the validated RPC.');
+if (frontend.includes("from('config').select('cle,valeur')") || frontend.includes('window.NUM') || frontend.includes('window.ORANGE')) {
+  throw new Error('Payment destination numbers must not be loaded into the public client while payment intake is paused.');
+}
+if (frontend.includes("from('profiles').update({avatar:")) throw new Error('Avatar writes must use the owner-scoped avatar RPC.');
+if (frontend.includes("avatar.imageUrl=await signedUrl('profile-photos',path)")) throw new Error('Signed avatar URLs must not be persisted in profile JSON.');
 if (frontend.includes("profiles').select('*')")) throw new Error('Public profile query must not select private columns.');
 if (!frontend.includes("insert({de:me.id,profil:id,motif:motif})")) throw new Error('Report must include the authenticated reporter id.');
 if ((frontend.match(/storage\.from\('photos'\)\.upload/g) || []).length) throw new Error('New uploads must not use the legacy public photos bucket.');
@@ -158,15 +165,19 @@ if (calls.includes("me.email==='famousnadroj@gmail.com'") ||
     !calls.includes('if(adminPaymentUserId&&(!next||next.id!==adminPaymentUserId))stopPaymentRealtime()')) {
   throw new Error('Admin payment realtime must use the database admin role and clear its subscription when the session identity changes.');
 }
-if (!calls.includes('Les appels sécurisés seront réactivés après leur mise en place') ||
-    !calls.includes("h=h.replace('<button disabled title=")) {
-  throw new Error('Mutual-match call actions must replace the legacy disabled call button.');
+if (!calls.includes("var SECURE_JITSI_PROVIDER_READY=false;") ||
+    !calls.includes("if(!SECURE_JITSI_PROVIDER_READY||!me)return;") ||
+    calls.includes("var oldMatch=window.matchBox") ||
+    calls.includes("window.thread=function") ||
+    calls.includes('onclick="call(&quot;audio&quot;)')) {
+  throw new Error('Call controls must remain disabled until the secure provider is configured.');
 }
 for (const item of [
-  "Premium <span>2 $ / 30 jours</span>",
-  "Premium — 2 USD / 30 jours (appels inclus)",
-  'id="malReceipt"',
+  "Paiements temporairement désactivés",
+  "Tarif à confirmer",
+  'id="malPaymentHistory"',
   "malSubmitPayment({offer:offer.value,code:code,operator:network,file:proof.files[0]})",
+  "if(window.MAL_PAYMENTS_ENABLED!==true)",
 ]) {
   if (!calls.includes(item)) throw new Error('Secure calls/payment override requirement missing: ' + item);
 }
@@ -174,6 +185,28 @@ if (calls.includes("Premium <span>3 $ / 30 jours</span>") ||
     calls.includes("Premium — 3 USD / 30 jours") ||
     calls.includes("sb.from('paiements').insert(payload)")) {
   throw new Error('Calls offer override must not show the old price or bypass the shared receipt workflow.');
+}
+if (!calls.includes("var SECURE_JITSI_PROVIDER_READY=false;") ||
+    calls.includes("var oldMatch=window.matchBox") ||
+    calls.includes("mal-call-head")) {
+  throw new Error('Call controls must stay unavailable until a secure Jitsi provider is configured.');
+}
+if (calls.includes("Premium <span>2 $ / 30 jours</span>") ||
+    calls.includes("Premium — 2 USD / 30 jours") ||
+    calls.includes("Boost <span>0,50 $ / 24 h</span>") ||
+    calls.includes("Boost — 0,50 USD / 24 heures") ||
+    calls.includes("Numéro Airtel Money destinataire") ||
+    calls.includes("Numéro Orange Money destinataire")) {
+  throw new Error('Unapproved prices or old payment destinations must not appear in the offers UI.');
+}
+const paymentUi = fs.readFileSync('malachite-avatar-ui.js', 'utf8');
+if (!paymentUi.includes("var MAL_PAYMENTS_ENABLED=false;") ||
+    !paymentUi.includes("if(!MAL_PAYMENTS_ENABLED)") ||
+    paymentUi.includes("+243 993 315 532") ||
+    paymentUi.includes("+243 848 775 992") ||
+    paymentUi.includes("Premium : 2 USD / 30 jours") ||
+    paymentUi.includes("Boost : 0,50 USD / 24 h")) {
+  throw new Error('Legacy payment destinations and unapproved prices must remain hidden while payment intake is paused.');
 }
 if (!calls.includes("select('id,offre,statut,created_at,reviewed_at,admin_reason,operateur')") ||
     calls.includes('au plus tard sous 2 heures') ||
@@ -429,30 +462,37 @@ if (!frontend.includes('Backend Match présent en production') || !frontend.incl
 console.log('Malachite frontend, PWA, private media, SQL policy and Admin security checks passed.');
 
 
-// Malachite launch/payment guardrails (static checks; not a live payment test).
+// Malachite launch/payment guardrails: payment intake stays closed until
+// the owner confirms the dedicated receiving SIM, prices and call provider.
 for (const item of [
+  "Paiements temporairement désactivés",
+  "Tarif à confirmer",
+  "1 USD / 7 jours après activation",
+  "var MAL_PAYMENTS_ENABLED=false;",
+  "operateur:data.operator",
+  "Ne transfère aucun argent.",
+]) {
+  if (!frontend.includes(item)) throw new Error('Launch payment safety requirement missing: ' + item);
+}
+if (!frontend.includes("if(!MAL_PAYMENTS_ENABLED)") ||
+    !calls.includes("if(window.MAL_PAYMENTS_ENABLED!==true)") ||
+    !frontend.includes("var payload={offre:data.offer,code:data.code,operateur:data.operator,receipt_path:receipt.path}") ||
+    !frontend.includes("sb.from('paiements').insert(payload)")) {
+  throw new Error('Payment UI and client submission must fail closed while preserving the reviewed future receipt workflow.');
+}
+for (const retiredValue of [
   "Premium — 2 USD / mois",
   "Boost — 0,50 USD / 24 h",
   "+243 993 315 532",
   "+243 848 775 992",
-  "operateur:data.operator",
-  "Une capture d’écran seule ne déclenche jamais Premium.",
-  "Ne communique jamais ton code PIN ni ton OTP.",
 ]) {
-  if (!frontend.includes(item)) throw new Error('Launch payment requirement missing: ' + item);
-}
-if (!frontend.includes("var payload={offre:data.offer,code:data.code,operateur:data.operator,receipt_path:receipt.path}") ||
-    !frontend.includes("sb.from('paiements').insert(payload)")) {
-  throw new Error('Payment submission must preserve offer, reference, operator and private receipt path.');
+  if (frontend.includes(retiredValue)) throw new Error('Unapproved price or old payment destination remains in frontend: ' + retiredValue);
 }
 if (!frontend.includes("function aiManagerPreview()") || !frontend.includes("moteur IA Malachite existant") || !frontend.includes("actions sensibles restent sous ton contrôle")) {
   throw new Error('AI copilots must describe the existing engine and preserve human approval for sensitive actions.');
 }
 if (frontend.includes("Premium — 3 $")) {
   throw new Error('Legacy Premium price of 3 USD remains anywhere in the frontend.');
-}
-if (!frontend.includes("Premium — 2 USD / mois")) {
-  throw new Error('The active Premium price must be 2 USD per month.');
 }
 
 const paymentMigration = fs.readFileSync('supabase/migrations/20261120130000_restrict_payment_review_rpc.sql', 'utf8');
@@ -466,9 +506,8 @@ for (const item of [
     throw new Error('Payment RPC privilege guard missing: ' + item);
   }
 }
-if (!frontend.includes('maxlength="100" placeholder="Référence exacte du SMS"') ||
-    !frontend.includes('c.length<4||c.length>100')) {
-  throw new Error('Payment reference length must match the database RLS policy (4–100 characters).');
+if (!frontend.includes('c.length<4||c.length>100')) {
+  throw new Error('Retained payment code must validate reference length before any future reactivation.');
 }
 if (frontend.includes('maxlength="120" placeholder="Référence de transaction"')) {
   throw new Error('Payment reference input exceeds the database limit.');
@@ -504,9 +543,18 @@ if (!appCoreSource.includes("sb.rpc('public_status_badges')") || appCoreSource.i
 if (!calls.includes('ownStatus.premium_active') || !fs.readFileSync('malachite-user-experience.js', 'utf8').includes('status.premium_active')) {
   throw new Error('Own Premium status must remain available without exposing other members entitlement timestamps.');
 }
-const publicConfigMigration = fs.readFileSync('supabase/migrations/20261124181403_limit_public_config_reads_to_payment_operators.sql', 'utf8').toLowerCase();
-for (const item of ['drop policy if exists "voir config" on public.config', "using (cle in ('airtel','orange'))"]) {
-  if (!publicConfigMigration.includes(item)) throw new Error('Public configuration reads must be restricted to payment-operator keys.');
+const publicConfigMigration = fs.readFileSync('supabase/migrations/20261124270000_pause_payment_intake_until_activation.sql', 'utf8').toLowerCase();
+for (const item of [
+  'revoke all on table public.config from public, anon, authenticated',
+  'drop policy if exists "voir config" on public.config',
+  'revoke insert on table public.paiements from public, anon, authenticated',
+  'drop policy if exists "declarer un paiement" on public.paiements',
+  'drop policy if exists "payment receipts owner upload" on storage.objects',
+  'drop policy if exists "paid matched members can call" on public.call_sessions',
+  'drop policy if exists "call participants can update" on public.call_sessions',
+  'revoke insert, update, delete on table public.call_sessions from public, anon, authenticated',
+]) {
+  if (!publicConfigMigration.includes(item)) throw new Error('Payment intake and destination config must remain closed until owner activation.');
 }
 const privateWrapperMigration = fs.readFileSync('supabase/migrations/20261124181825_secure_public_private_function_wrappers.sql', 'utf8').toLowerCase();
 for (const item of ['alter function %s security definer', "alter function %s set search_path = %l", 'public.blocked_user_ids()', 'public.contact_de(uuid)', 'public.traiter_paiement(bigint,boolean,text)']) {
@@ -529,6 +577,9 @@ for (const item of ['3 USD', '2 USD', '0,50 USD', '1 USD pour 7 jours']) {
 const directPaymentMutationMigration = fs.readFileSync('supabase/migrations/20261124230000_restrict_direct_payment_mutations.sql', 'utf8').toLowerCase();
 if (!directPaymentMutationMigration.includes('revoke update, delete on table public.paiements from authenticated')) {
   throw new Error('Authenticated clients must not directly update or delete payment records.');
+}
+if (!publicConfigMigration.includes('revoke insert on table public.paiements from public, anon, authenticated')) {
+  throw new Error('Authenticated clients must not submit payments before launch activation.');
 }
 const receiptMigration = fs.readFileSync('supabase/migrations/20261120140000_private_payment_receipts.sql', 'utf8');
 for (const item of [
@@ -557,7 +608,6 @@ for (const item of [
   "async function malUploadPaymentReceipt(file)",
   "sb.storage.from('payment-receipts').upload",
   "createSignedUrl(x.receipt_path,300)",
-  "id=\"malReceipt\"",
   "receipt_path:receipt.path",
 ]) {
   if (!frontend.includes(item)) throw new Error('Payment receipt workflow missing: ' + item);
@@ -565,6 +615,9 @@ for (const item of [
 
 if (!frontend.includes("remove([receipt.path])")) {
   throw new Error('Failed payment inserts must clean up unlinked private receipt files.');
+}
+if (frontend.includes('id="malReceipt"')) {
+  throw new Error('Payment receipt upload form must remain hidden while payment intake is paused.');
 }
 
 
@@ -656,7 +709,7 @@ const notificationActionsMigration = fs.readFileSync('supabase/migrations/202611
 for (const item of ['action_type', 'action_id', 'private.create_my_notification', 'security definer', 'user_notifications_user_created_idx']) {
   if (!notificationActionsMigration.includes(item)) throw new Error('Notification action-target migration requirement missing: ' + item);
 }
-for (const item of ['openLinkedMessage', 'back-to-site', 'p_related_user_id', 'Capture du SMS de confirmation de paiement', 'loadedAt']) {
+for (const item of ['openLinkedMessage', 'back-to-site', 'p_related_user_id', 'Ne transfère aucun argent.', 'loadedAt']) {
   if (!memberExperience.includes(item) && !frontend.includes(item)) throw new Error('Notification navigation or performance requirement missing: ' + item);
 }
 
