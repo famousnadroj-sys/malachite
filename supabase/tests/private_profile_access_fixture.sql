@@ -35,7 +35,8 @@ create table public.profiles (
   photos text[] not null default '{}'::text[],
   prompts jsonb not null default '[]'::jsonb,
   derniere_vue timestamptz,
-  profile_private boolean not null default false
+  profile_private boolean not null default false,
+  avatar jsonb not null default '{}'::jsonb
 );
 create table storage.objects (
   bucket_id text not null,
