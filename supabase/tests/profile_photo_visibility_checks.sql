@@ -17,8 +17,9 @@ set local role authenticated;
 select set_config('request.jwt.claim.sub','30000000-0000-0000-0000-000000000001',true);
 do $$
 begin
- if (select count(*) from storage.objects where bucket_id='profile-photos') <> 3 then
-  raise exception 'other_member_must_only_read_private_main_and_published_public_photos';
+ -- A third party must see only the two published images of the public profile.
+ if (select count(*) from storage.objects where bucket_id='profile-photos') <> 2 then
+  raise exception 'other_member_must_only_read_published_public_photos';
  end if;
  if exists(select 1 from storage.objects where name='10000000-0000-0000-0000-000000000001/hidden.jpg') then
   raise exception 'private_extra_photo_visible';
