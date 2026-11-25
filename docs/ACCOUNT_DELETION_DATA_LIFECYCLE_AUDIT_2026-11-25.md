@@ -15,7 +15,7 @@ Elle ne supprime pas les utilisateurs, profils, messages, paiements, rendez-vous
 
 ## Relations Auth avec suppression référentielle
 
-La lecture de `pg_constraint` a relevé 34 clés étrangères vers `auth.users` :
+La lecture de `pg_constraint` a relevé 35 clés étrangères vers `auth.users` : 28 `ON DELETE CASCADE` et 7 `ON DELETE SET NULL` :
 - `ON DELETE CASCADE` pour les identités/sessions/facteurs Auth, profils, préférences, noms de connexion, blocages, sessions d'appel, reçus de message, notifications personnelles, suspensions, événements Match, demandes support, abonnements push admin et références de parrainage.
 - `ON DELETE SET NULL` pour les références d'acteur/auteur de campagnes, actions admin, demandes support, signalements, suspensions et notifications.
 
