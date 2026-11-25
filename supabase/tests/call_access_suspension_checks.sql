@@ -1,4 +1,9 @@
 begin;
+insert into auth.users(id) values
+ ('10000000-0000-0000-0000-000000000001'),
+ ('20000000-0000-0000-0000-000000000001'),
+ ('30000000-0000-0000-0000-000000000001'),
+ ('40000000-0000-0000-0000-000000000001');
 insert into public.profiles(id,prenom,username,profile_private) values
  ('10000000-0000-0000-0000-000000000001','Active','active_user',false),
  ('20000000-0000-0000-0000-000000000001','Suspended','suspended_user',false),
