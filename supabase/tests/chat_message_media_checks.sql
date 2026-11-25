@@ -45,19 +45,19 @@ do $body$ begin
  if (select count(*) from public.messages) <> 1 then raise exception 'sender_can_read_message_to_suspended_member'; end if;
 end $body$;
 select set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
-do $$ begin
+do $assert$ begin
  if (select count(*) from storage.objects where bucket_id='chat-media') <> 1 then raise exception 'recipient_cannot_read_attached_media'; end if;
  if (select count(*) from storage.objects where bucket_id='photos') <> 1 then raise exception 'recipient_cannot_read_legacy_media'; end if;
  if (select count(*) from public.messages) <> 1 then raise exception 'recipient_can_read_message_to_suspended_member'; end if;
-end $$;
+end $assert$;
 reset role;
 insert into public.blocages values ('20000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001');
 set local role authenticated;
 select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000001',true);
-do $$ begin
+do $assert$ begin
  if exists(select 1 from public.messages) then raise exception 'blocked_message_still_visible'; end if;
  if exists(select 1 from storage.objects where bucket_id='chat-media') then raise exception 'blocked_media_still_visible'; end if;
  if exists(select 1 from storage.objects where bucket_id='photos') then raise exception 'blocked_legacy_media_still_visible'; end if;
-end $$;
+end $assert$;
 reset role;
 rollback;
