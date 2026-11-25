@@ -257,7 +257,7 @@
    if(offer.value==='Appels'){
     var premiumCheck=await sb.from('statuts').select('premium_until').eq('user_id',me.id).maybeSingle();
     if(premiumCheck.error)throw premiumCheck.error;
-    if(premiumCheck.data&&premiumCheck.data.premium_until&&new Date(premiumCheck.data.premium_until).getTime()>Date.now())throw new Error('Les appels audio et vidéo sont déjà inclus dans ton abonnement Premium actif. Tu ne dois pas payer le pass à 1 $.');
+    if(premiumCheck.data&&premiumCheck.data.premium_until&&new Date(premiumCheck.data.premium_until).getTime()>Date.now())throw new Error('Les appels audio et vidéo sont déjà inclus dans ton abonnement Premium actif. Tu ne dois pas soumettre de demande de Pass Appels.');
    }
    var network=operator?operator.value:'airtel';
    var duplicate=await sb.from('paiements').select('id,offre,statut,user_id,operateur').eq('code',code).eq('operateur',network).maybeSingle();
