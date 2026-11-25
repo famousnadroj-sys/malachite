@@ -36,9 +36,9 @@ insert into auth.users(id) values
 insert into public.profiles(id,prenom,age,genre,commune,quartier,profession,bio,interets,photos,prompts,derniere_vue,profile_private,avatar) values
  ('10000000-0000-0000-0000-000000000001','Private',27,'F','Lubumbashi','Golf','Designer','Private bio',array['private-interest'],array['10000000-0000-0000-0000-000000000001/main.jpg','10000000-0000-0000-0000-000000000001/extra.jpg'],'[{"q":"secret","a":"answer"}]'::jsonb,now(),true,'{"type":"humanforge-3d","version":1,"config":{},"imagePath":"10000000-0000-0000-0000-000000000001/avatar-3d.png"}'::jsonb),
  ('20000000-0000-0000-0000-000000000001','Public',29,'M','Lubumbashi','Centre','Engineer','Public bio',array['public-interest'],array['20000000-0000-0000-0000-000000000001/one.jpg','20000000-0000-0000-0000-000000000001/two.jpg'],'[]'::jsonb,now(),false,'{"type":"humanforge-3d","version":1,"config":{},"imagePath":"20000000-0000-0000-0000-000000000001/avatar-3d.png"}'::jsonb),
- ('30000000-0000-0000-0000-000000000001','Blocked',30,'M','Lubumbashi','Golf','Test','Blocked bio','{}',array['30000000-0000-0000-0000-000000000001/photo.jpg'],'[]'::jsonb,now(),false),
- ('40000000-0000-0000-0000-000000000001','Suspended',31,'M','Lubumbashi','Golf','Test','Suspended bio','{}',array['40000000-0000-0000-0000-000000000001/photo.jpg'],'[]'::jsonb,now(),false),
- ('60000000-0000-0000-0000-000000000001','Blocker',32,'F','Lubumbashi','Golf','Test','Blocker bio','{}',array['60000000-0000-0000-0000-000000000001/photo.jpg'],'[]'::jsonb,now(),false);
+ ('30000000-0000-0000-0000-000000000001','Blocked',30,'M','Lubumbashi','Golf','Test','Blocked bio','{}',array['30000000-0000-0000-0000-000000000001/photo.jpg'],'[]'::jsonb,now(),false,'{}'::jsonb),
+ ('40000000-0000-0000-0000-000000000001','Suspended',31,'M','Lubumbashi','Golf','Test','Suspended bio','{}',array['40000000-0000-0000-0000-000000000001/photo.jpg'],'[]'::jsonb,now(),false,'{}'::jsonb),
+ ('60000000-0000-0000-0000-000000000001','Blocker',32,'F','Lubumbashi','Golf','Test','Blocker bio','{}',array['60000000-0000-0000-0000-000000000001/photo.jpg'],'[]'::jsonb,now(),false,'{}'::jsonb);
 
 insert into public.blocages(user_id,cible) values
  ('50000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000001'),
