@@ -54,21 +54,19 @@ self.addEventListener("fetch", (event) => {
   }
   const staticPaths = APP_SHELL.map((path) => new URL(path, self.registration.scope).pathname);
   if (staticPaths.includes(url.pathname)) {
-    event.respondWith((async () => {
-      const cache = await caches.open(CACHE);
-      const cached = await cache.match(request, { ignoreSearch: true });
-      const refresh = fetch(request).then((response) => {
-        if (response && response.ok) {
-          event.waitUntil(cache.put(request, response.clone()));
-        }
-        return response;
-      }).catch(() => null);
-      if (cached) {
-        event.waitUntil(refresh.then(() => undefined));
-        return cached;
-      }
-      return (await refresh) || Response.error();
-    })());
+    // Start the network refresh and register its lifetime before the fetch event handler returns.
+    const cachePromise = caches.open(CACHE).catch(() => null);
+    const refresh = fetch(request).then((response) => {
+      if (!response || !response.ok) return response;
+      return cachePromise.then((cache) => cache ? cache.put(request, response.clone()) : undefined)
+        .then(() => response);
+    }).catch(() => null);
+    event.waitUntil(refresh.then(() => undefined));
+    event.respondWith(
+      cachePromise.then((cache) => cache ? cache.match(request, { ignoreSearch: true }) : null)
+        .then((cached) => cached || refresh)
+        .then((response) => response || Response.error())
+    );
   }
 });
 
