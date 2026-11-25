@@ -723,3 +723,31 @@ if (!memberExperience.includes("rpc('create_my_action_notification'")) throw new
 
 // MALACHITE WORLD was intentionally removed; no obsolete prototype files are required by this site build.
 console.log('Legacy MALACHITE WORLD checks skipped: feature is not part of the current product.');
+
+const founderFinance = fs.readFileSync('malachite-founder-finance.js', 'utf8');
+if ((founderFinance.match(/!window\\.malAdminAuthorized/g) || []).length < 2 ||
+    !founderFinance.includes('window.malAdminAuthorized && window.tab === "founder"')) {
+  throw new Error('Founder finance UI must be gated by the server-verified admin authorization state.');
+}
+const adminRpcMigration = fs.readFileSync('supabase/migrations/202611200002_harden_malachite_ai_admin_rpc.sql', 'utf8');
+if (!adminRpcMigration.includes('security invoker') ||
+    !adminRpcMigration.includes('private.is_admin()') ||
+    !adminRpcMigration.includes('revoke all on function public.malachite_ai_manager_is_admin() from public, anon') ||
+    !adminRpcMigration.includes('grant execute on function public.malachite_ai_manager_is_admin() to authenticated')) {
+  throw new Error('Admin authorization RPC must remain invoker-scoped and unavailable to anon/public.');
+}
+const financeRefreshStart = founderFinance.indexOf('window.malFounderFinanceRefresh = async function ()');
+const financeRefreshEnd = founderFinance.indexOf('    };', financeRefreshStart);
+const financeRefreshSource = financeRefreshStart >= 0 && financeRefreshEnd > financeRefreshStart
+  ? founderFinance.slice(financeRefreshStart, financeRefreshEnd)
+  : '';
+const financeAdminGuard = financeRefreshSource.indexOf('!window.malAdminAuthorized');
+const financeRpcCall = financeRefreshSource.indexOf('window.sb.rpc("founder_business_overview"');
+if (financeAdminGuard < 0 || financeRpcCall < 0 || financeAdminGuard > financeRpcCall) {
+  throw new Error('Finance refresh must verify the admin UI state before invoking the finance RPC.');
+}
+const approvedLaunchFooter = 'Les seules offres payantes prévues au lancement sont Premium, Boost et Pass Appels. Les conditions et tarifs seront communiqués avant leur activation.';
+const legacyLaunchFooter = 'Les offres payantes disponibles au lancement sont Premium, Boost et Pass Appels.';
+if (!html.includes(approvedLaunchFooter) || html.includes(legacyLaunchFooter)) {
+  throw new Error('Public launch pricing copy must use the approved, non-promissory wording.');
+}
