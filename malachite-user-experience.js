@@ -644,7 +644,7 @@
     var premiumActive = !!status.premium_active;
     var callsCard = premiumActive
       ? '<article class="mal-offer-card"><h3>Appels audio et vidéo</h3><p>Inclus dans Premium, mais les appels sécurisés ne sont pas encore disponibles.</p></article>'
-      : '<article class="mal-offer-card"><h3>Pass Appels <span class="price">Tarif à confirmer</span></h3><p>Les appels audio et vidéo ne sont pas encore disponibles. Aucun paiement ne peut être effectué avant leur activation sécurisée.</p></article>';
+      : '<article class="mal-offer-card"><h3>Pass Appels <span class="price">1 USD / 7 jours (prévu)</span></h3><p>Le tarif prévu est de 1 USD pour 7 jours. Les appels audio et vidéo restent indisponibles tant que le fournisseur sécurisé n’est pas validé. Aucun paiement ne peut être effectué avant leur activation.</p></article>';
     var body = '<div class="mal-offer-grid">' +
       '<article class="mal-offer-card"><h3>Gratuit <span class="price">0 USD</span></h3><p>Découvrir, aimer et discuter avec tes matchs.</p></article>' +
       '<article class="mal-offer-card featured"><h3>Premium <span class="price">Tarif à confirmer</span></h3><p>Messages sans quota et rendez-vous illimités. Les appels seront inclus dès leur activation sécurisée.</p></article>' +
