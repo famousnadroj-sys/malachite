@@ -85,3 +85,12 @@ La protection contre les mots de passe divulgués est désactivée. Le projet es
 - [ ] Refaire les Advisors après déploiement contrôlé, sans traiter mécaniquement chaque avertissement comme une vulnérabilité.
 
 **Décision :** aucune modification de production n'est justifiée par ces alertes seules. Maintenir le verrou de déploiement jusqu'à la sauvegarde/restauration certifiée, à la fermeture du chemin Pages alternatif et à la validation des migrations de sécurité.
+
+
+## Blocage GitHub Pages confirmé par les exécutions
+
+- Le workflow personnalisé `.github/workflows/deploy-production.yml` a échoué fermé le 25 novembre à 18:04 UTC sur le commit `40b91735d1565e6899264bf08dc152eebeab1e30` (run `45671283575`) : le contrôle `MALACHITE_DB_SECURITY_READY` n'était pas approuvé.
+- Au même instant, le workflow généré `pages build and deployment` (path `dynamic/pages/pages-build-deployment`) s'est terminé avec succès sur le même commit (run `45671282973`).
+- Cette preuve confirme que le chemin de publication Pages par branche reste actif et contourne le verrou du workflow personnalisé.
+- Le réglage du dépôt n'est pas modifiable via les actions GitHub disponibles dans cette session. Un administrateur doit aller dans Settings → Pages → Build and deployment → Source et sélectionner **GitHub Actions**. Après modification, vérifier qu'un push de test ne déclenche plus le workflow dynamique de publication par branche et que seul le workflow contrôlé publie.
+- Ne pas fusionner de PR ou pousser de changement sur `main` avant cette fermeture : la publication du site peut être déclenchée indépendamment du garde-fou applicatif.
