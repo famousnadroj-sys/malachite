@@ -192,3 +192,12 @@ The exact absence of a foreign key does not prove that a field is unused or safe
 A direct `auth.admin.deleteUser` would cascade-delete some records while leaving other rows that may retain the UUID, personal content, payment history or legal evidence. It could also erase both sides of a shared receipt/call record because either participant is a cascade parent. No deletion was attempted.
 
 Before implementation, define per-table treatment (erase, anonymize, retain with access restriction, or preserve as legally required), especially for `messages`, `paiements`, `signalements`, `avis_*`, `rendez_vous`, support and moderation audit records. The deletion worker must explicitly handle shared records and media references before deleting the Auth identity last. This remains blocked on approved retention rules and a synthetic-data rehearsal.
+
+
+
+## Final branch/production synchronization check (25 November 2026)
+
+- Production `supabase_migrations.schema_migrations` currently reports latest version `20261124122733`.
+- The PR branch contains later security migrations dated 17:00–27:00 on 24 November; they are not recorded as applied in production. This is consistent with the read-only deployment boundary and explains why production still shows the older table ACLs and policies. It is not evidence that the branch migrations failed.
+- The current PR head is `e2703f2a04c581f88e7a681ebed57b910d328ea8`. On that exact SHA, GitHub reports `Malachite validation` successful with 14/14 jobs and `Match isolated PostgreSQL runtime` successful.
+- PR #122 remains open, draft, unmerged, and GitHub reports `mergeable_state=clean`. No deployment or migration was executed.
