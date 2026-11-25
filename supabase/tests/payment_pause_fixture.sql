@@ -19,8 +19,8 @@ create table public.paiements(
   receipt_path text
 );
 create unique index paiements_operator_reference_uidx on public.paiements(operateur,code);
-create function public.traiter_paiement(pid bigint, accepter boolean) returns void language sql as $ select $;
-create function public.traiter_paiement(pid bigint, accepter boolean, raison text) returns void language sql as $ select $;
+create function public.traiter_paiement(pid bigint, accepter boolean) returns void language plpgsql as $body$ begin return; end $body$;
+create function public.traiter_paiement(pid bigint, accepter boolean, raison text) returns void language plpgsql as $body$ begin return; end $body$;
 revoke all on function public.traiter_paiement(bigint,boolean) from public,anon;
 revoke all on function public.traiter_paiement(bigint,boolean,text) from public,anon;
 grant execute on function public.traiter_paiement(bigint,boolean) to authenticated;
