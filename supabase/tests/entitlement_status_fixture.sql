@@ -21,6 +21,10 @@ create table public.statuts(
 create table public.suspensions(user_id uuid primary key);
 create table public.blocages(user_id uuid not null,cible uuid not null);
 create table public.deblocages(user_id uuid not null,cible uuid not null);
+create table public.config(cle text primary key,valeur text);
+grant select,insert,update,delete on public.config to authenticated;
+alter table public.config enable row level security;
+create policy "voir config" on public.config for select to authenticated using (true);
 create table public.campagnes(id uuid primary key);
 grant all privileges on table public.campagnes to authenticated;
 alter table public.statuts enable row level security;
