@@ -17,7 +17,7 @@ set local role authenticated;
 select set_config('request.jwt.claim.sub','30000000-0000-0000-0000-000000000001',true);
 -- Print only synthetic fixture paths so a failed visibility assertion is diagnosable.
 select name from storage.objects where bucket_id='profile-photos' order by name;
-do $
+do $$
 begin
  -- A third party must see only the two published images of the public profile.
  if (select count(*) from storage.objects where bucket_id='profile-photos') <> 2 then
