@@ -1,5 +1,6 @@
 create schema if not exists auth;
 create schema if not exists private;
+create table auth.users(id uuid primary key);
 do $$ begin
   if not exists(select 1 from pg_roles where rolname='authenticated') then create role authenticated; end if;
   if not exists(select 1 from pg_roles where rolname='anon') then create role anon; end if;
@@ -8,7 +9,7 @@ end $$;
 create or replace function auth.uid() returns uuid language sql stable as $$
   select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid
 $$;
-create table public.profiles(id uuid primary key, prenom text, username text, profile_private boolean default false);
+create table public.profiles(id uuid primary key references auth.users(id), prenom text not null, username text, profile_private boolean default false);
 create table public.suspensions(user_id uuid primary key);
 create table public.blocages(user_id uuid, cible uuid);
 create table public.statuts(user_id uuid, premium_until timestamptz);
