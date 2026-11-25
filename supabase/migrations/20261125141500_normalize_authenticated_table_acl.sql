@@ -1,7 +1,7 @@
 -- Normalize effective authenticated ACLs after the earlier targeted revokes.
--- Keep only the client operations still required by the existing UI:
--- SELECT on these tables and INSERT of a payment submission. Call-session
--- status changes must use the owner/participant-checked RPC below.
+-- Keep only the client operations still required while payments/calls remain
+-- paused: SELECT on permitted history/profile tables. Payment intake and all
+-- call-session writes stay disabled; call transitions use the checked RPC.
 do $$
 declare
   r record;
@@ -27,13 +27,12 @@ begin
   from authenticated;
 
   grant select on table
-    public.call_sessions, public.config, public.login_names,
+    public.call_sessions, public.login_names,
     public.paiements, public.statuts, public.prives
   to authenticated;
 
-  -- Payment records are user-submitted receipts; status/deletion remains a
-  -- trusted server/admin operation.
-  grant insert on table public.paiements to authenticated;
+  -- public.config contains payment destinations and remains hidden while
+  -- intake is paused. Do not re-grant payment INSERT or call-session UPDATE.
 end
 $$;
 
