@@ -1,7 +1,7 @@
 -- Normalize effective authenticated ACLs after the earlier targeted revokes.
 -- Keep only the client operations still required by the existing UI:
--- SELECT on these tables, INSERT of a payment submission, and UPDATE(status)
--- on call sessions. All other direct table- and column-level grants are removed.
+-- SELECT on these tables and INSERT of a payment submission. Call-session
+-- status changes must use the owner/participant-checked RPC below.
 do $$
 declare
   r record;
@@ -34,9 +34,51 @@ begin
   -- Payment records are user-submitted receipts; status/deletion remains a
   -- trusted server/admin operation.
   grant insert on table public.paiements to authenticated;
-
-  -- Keep only the existing narrow participant status transition. Session
-  -- identity, participants, and expiry remain server-controlled.
-  grant update (status) on table public.call_sessions to authenticated;
 end
 $$;
+
+create or replace function public.update_my_call_session_status(p_id uuid,p_status text)
+returns public.call_sessions
+language plpgsql
+security definer
+set search_path=''
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_session public.call_sessions;
+begin
+  if v_uid is null then raise exception 'not_authenticated'; end if;
+  if p_status not in ('accepted','rejected','expired','ended') then
+    raise exception 'invalid_call_status';
+  end if;
+
+  select * into v_session
+  from public.call_sessions
+  where id=p_id and (caller_id=v_uid or callee_id=v_uid)
+  for update;
+  if not found then raise exception 'call_session_not_found'; end if;
+
+  if p_status in ('accepted','rejected') then
+    if v_session.callee_id<>v_uid or v_session.status<>'pending'
+       or v_session.expires_at<=now() then
+      raise exception 'call_transition_forbidden';
+    end if;
+  elsif p_status='expired' then
+    if v_session.caller_id<>v_uid or v_session.status<>'pending'
+       or v_session.expires_at>now()+interval '5 seconds' then
+      raise exception 'call_transition_forbidden';
+    end if;
+  elsif p_status='ended' then
+    if v_session.status not in ('pending','accepted') then
+      raise exception 'call_transition_forbidden';
+    end if;
+  end if;
+
+  update public.call_sessions set status=p_status where id=p_id
+  returning * into v_session;
+  return v_session;
+end
+$$;
+
+revoke all on function public.update_my_call_session_status(uuid,text) from public,anon,authenticated;
+grant execute on function public.update_my_call_session_status(uuid,text) to authenticated;
