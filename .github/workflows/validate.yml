@@ -123,6 +123,7 @@ jobs:
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261124250000_enforce_profile_age_server_side.sql
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261124260000_restrict_profile_writes_to_trusted_rpc.sql
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/profile_age_enforcement_checks.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/profile_write_authorization_checks.sql
 
   private-profile-projection:
     runs-on: ubuntu-latest
@@ -328,6 +329,8 @@ jobs:
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261124200500_lock_legacy_contact_unlock_table.sql
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261124240000_revoke_retired_campaign_table_access.sql
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/entitlement_status_runtime_checks.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/entitlement_status_visibility_checks.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/contact_unlock_table_security_checks.sql
 
   message-receipt-access:
     runs-on: ubuntu-latest
