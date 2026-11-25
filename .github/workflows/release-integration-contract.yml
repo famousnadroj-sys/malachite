@@ -46,8 +46,15 @@ jobs:
           public = Path("public-source/index.html").read_text(encoding="utf-8")
           old = '<p style="margin:6px 0 0">Les offres payantes disponibles au lancement sont Premium, Boost et Pass Appels.</p>'
           new = '<p style="margin:6px 0 0">Les seules offres payantes prévues au lancement sont Premium, Boost et Pass Appels. Les conditions et tarifs seront communiqués avant leur activation.</p>'
-          if app.count(old) != 1 or app.replace(old, new, 1) != public:
-              raise SystemExit("Public index must preserve the secured app index and change only the approved launch footer.")
+          old_count, new_count = app.count(old), app.count(new)
+          if old_count == 1 and new_count == 0:
+              expected = app.replace(old, new, 1)
+          elif old_count == 0 and new_count == 1:
+              expected = app
+          else:
+              raise SystemExit("Main index must contain exactly one recognized launch footer.")
+          if expected != public:
+              raise SystemExit("Public index must preserve the current main index and only apply the approved launch footer.")
           PY
       - name: Assemble non-deployable release artifact
         env:
@@ -66,9 +73,14 @@ jobs:
           html = path.read_text(encoding="utf-8")
           old = '<p style="margin:6px 0 0">Les offres payantes disponibles au lancement sont Premium, Boost et Pass Appels.</p>'
           new = '<p style="margin:6px 0 0">Les seules offres payantes prévues au lancement sont Premium, Boost et Pass Appels. Les conditions et tarifs seront communiqués avant leur activation.</p>'
-          if html.count(old) != 1:
-              raise SystemExit("Secured app index does not contain the expected launch footer exactly once.")
-          path.write_text(html.replace(old, new, 1), encoding="utf-8")
+          old_count, new_count = html.count(old), html.count(new)
+          if old_count == 1 and new_count == 0:
+              html = html.replace(old, new, 1)
+          elif old_count == 0 and new_count == 1:
+              pass  # main already contains the approved public footer
+          else:
+              raise SystemExit("Secured app index must contain exactly one recognized launch footer.")
+          path.write_text(html, encoding="utf-8")
           PY
           cp public-source/decouvrir.html public-source/404.html _site/
           cp public-source/robots.txt public-source/sitemap.xml _site/
