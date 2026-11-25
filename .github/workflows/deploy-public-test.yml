@@ -67,7 +67,7 @@ jobs:
           if 'id="mal-staging-banner"' not in html:
               html = html.replace("</head>", style + "</head>", 1)
               import re
-              html, count = re.subn(r"(<body\\b[^>]*>)", r"\\1" + banner, html, count=1, flags=re.I)
+              html, count = re.subn(r"(<body\\b[^>]*>)", lambda match: match.group(1) + banner, html, count=1, flags=re.I)
               if count != 1:
                   raise SystemExit("Preview validation failed: body element not found.")
           (root / "index.html").write_text(html, encoding="utf-8")
