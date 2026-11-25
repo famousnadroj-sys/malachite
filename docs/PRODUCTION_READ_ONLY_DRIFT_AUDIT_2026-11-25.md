@@ -221,3 +221,15 @@ This follow-up was implemented on the security PR branch only; production remain
 - The disposable ACL fixture deliberately seeds broad table-level and column-level grants before applying the migration. The assertions check effective PostgreSQL privileges, confirm payment intake and config access stay closed, and exercise authorized/unauthorized call status transitions plus a denied direct UPDATE.
 - On code commit `d69a7e18f17a32307bcb6a3e03e3da9deb3b6baf`, the new `effective-authenticated-acl` job and all 16 validation jobs passed; both `Malachite validation` and `Match isolated PostgreSQL runtime` workflows completed successfully.
 - The production migration ledger and permissions were not changed. These branch corrections are not active in production until the separate coordinated deployment is approved and executed.
+
+
+## Final paused-call RPC exposure review (25 November 2026)
+
+A follow-up review found that revoking direct table writes did not by itself pause SECURITY DEFINER call RPCs: the historical `start_call_session` function retained EXECUTE for `authenticated`, and the newly introduced status RPC had initially been granted EXECUTE as well. This could bypass the intended client-side feature flag and table ACL pause.
+
+The ACL normalization migration has been tightened to:
+- revoke effective table and column ACLs from `PUBLIC`, `anon`, and `authenticated` on the targeted tables before restoring only authenticated SELECT on the permitted tables;
+- keep `config` hidden and payment intake closed;
+- revoke EXECUTE on both `start_call_session` and `update_my_call_session_status` from client roles while calls remain paused.
+
+The disposable PostgreSQL fixture now seeds a legacy authenticated EXECUTE grant for `start_call_session`. The checks assert that neither anon nor authenticated can read the restricted tables through inherited PUBLIC grants, perform direct writes, or execute either call RPC during the pause. Production remains unchanged.
