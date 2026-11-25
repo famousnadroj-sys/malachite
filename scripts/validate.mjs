@@ -71,7 +71,7 @@ if (!frontend.includes('target===me.id')) {
 }
 
 
-const serviceWorker = fs.readFileSync('sw.js', 'utf8');
+
 const navigationStart = serviceWorker.indexOf('if (request.mode === "navigate") {');
 const navigationEnd = serviceWorker.indexOf('const staticPaths', navigationStart);
 const navigationSource = navigationStart >= 0 && navigationEnd > navigationStart ? serviceWorker.slice(navigationStart, navigationEnd) : '';
