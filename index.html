@@ -668,7 +668,10 @@ body.mal-chat-mode .sendbar .chat-upload-status{display:block!important}
 body.mal-chat-mode .recbar{position:fixed!important;left:0!important;right:0!important;bottom:env(safe-area-inset-bottom,0px)!important;z-index:130!important;display:flex!important;visibility:visible!important;opacity:1!important}
 @media(max-width:420px){body.mal-chat-mode .sendbar{padding-left:6px!important;padding-right:6px!important}body.mal-chat-mode .sendbar .chat-composer{gap:4px!important}body.mal-chat-mode .sendbar .chat-composer .chat-tool,body.mal-chat-mode .sendbar .chat-composer .chat-send{flex-basis:34px!important;width:34px!important;height:36px!important;min-width:34px!important}}
 @media(prefers-reduced-motion:reduce){body.mal-chat-mode #msgs.chat{scroll-behavior:auto!important}}
-</style></head>
+</style><style id="mal-mobile-nav-scroll">
+@media(max-width:600px){#nav{justify-content:flex-start;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scrollbar-width:none;-webkit-overflow-scrolling:touch;touch-action:pan-x}#nav::-webkit-scrollbar{display:none}#nav button{flex:0 0 64px;min-width:64px}}
+</style>
+</head>
 <body>
 <header><div class="lg0"><svg class="logo" viewBox="0 0 40 40" width="30" height="30" aria-hidden="true"><path d="M20 35C8 26 4 19 4 13.5 4 9 7.5 6 11.5 6c3.5 0 6.5 2 8.5 5 2-3 5-5 8.5-5C32.5 6 36 9 36 13.5 36 19 32 26 20 35z" fill="url(#lg)"/><path d="M11.5 6 20 11 28.5 6M4 13.5h32M4 13.5 20 35 36 13.5M13 13.5 20 11 27 13.5 20 35z" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width=".9" stroke-linejoin="round"/><path d="M33 1v6M30 4h6" stroke="#C9A227" stroke-width="1.1" stroke-linecap="round"/></svg><div class="brand">Malachite</div></div><div class="tag2">Lubumbashi</div></header>
 <div class="mal-share-row" style="display:flex;justify-content:flex-end;padding:8px 14px 2px;max-width:640px;margin:0 auto"><button id="malachite-share-header" type="button" aria-label="Partager le site MALACHITE" onclick="window.malShareOpen&&window.malShareOpen()" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,#D81B60,#F0457F);color:#fff;border:1px solid #D81B60;border-radius:999px;padding:10px 17px;font-size:13px;font-weight:800;white-space:nowrap;box-shadow:0 5px 16px rgba(216,27,96,.20)"><span aria-hidden="true">↗</span> Partager le site</button></div>
