@@ -112,3 +112,35 @@ A future deletion worker must not simply delete every object whose first path se
 6. Test with synthetic accounts, including a shared conversation, blocked pair, suspended account, linked receipt and unlinked upload.
 
 No cleanup has been run in production.
+
+
+
+## Production Edge Function review (25 November 2026)
+
+Read-only source retrieval was performed for the three active production Edge Functions configured with `verify_jwt=false`. No function was deployed or changed.
+
+### `malachite-admin-push` — version 6
+
+The non-webhook path does not rely on gateway JWT verification: it extracts a Bearer token, calls `auth.getUser(token)`, then checks the authenticated user's `malachite_ai_manager_is_admin()` RPC before device registration, removal or test-push actions. This is a positive internal authorization gate.
+
+The database-webhook path instead checks the `x-malachite-hook` value against the Vault-backed `malachite_push_hook` secret using a constant-time comparison. It only notifies administrators of queued pending payments; the source explicitly does not validate or activate payments. The `drain` action is also behind this shared secret.
+
+Remaining hardening items: request-body size limits are not visible before JSON parsing; no explicit per-IP or per-hook rate limiter is present in the retrieved handler; the shared webhook secret is a single long-lived credential. Keep the secret private, rotate it under a controlled procedure, and consider bounded body size, delivery concurrency, per-hook rate limits and replay/idempotency protection. The allowed Origin is not an authentication control.
+
+### `malachite-ai-worker` — version 14
+
+The function verifies a timestamped HMAC over the exact request body by calling `verify_malachite_ai_worker_signature` before processing. The production SQL definition reads the secret from Vault, uses HMAC-SHA256, and rejects timestamps more than 300 seconds from server time. This is a real internal authentication control; `verify_jwt=false` alone is not evidence of public unauthenticated access.
+
+The current signature verifier has a five-minute validity window but no nonce/consumed-signature table, so a captured valid signed request could be replayed inside that window. The request body is read fully before any explicit size bound. Add a maximum body size and replay protection or a strictly idempotent run key before treating this endpoint as fully hardened. Verify the caller's scheduling/pg_net path and ensure the HMAC secret remains Vault-only.
+
+### `username-login` — version 7
+
+This endpoint intentionally supports public username/password login and therefore uses its own password flow rather than requiring a pre-existing JWT. It uses a service credential internally to resolve username to the Auth email, then delegates password verification to Supabase Auth. It does not return the account email in its public error responses.
+
+A rate limit exists: 15 attempts per IP hash in 15 minutes, with daily cleanup. However, the key is IP-only; there is no separate per-account/username throttling or progressive abuse control. The handler trusts `cf-connecting-ip`, `x-real-ip`, or `x-forwarded-for` headers; deployment must ensure the edge proxy overwrites/trusts these headers and direct callers cannot spoof the chosen address. The count-then-insert sequence is not atomic, so concurrent requests can exceed the threshold. The public `check` action also reveals whether a username is available (or belongs to the authenticated caller); assess whether this disclosure is intended and rate-limit it separately.
+
+Recommended follow-up before launch: implement an atomic rate-limit RPC with both IP and normalized-username keys, verify trusted proxy behavior, add request-size bounds, and test concurrency, enumeration and credential-stuffing scenarios. Do not simply raise or remove the limit.
+
+### Edge Function conclusion
+
+No immediate proof of an unauthenticated administrative action was found in these three retrieved handlers: push administration checks a live admin session or a Vault secret, and the AI worker checks a short-lived HMAC. Nevertheless, request-size bounds, rate limiting and replay protections need work before launch. The username login endpoint is public by design and needs stronger abuse controls. This review covers only these three functions, not every deployed Edge Function.
