@@ -9,7 +9,7 @@ begin
   for r in
     select table_schema, table_name, column_name, privilege_type
     from information_schema.column_privileges
-    where grantee = 'authenticated'
+    where grantee in ('PUBLIC','anon','authenticated')
       and table_schema = 'public'
       and table_name = any (array[
         'call_sessions','config','login_names','paiements','statuts','prives'
@@ -24,7 +24,7 @@ begin
   revoke all privileges on table
     public.call_sessions, public.config, public.login_names,
     public.paiements, public.statuts, public.prives
-  from authenticated;
+  from public, anon, authenticated;
 
   grant select on table
     public.call_sessions, public.login_names,
@@ -79,5 +79,7 @@ begin
 end
 $$;
 
+-- Calls are paused pending the authenticated JaaS token service. Keep the
+-- RPC defined for a later audited activation, but do not expose it now.
 revoke all on function public.update_my_call_session_status(uuid,text) from public,anon,authenticated;
-grant execute on function public.update_my_call_session_status(uuid,text) to authenticated;
+revoke all on function public.start_call_session(uuid,uuid,text,text,timestamptz) from public,anon,authenticated;
