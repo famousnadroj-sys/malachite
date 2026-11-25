@@ -586,3 +586,20 @@ if (!mobileNavigationStyle.includes('@media(max-width:600px){#nav{justify-conten
     !mobileNavigationStyle.includes('overscroll-behavior-x:contain')) {
   throw new Error('Mobile navigation must scroll horizontally on small screens with stable touch targets and controlled overscroll.');
 }
+
+
+// Keep newly added first-party entry scripts in the versioned app-shell cache.
+const appShellStart = serviceWorker.indexOf('const APP_SHELL = [');
+const appShellEnd = serviceWorker.indexOf('];', appShellStart);
+const appShellSource = appShellStart >= 0 && appShellEnd > appShellStart ? serviceWorker.slice(appShellStart, appShellEnd) : '';
+if (!appShellSource.includes('"./malachite-share.js"') ||
+    !appShellSource.includes('"./malachite-founder-finance.js?v=1"')) {
+  throw new Error('First-party share and founder finance entry scripts must be included in the versioned app shell cache.');
+}
+
+const headMarkup = html.slice(0, html.indexOf('</head>'));
+if (!headMarkup.includes('rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces') ||
+    !headMarkup.includes('media="print" onload="this.media=\'all\'"') ||
+    headMarkup.includes('rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces')) {
+  throw new Error('Optional Google Fonts must remain non-render-blocking with the system-font fallback.');
+}
