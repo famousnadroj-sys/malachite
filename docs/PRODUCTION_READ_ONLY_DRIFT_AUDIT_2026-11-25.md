@@ -66,3 +66,49 @@ The separate staging project currently reports the two campaign buckets as publi
 ## Validation evidence
 
 At the time this audit note was prepared, PR #122 commit `3ae55ccc558523b5c74b33dc5f92be790702e28a` had 14/14 validation jobs and the isolated PostgreSQL runtime job successful. A passing CI run does not mean the corresponding migrations are deployed to production.
+
+
+
+## Additional Storage access and ownership review (25 November 2026)
+
+### Production access-policy gap: chat media
+
+The production policy `chat-media lire` currently permits an authenticated user to read an object when their UUID appears in either the first or second path segment. It does not itself require a corresponding message row, an active sender and recipient, or the absence of a block.
+
+The branch migration `20261124180000_secure_chat_message_and_media_access.sql` replaces this with a message-linked policy. The object must match `messages.media_url`, have an allowed media type, and the reader must be one of the two participants; both accounts must be unsuspended and the relationship unblocked. The matching insert policy also verifies that the recipient exists and is not suspended. This is a significant production security gap until the migration is applied.
+
+The legacy `photos` bucket read policy in production does check that a matching message exists and checks suspensions and blocks. The PR's `20261124220000_harden_legacy_chat_media_reads.sql` keeps this rule aligned with the stricter message-linked path.
+
+### Storage ownership conventions
+
+The frontend upload paths inspected use account UUID prefixes:
+- Profile photos: `<owner-uuid>/<filename>`
+- Chat media: `<sender-uuid>/<recipient-uuid>/<filename>`
+- Payment receipts: `<owner-uuid>/<receipt-id>.<extension>`
+
+The production Storage policies also constrain profile-photo uploads/deletes and receipt uploads/deletes by the first path segment. This gives a useful ownership signal for a future account-deletion service, but it is not sufficient by itself to authorize deletion of every object: message references, avatar references, payment retention and historical data must still be evaluated.
+
+### Object inventory snapshot
+
+Read-only counts from production at the time of this review:
+
+| Bucket | Objects | Notes |
+|---|---:|---|
+| `chat-media` | 31 | 30 matched a message reference; 1 did not match the simple reference check |
+| `profile-photos` | 24 | 5 referenced by current profile photo arrays or avatar imagePath; 19 had no current profile reference |
+| `photos` | 9 | No current message reference matched the legacy URL pattern |
+| `payment-receipts` | 2 | 1 linked to a payment row; 1 was not linked by receipt_path |
+
+These are **candidate unreferenced objects, not confirmed disposable files**. The simple inventory checks do not prove an object is unused: references may be encoded in older formats, another table, pending uploads, or a historical workflow. No object was deleted, moved, or modified. The 19 profile-photo candidates may include prior avatar renders; the payment-receipt candidate must be treated as potentially important evidence until reconciled.
+
+### Consequence for account deletion
+
+A future deletion worker must not simply delete every object whose first path segment equals the user UUID. It must:
+1. Enumerate the user's owned objects in each private bucket.
+2. Reconcile profile photo arrays, avatar imagePath, message media_url, payment receipt_path and any other retained references.
+3. Apply the approved retention/anonymization policy to conversation and payment evidence.
+4. Delete only objects confirmed eligible under that policy, using service-side ownership checks and an idempotent job record.
+5. Record counts and outcomes without copying private file contents into logs.
+6. Test with synthetic accounts, including a shared conversation, blocked pair, suspended account, linked receipt and unlinked upload.
+
+No cleanup has been run in production.
