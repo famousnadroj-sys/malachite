@@ -11,6 +11,7 @@ insert into public.profiles(id,prenom,username,profile_private) values
  ('40000000-0000-0000-0000-000000000001','Available','available_user',false);
 insert into public.suspensions(user_id) values ('20000000-0000-0000-0000-000000000001');
 insert into public.statuts(user_id,premium_until) values ('10000000-0000-0000-0000-000000000001',now()+interval '1 day');
+select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000001',true);
 insert into public.avis_match(user_id,autre,ok) values
  ('10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000001',true),
  ('20000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001',true),
