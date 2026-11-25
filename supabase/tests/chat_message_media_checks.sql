@@ -1,8 +1,8 @@
 begin;
-insert into public.profiles values
- ('10000000-0000-0000-0000-000000000001'),
- ('20000000-0000-0000-0000-000000000001'),
- ('30000000-0000-0000-0000-000000000001');
+insert into public.profiles(id,prenom) values
+ ('10000000-0000-0000-0000-000000000001','Sender'),
+ ('20000000-0000-0000-0000-000000000001','Recipient'),
+ ('30000000-0000-0000-0000-000000000001','Suspended recipient');
 insert into public.suspensions values ('30000000-0000-0000-0000-000000000001');
 -- Seed legacy full-URL media records as historical rows; current writes use chat-media paths.
 alter table public.messages disable trigger trg_limite;
