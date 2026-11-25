@@ -22,6 +22,20 @@ Dans Supabase Dashboard → Edge Functions → Secrets, définir :
 
 Ne jamais placer la clé dans le navigateur, GitHub ou une conversation. Vérifier les quotas et tarifs Google avant d'utiliser une offre payante. Tant que `GEMINI_API_KEY` est absent, le tableau d'indicateurs et les conseils automatiques fonctionnent, mais les réponses génératives restent désactivées et l'interface l'indique explicitement.
 
+## Worker planifié et protection anti-rejeu
+
+Le worker planifié est appelé par `pg_cron` via `pg_net`. Son endpoint Edge Function conserve `verify_jwt=false` car l'appel serveur-à-serveur n'utilise pas de session membre ; il vérifie à la place une signature HMAC calculée avec un secret conservé dans Supabase Vault. La RPC de vérification est réservée à `service_role`.
+
+Après application de la migration `20261125170000_prevent_malachite_ai_worker_replay.sql` :
+
+- chaque appel cron inclut un UUID `request_id` dans le corps signé ;
+- une table du schéma privé consomme atomiquement chaque UUID une seule fois ;
+- une requête capturée et rejouée est rejetée, même si son timestamp est encore dans la fenêtre de cinq minutes ;
+- les corps de plus de 8 Ko, les signatures invalides, les timestamps hors fenêtre et les appels sans nonce sont rejetés ;
+- les nonces consommés sont conservés au plus 24 heures puis purgés lors d'une vérification valide.
+
+Ne pas appeler manuellement l'endpoint worker avec un simple JWT ou un corps sans `request_id`. Ne jamais exposer le secret HMAC ou le rôle `service_role` au navigateur. Cette protection doit être testée dans PostgreSQL isolé avant toute application en production.
+
 ## Vérifications
 
 1. Se connecter avec le compte administrateur autorisé.
