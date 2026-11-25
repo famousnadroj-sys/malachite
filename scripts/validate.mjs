@@ -542,3 +542,10 @@ if (!memberExperience.includes("rpc('create_my_action_notification'")) throw new
 
 // MALACHITE WORLD was intentionally removed; no obsolete prototype files are required by this site build.
 console.log('Legacy MALACHITE WORLD checks skipped: feature is not part of the current product.');
+const appShellStart = serviceWorker.indexOf('const APP_SHELL = [');
+const appShellEnd = serviceWorker.indexOf('];', appShellStart);
+const appShellSource = appShellStart >= 0 && appShellEnd > appShellStart ? serviceWorker.slice(appShellStart, appShellEnd) : '';
+if (!appShellSource.includes('"./malachite-share.js"') ||
+    !appShellSource.includes('"./malachite-founder-finance.js?v=1"')) {
+  throw new Error('First-party share and founder finance entry scripts must be included in the versioned app shell cache.');
+}
