@@ -18,6 +18,13 @@ create table public.paiements(
   operateur text not null,
   receipt_path text
 );
+create unique index paiements_operator_reference_uidx on public.paiements(operateur,code);
+create function public.traiter_paiement(pid bigint, accepter boolean) returns void language sql as $ select $;
+create function public.traiter_paiement(pid bigint, accepter boolean, raison text) returns void language sql as $ select $;
+revoke all on function public.traiter_paiement(bigint,boolean) from public,anon;
+revoke all on function public.traiter_paiement(bigint,boolean,text) from public,anon;
+grant execute on function public.traiter_paiement(bigint,boolean) to authenticated;
+grant execute on function public.traiter_paiement(bigint,boolean,text) to authenticated;
 grant select,insert,update,delete on public.paiements to authenticated;
 alter table public.paiements enable row level security;
 create policy "declarer un paiement" on public.paiements
@@ -61,12 +68,18 @@ insert into public.call_sessions(caller_id,callee_id,status,expires_at)
 values('50000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000002','pending',now()+interval '2 minutes');
 
 create schema storage;
+create table storage.buckets(id text primary key, public boolean not null, file_size_limit bigint, allowed_mime_types text[]);
+insert into storage.buckets(id,public,file_size_limit,allowed_mime_types) values ('payment-receipts',false,5242880,array['image/jpeg','image/png','image/webp']::text[]);
 create table storage.objects(bucket_id text not null,name text not null);
 grant select,insert,delete on storage.objects to authenticated;
 alter table storage.objects enable row level security;
 create policy "payment receipts owner upload" on storage.objects
 for insert to authenticated
 with check (bucket_id='payment-receipts');
+create policy "payment receipts owner or admin read" on storage.objects
+for select to authenticated using (bucket_id='payment-receipts');
+create policy "payment receipts delete unlinked own" on storage.objects
+for delete to authenticated using (bucket_id='payment-receipts');
 
 grant usage on schema auth,storage to authenticated;
 grant execute on function auth.uid() to authenticated;
