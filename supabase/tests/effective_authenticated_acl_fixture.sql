@@ -21,6 +21,14 @@ create table public.paiements(id bigint, user_id uuid, status text, receipt_path
 create table public.statuts(user_id uuid, status text, expires_at timestamptz);
 create table public.prives(id uuid, prefs jsonb);
 
+-- Simulate the legacy SECURITY DEFINER call-creation RPC and its client grant.
+create or replace function public.start_call_session(
+  p_id uuid,p_callee_id uuid,p_room text,p_mode text,p_expires_at timestamptz
+) returns setof public.call_sessions
+language sql security definer set search_path=''
+as $ select * from public.call_sessions where false $;
+grant execute on function public.start_call_session(uuid,uuid,text,text,timestamptz) to authenticated;
+
 -- Seed both table-level and column-level ACLs to prove the migration removes
 -- historical grants rather than only fixing a fresh schema.
 grant select, insert, update, delete, truncate, references, trigger
