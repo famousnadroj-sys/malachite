@@ -571,3 +571,9 @@ const financeRpcCall = financeRefreshSource.indexOf('window.sb.rpc("founder_busi
 if (financeAdminGuard < 0 || financeRpcCall < 0 || financeAdminGuard > financeRpcCall) {
   throw new Error('Finance refresh must verify the admin UI state before invoking the finance RPC.');
 }
+
+const approvedLaunchFooter = 'Les seules offres payantes prévues au lancement sont Premium, Boost et Pass Appels. Les conditions et tarifs seront communiqués avant leur activation.';
+const legacyLaunchFooter = 'Les offres payantes disponibles au lancement sont Premium, Boost et Pass Appels.';
+if (!html.includes(approvedLaunchFooter) || html.includes(legacyLaunchFooter)) {
+  throw new Error('Public launch pricing copy must use the approved, non-promissory wording.');
+}
