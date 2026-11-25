@@ -5,9 +5,10 @@
 do $$
 declare
   r record;
+  v_grantee text;
 begin
   for r in
-    select table_schema, table_name, column_name, privilege_type
+    select table_schema, table_name, column_name, privilege_type, grantee
     from information_schema.column_privileges
     where grantee in ('PUBLIC','anon','authenticated')
       and table_schema = 'public'
@@ -15,9 +16,11 @@ begin
         'call_sessions','config','login_names','paiements','statuts','prives'
       ])
   loop
+    -- PUBLIC is a PostgreSQL keyword, not an ordinary role identifier.
+    v_grantee := case when r.grantee = 'PUBLIC' then 'PUBLIC' else quote_ident(r.grantee) end;
     execute format(
-      'revoke %s (%I) on table %I.%I from authenticated',
-      r.privilege_type, r.column_name, r.table_schema, r.table_name
+      'revoke %s (%I) on table %I.%I from %s',
+      r.privilege_type, r.column_name, r.table_schema, r.table_name, v_grantee
     );
   end loop;
 
