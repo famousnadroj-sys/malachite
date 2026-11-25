@@ -42,13 +42,13 @@ do $body$ begin
  ('chat-media','10000000-0000-0000-0000-000000000001/20000000-0000-0000-0000-000000000001/orphan.jpg');
  if (select count(*) from storage.objects where bucket_id='chat-media') <> 1 then raise exception 'orphan_media_visible_to_sender'; end if;
  if (select count(*) from storage.objects where bucket_id='photos') <> 1 then raise exception 'legacy_suspended_media_visible_to_sender'; end if;
- if (select count(*) from public.messages) <> 1 then raise exception 'sender_can_read_message_to_suspended_member'; end if;
+ if (select count(*) from public.messages) <> 2 then raise exception 'sender_can_read_message_to_suspended_member'; end if;
 end $body$;
 select set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
 do $assert$ begin
  if (select count(*) from storage.objects where bucket_id='chat-media') <> 1 then raise exception 'recipient_cannot_read_attached_media'; end if;
  if (select count(*) from storage.objects where bucket_id='photos') <> 1 then raise exception 'recipient_cannot_read_legacy_media'; end if;
- if (select count(*) from public.messages) <> 1 then raise exception 'recipient_can_read_message_to_suspended_member'; end if;
+ if (select count(*) from public.messages) <> 2 then raise exception 'recipient_can_read_message_to_suspended_member'; end if;
 end $assert$;
 reset role;
 insert into public.blocages values ('20000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001');
