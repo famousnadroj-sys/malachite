@@ -57,7 +57,7 @@ self.addEventListener("fetch", (event) => {
     const refresh = fetch(request).then((response) => {
       if (!response || !response.ok) return response;
       return cachePromise.then((cache) => cache ? cache.put(request, response.clone()) : undefined)
-        .then(() => response);
+        .then(() => response, () => response);
     }).catch(() => null);
     event.waitUntil(refresh.then(() => undefined));
     event.respondWith(
