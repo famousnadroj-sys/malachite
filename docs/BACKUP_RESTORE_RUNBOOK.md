@@ -55,10 +55,14 @@ Inventaire SQL en lecture seule du 24 novembre 2026 (aucun nom de fichier ni con
 | `payment-receipts` | non | 2 | 541 348 octets |
 | `photos` | non | 9 | 1 159 211 octets |
 | `profile-photos` | non | 24 | 4 114 676 octets |
-| `malachite-campaign-media` | oui | 0 | 0 |
-| `malachite-campaigns` | oui | 0 | 0 |
+| `malachite-campaign-media` | non | 0 | 0 |
+| `malachite-campaigns` | non | 0 | 0 |
 
 Total constaté : **66 objets, 70 341 882 octets (~67,1 Mio)**. Les reçus de paiement et médias privés sont sensibles. Cet inventaire peut évoluer; refaire les comptes juste avant la copie.
+
+**Revalidation en lecture seule — 25 novembre 2026, 20:15 UTC :** les six buckets existent toujours et sont tous actuellement privés (`public=false`). Les comptes et tailles sont inchangés : 31/64 526 647 octets dans `chat-media`, 2/541 348 dans `payment-receipts`, 9/1 159 211 dans `photos`, 24/4 114 676 dans `profile-photos`, et zéro objet dans chacun des deux buckets de campagnes. Aucun nom de fichier ni contenu d'objet n'a été lu. La précédente version de ce tableau indiquait à tort les deux buckets de campagnes comme publics ; cette ligne a été corrigée.
+
+**Précaution mot de passe CLI :** la CLI documente bien `--password` pour `supabase db dump --remote=<ref>`, mais cette valeur est transmise comme argument de processus. Exécuter uniquement sur une machine de confiance, dans une session utilisateur privée, sans journalisation de commandes ni capture de processus ; ne jamais coller le mot de passe dans le chat ou dans Git. La CLI v3 cible le local par défaut pour DB/Storage et accepte `--remote=<project-ref>` pour les opérations distantes ; toujours vérifier `Target:` pour les dumps et le projet sélectionné pour Storage.
 
 Copier chaque bucket vers un dossier local chiffré, par exemple :
 
