@@ -21,9 +21,9 @@ Références officielles : [Backups](https://supabase.com/docs/guides/platform/b
 
 1. Utiliser un ordinateur de confiance avec disque chiffré et espace suffisant.
 2. Installer la version stable actuelle de Supabase CLI et PostgreSQL client.
-3. Depuis le tableau de bord Supabase, copier la chaîne **Session pooler** dans un gestionnaire de secrets local. Ne jamais la mettre dans Git, un ticket ou un message.
-4. La définir dans une variable d'environnement masquée `SUPABASE_DB_URL` ; ne pas l'inscrire dans l'historique shell. Ne pas réinitialiser le mot de passe de production pour cette procédure.
-5. Installer une version stable de Supabase CLI **v3** et Docker. Se connecter avec `supabase login`. Pour Storage, utiliser la référence de projet explicite `--remote=tscsmemsvgacqioncash` ; ne pas dépendre d'un lien implicite.
+3. Depuis le tableau de bord Supabase, préparer le mot de passe de base de données dans un gestionnaire de secrets local. Ne jamais le mettre dans Git, un ticket ou un message.
+4. Dans le terminal, le saisir sans affichage ni historique : `read -rsp 'DB password: ' SUPABASE_DB_PASSWORD; echo`. Ne pas réinitialiser le mot de passe de production pour cette procédure.
+5. Installer une version stable de Supabase CLI **v3** et Docker. Se connecter avec `supabase login`. Cibler explicitement la référence `tscsmemsvgacqioncash` pour la base et Storage; ne pas dépendre d'un projet lié implicitement.
 6. Créer un dossier daté, privé et non synchronisé publiquement, en dehors du dépôt Git.
 
 ## 2. Export logique SQL
@@ -36,10 +36,11 @@ BACKUP_DIR="$HOME/malachite-backups/$(date +%F)"
 mkdir -p "$BACKUP_DIR/storage"
 chmod 700 "$HOME/malachite-backups" "$BACKUP_DIR" "$BACKUP_DIR/storage"
 
-# Vérifier dans chaque sortie la ligne Target: et la référence du projet.
-supabase db dump --remote="$SUPABASE_DB_URL" -f "$BACKUP_DIR/01-roles.sql" --role-only
-supabase db dump --remote="$SUPABASE_DB_URL" -f "$BACKUP_DIR/02-schema.sql"
-supabase db dump --remote="$SUPABASE_DB_URL" -f "$BACKUP_DIR/03-data.sql" --use-copy --data-only -x "storage.buckets_vectors" -x "storage.vector_indexes"
+# Vérifier que Target: nomme le projet tscsmemsvgacqioncash avant de continuer.
+# Le mot de passe est fourni via variable; ne pas le placer dans une URL ou un fichier.
+supabase db dump --remote=tscsmemsvgacqioncash --password "$SUPABASE_DB_PASSWORD" -f "$BACKUP_DIR/01-roles.sql" --role-only
+supabase db dump --remote=tscsmemsvgacqioncash --password "$SUPABASE_DB_PASSWORD" -f "$BACKUP_DIR/02-schema.sql"
+supabase db dump --remote=tscsmemsvgacqioncash --password "$SUPABASE_DB_PASSWORD" -f "$BACKUP_DIR/03-data.sql" --use-copy --data-only -x "storage.buckets_vectors" -x "storage.vector_indexes"
 ```
 
 Ces fichiers sont sensibles : ils peuvent contenir des données personnelles et des données internes. Les garder hors du dépôt Git. Ce dump ne remplace pas un backup Supabase complet des données Auth ni des objets Storage.
@@ -63,7 +64,7 @@ Copier chaque bucket vers un dossier local chiffré, par exemple :
 
 ```bash
 # Inventorier avant copie : vérifier le nombre d'objets et les chemins.
-supabase storage ls "ss:///chat-media" --recursive --experimental --remote=tscsmemsvgacqioncash
+supabase storage ls "ss:///chat-media" -r --experimental --remote=tscsmemsvgacqioncash
 supabase storage ls "ss:///payment-receipts" --recursive --experimental --remote=tscsmemsvgacqioncash
 supabase storage ls "ss:///photos" --recursive --experimental --remote=tscsmemsvgacqioncash
 supabase storage ls "ss:///profile-photos" --recursive --experimental --remote=tscsmemsvgacqioncash
