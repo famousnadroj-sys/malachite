@@ -94,7 +94,7 @@ grant execute on function public.verify_malachite_ai_worker_signature(text,text,
 -- Replace the previous named job before scheduling the nonce-aware request.
 -- Without this, the legacy cron command (which has no request_id) could remain
 -- active alongside the hardened worker and generate repeated unauthorized calls.
-do $
+do $replace_legacy_cron$
 declare
   r record;
 begin
@@ -103,7 +103,7 @@ begin
     perform cron.unschedule(r.jobid);
   end loop;
 end
-$;
+$replace_legacy_cron$;
 
 -- Every scheduled invocation gets a fresh nonce included in the signed body.
 select cron.schedule(
