@@ -32,6 +32,17 @@ jobs:
           ref: preview/malachite-match-staging-clean
           path: preview-source
 
+      - name: Verify public index is only a footer overlay on the secured app index
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          app = Path("app-source/index.html").read_text(encoding="utf-8")
+          public = Path("public-source/index.html").read_text(encoding="utf-8")
+          old = '<p style="margin:6px 0 0">Les offres payantes disponibles au lancement sont Premium, Boost et Pass Appels.</p>'
+          new = '<p style="margin:6px 0 0">Les seules offres payantes prévues au lancement sont Premium, Boost et Pass Appels. Les conditions et tarifs seront communiqués avant leur activation.</p>'
+          if app.count(old) != 1 or app.replace(old, new, 1) != public:
+              raise SystemExit("Public index must preserve the secured app index and change only the approved launch footer.")
+          PY
       - name: Assemble non-deployable release artifact
         env:
           PROD_SUPABASE_REF: tscsmemsvgacqioncash
