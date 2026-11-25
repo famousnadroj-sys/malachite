@@ -17,7 +17,10 @@ insert into storage.objects(bucket_id,name) values
  ('photos','10000000-0000-0000-0000-000000000001/30000000-0000-0000-0000-000000000001/legacy-private.jpg');
 set local role authenticated;
 select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000001',true);
-do $$ begin
+do $ begin
+ if current_user <> 'authenticated' then raise exception 'chat_test_role_not_authenticated'; end if;
+ if not private.is_suspended('30000000-0000-0000-0000-000000000001') then raise exception 'fixture_suspension_lookup_failed'; end if;
+ if not (select relrowsecurity from pg_class where oid='public.messages'::regclass) then raise exception 'message_rls_not_enabled'; end if;
  begin
   insert into public.messages(de,a,texte) values ('10000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000001','suspended recipient');
   raise exception 'suspended_recipient_message_allowed';
