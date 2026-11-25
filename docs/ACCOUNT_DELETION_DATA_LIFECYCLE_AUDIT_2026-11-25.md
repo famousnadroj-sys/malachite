@@ -74,3 +74,12 @@ Aucune durée légale n'est inventée dans ce document.
 - [ ] Exercice de restauration disponible avant toute suppression réelle.
 
 **Statut : BLOQUÉ avant lancement.** Les FKs existantes sont une préparation partielle, pas un système de suppression de compte.
+
+
+## Revalidation production — 25 November 2026, 20:16 UTC
+
+Two read-only checks were repeated against production:
+- Foreign keys referencing `auth.users`: exactly 35, split into 28 `ON DELETE CASCADE` and 7 `ON DELETE SET NULL`. The counts in this audit remain accurate.
+- No routines in the `public` or `private` schemas have names matching `%delet%`, `%remove%`, or `%account%`. This is not proof that no deletion code exists outside PostgreSQL (for example in Edge Functions or the client), but it confirms there is no database RPC/worker function with those naming patterns.
+
+The absence of a database deletion routine, together with the unlinked user-reference columns and Storage objects listed above, means there is no verified server-side account-deletion workflow in production. No account was deleted and no production object/schema was modified.
