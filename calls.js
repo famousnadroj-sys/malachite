@@ -5,7 +5,7 @@
  var photoCache=Object.create(null),callInbox=null,callInboxUserId=null,sessionChannel=null,callState=null,incoming=null,jitsiApi=null,callBusy=false,joiningCallId=null,callClockTimer=null,callStartedAt=0,audioOutputDevices=[],offerStatusFor=null,offerStatusPending=false;
  // Fail closed until JaaS JWT authentication is configured and verified server-side.
  var SECURE_JITSI_PROVIDER_READY=false;
- if(typeof PRIX==='object')PRIX.Appels='1 $ / 7 jours';
+ // Appels et tarifs restent désactivés tant que le fournisseur sécurisé n'est pas activé.
 
  function readPhotoCache(key,now){
   var v=photoCache[key];
@@ -119,7 +119,7 @@
   }
   callBusy=true;
   try{
-   if(!(await hasPass())){alert('Accès aux appels non actif : Premium ou Pass Appels validé (1 USD / 7 jours) requis.');go('offres');return}
+   if(!(await hasPass())){alert('Accès aux appels non actif : Premium actif ou Pass Appels validé requis.');go('offres');return}
    if(!me||open!==target)throw new Error('La conversation a changé. Relance l’appel depuis la bonne conversation.');
    var id=crypto.randomUUID(),room='Malachite-'+id.replace(/-/g,'');
    var ch=sb.channel('malachite-call-session-'+id).on('postgres_changes',{event:'UPDATE',schema:'public',table:'call_sessions',filter:'id=eq.'+id},function(ev){
@@ -233,7 +233,7 @@
  window.offres=function(){
   refreshOfferPremiumStatus();
   var premiumActive=!!(me&&st[me.id]&&st[me.id].premium_active);
-  var callsCard=premiumActive?'<div class="plan"><h3>📞 Appels audio + vidéo</h3><p>Inclus dans Premium, mais les appels sécurisés ne sont pas encore disponibles.</p></div>':'<div class="plan"><h3>📞 Pass Appels <span>1 USD / 7 jours après activation</span></h3><p>Les appels audio et vidéo ne sont pas encore disponibles. Aucun paiement ne peut être effectué avant l’activation sécurisée.</p></div>';
+  var callsCard=premiumActive?'<div class="plan"><h3>📞 Appels audio + vidéo</h3><p>Inclus dans Premium, mais les appels sécurisés ne sont pas encore disponibles.</p></div>':'<div class="plan"><h3>📞 Pass Appels <span>Tarif à confirmer avant activation</span></h3><p>Les appels audio et vidéo ne sont pas encore disponibles. Aucun paiement ne peut être effectué avant l’activation sécurisée.</p></div>';
   return '<h2>⭐ Nos offres</h2><div class="list"><div class="plan"><h3>Gratuit <span>0 $</span></h3><p>Profil, découverte, likes, messages et fonctionnalités de base.</p></div><div class="plan" style="border:2px solid var(--pink)"><h3>👑 Premium <span>Tarif à confirmer</span></h3><p>Nouvelles conversations sans quota et rendez-vous illimités. Les appels seront inclus dès leur activation sécurisée.</p></div>'+callsCard+'<div class="plan"><h3>🔥 Boost <span>Tarif à confirmer</span></h3><p>Visibilité prioritaire pendant la durée qui sera annoncée avant activation.</p></div></div><div class="box"><b>Paiements temporairement désactivés</b><p>Ne transfère aucun argent. Les tarifs Premium et Boost et le numéro de réception seront confirmés avant l’ouverture des paiements.</p></div><section id="malPaymentHistory"><h3>Suivi de mes demandes</h3><p class="note">Chargement…</p></section>';
  };
  async function loadMyPayments(){
