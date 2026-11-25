@@ -9,6 +9,7 @@ insert into public.profiles(id,prenom) values
  ('30000000-0000-0000-0000-000000000001','Suspended');
 insert into public.suspensions values ('30000000-0000-0000-0000-000000000001');
 insert into public.statuts values ('10000000-0000-0000-0000-000000000001',now()+interval '1 day');
+select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000001',true);
 insert into public.avis_match values
  ('10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000001',true),
  ('20000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001',true),
