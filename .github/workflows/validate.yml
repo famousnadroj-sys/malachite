@@ -3,7 +3,7 @@ on:
   push:
     branches: [main, fix/security-hardening, 'feature/**', 'preview/**']
   pull_request:
-    branches: [main]
+    branches: [main, preview/malachite-match-staging-clean]
 permissions:
   contents: read
 jobs:
@@ -11,6 +11,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Guard isolated preview from production Pages auto-publish
+        if: github.event_name == 'pull_request' && github.base_ref == 'preview/malachite-match-staging-clean'
+        run: |
+          set -euo pipefail
+          if grep -Eq '^[[:space:]]*push:' .github/workflows/deploy-production.yml; then
+            echo 'Combined production Pages workflow must not auto-trigger on preview PRs.'
+            exit 1
+          fi
+          grep -Fq 'workflow_dispatch:' .github/workflows/deploy-production.yml
       - uses: actions/setup-node@v4
         with:
           node-version: 22

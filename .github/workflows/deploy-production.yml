@@ -3,9 +3,6 @@ name: MALACHITE production and isolated Match preview
 # Match has its own authenticated in-app screen and staging-only Supabase project.
 # Use a unique artifact name to avoid collisions with stale github-pages artifacts.
 on:
-  push:
-    branches:
-      - preview/malachite-match-staging-clean
   workflow_dispatch:
 permissions:
   contents: read
