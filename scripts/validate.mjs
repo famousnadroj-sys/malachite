@@ -67,6 +67,15 @@ if (!frontend.includes('target===me.id')) {
 }
 
 
+const discoveryStart = frontend.indexOf('function discoverCard(p){');
+const discoveryEnd = frontend.indexOf('function home()', discoveryStart);
+const discoverySource = discoveryStart >= 0 && discoveryEnd > discoveryStart ? frontend.slice(discoveryStart, discoveryEnd) : '';
+if (!discoverySource.includes('class="mal-discover-cover"') ||
+    !discoverySource.includes('loading="lazy"') ||
+    !discoverySource.includes('decoding="async"') ||
+    discoverySource.includes('background-image:url(')) {
+  throw new Error('Discovery profile photos must use native lazy-loaded images rather than eager CSS backgrounds.');
+}
 const i18n = fs.readFileSync('i18n.js', 'utf8');
 const i18nTemp = path.join(os.tmpdir(), 'malachite-i18n.js');
 fs.writeFileSync(i18nTemp, i18n);
