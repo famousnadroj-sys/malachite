@@ -8,6 +8,9 @@ declare
   v_second_nonce uuid := '20000000-0000-4000-8000-000000000002';
   v_second_body text;
   v_second_signature text;
+  v_large_nonce uuid := '30000000-0000-4000-8000-000000000003';
+  v_large_body text;
+  v_large_signature text;
 begin
   v_ts := extract(epoch from clock_timestamp())::bigint::text;
   v_body := jsonb_build_object('trigger','manual','request_id',v_nonce::text)::text;
@@ -42,6 +45,21 @@ begin
   end if;
   if public.verify_malachite_ai_worker_signature('1',v_second_body,v_second_signature) is not false then
     raise exception 'expired_timestamp_accepted';
+  end if;
+
+  -- Count UTF-8 bytes, not characters: this valid JSON is below 8192 characters
+  -- but exceeds the 8 KiB body limit because its payload contains multibyte text.
+  v_large_body := jsonb_build_object('trigger',repeat('é',4090),'request_id',v_large_nonce::text)::text;
+  if length(v_large_body) >= 8192 or octet_length(v_large_body) <= 8192 then
+    raise exception 'utf8_oversize_fixture_does_not_cross_byte_limit';
+  end if;
+  v_large_signature := encode(extensions.hmac(
+    convert_to(v_ts || '.' || v_large_body,'UTF8'),
+    convert_to('isolated-test-secret-do-not-use-in-production','UTF8'),
+    'sha256'
+  ),'hex');
+  if public.verify_malachite_ai_worker_signature(v_ts,v_large_body,v_large_signature) is not false then
+    raise exception 'oversized_utf8_signed_body_accepted';
   end if;
 
   if has_function_privilege('anon','public.verify_malachite_ai_worker_signature(text,text,text)','EXECUTE')
