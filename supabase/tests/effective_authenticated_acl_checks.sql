@@ -1,11 +1,10 @@
--- Effective ACL assertions and call-status RPC behavior. This tests PostgreSQL
--- privileges directly; RLS policy definitions alone are not sufficient.
+-- Effective PostgreSQL ACL assertions. RLS definitions alone are not enough.
+-- Calls and payment intake are deliberately paused until activation is audited.
 do $$
 declare
   t text;
   c record;
   v_priv text;
-  v_expected boolean;
 begin
   foreach t in array array[
     'call_sessions','config','login_names','paiements','statuts','prives'
@@ -18,10 +17,17 @@ begin
       raise exception 'authenticated_select_missing:%',t;
     end if;
 
+    -- Anonymous clients must not inherit even SELECT via PUBLIC.
+    if has_table_privilege('anon',format('public.%I',t),'SELECT') then
+      raise exception 'anon_table_access_not_revoked:%',t;
+    end if;
+
     foreach v_priv in array array['INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER'] loop
-      v_expected := false;
-      if has_table_privilege('authenticated',format('public.%I',t),v_priv) <> v_expected then
-        raise exception 'unexpected_table_acl:%:%',t,v_priv;
+      if has_table_privilege('authenticated',format('public.%I',t),v_priv) then
+        raise exception 'unexpected_authenticated_table_acl:%:%',t,v_priv;
+      end if;
+      if has_table_privilege('anon',format('public.%I',t),v_priv) then
+        raise exception 'unexpected_anon_table_acl:%:%',t,v_priv;
       end if;
     end loop;
 
@@ -29,21 +35,20 @@ begin
       select column_name from information_schema.columns
       where table_schema='public' and table_name=t
     loop
-      if has_column_privilege('authenticated',format('public.%I',t),c.column_name,'UPDATE') then
-        raise exception 'unexpected_column_update:%:%',t,c.column_name;
-      end if;
-      if has_column_privilege('authenticated',format('public.%I',t),c.column_name,'INSERT') then
-        raise exception 'unexpected_column_insert:%:%',t,c.column_name;
+      if has_column_privilege('authenticated',format('public.%I',t),c.column_name,'INSERT')
+         or has_column_privilege('authenticated',format('public.%I',t),c.column_name,'UPDATE')
+         or has_column_privilege('anon',format('public.%I',t),c.column_name,'INSERT')
+         or has_column_privilege('anon',format('public.%I',t),c.column_name,'UPDATE') then
+        raise exception 'unexpected_column_write_acl:%:%',t,c.column_name;
       end if;
     end loop;
   end loop;
 
-  if has_table_privilege('authenticated','public.paiements','INSERT') then
-    raise exception 'payment_intake_must_remain_paused';
-  end if;
-  if not has_function_privilege('authenticated','public.update_my_call_session_status(uuid,text)','EXECUTE')
-     or has_function_privilege('anon','public.update_my_call_session_status(uuid,text)','EXECUTE') then
-    raise exception 'call_status_rpc_execute_grants_invalid';
+  if has_function_privilege('authenticated','public.update_my_call_session_status(uuid,text)','EXECUTE')
+     or has_function_privilege('anon','public.update_my_call_session_status(uuid,text)','EXECUTE')
+     or has_function_privilege('authenticated','public.start_call_session(uuid,uuid,text,text,timestamptz)','EXECUTE')
+     or has_function_privilege('anon','public.start_call_session(uuid,uuid,text,text,timestamptz)','EXECUTE') then
+    raise exception 'paused_call_rpc_must_not_be_executable_by_client_roles';
   end if;
 end
 $$;
@@ -51,36 +56,13 @@ $$;
 begin;
 set local role authenticated;
 select set_config('request.jwt.claim.sub','70000000-0000-0000-0000-000000000003',true);
-select (public.update_my_call_session_status(
-  '70000000-0000-0000-0000-000000000001','accepted'
-)).status;
 
--- A caller cannot accept on behalf of the callee.
-select set_config('request.jwt.claim.sub','70000000-0000-0000-0000-000000000002',true);
+-- Even a participant cannot mutate a session directly while calls are paused.
 do $$
 begin
   begin
-    perform public.update_my_call_session_status(
-      '70000000-0000-0000-0000-000000000004','accepted'
-    );
-    raise exception 'caller_was_allowed_to_accept_call';
-  exception when others then
-    if sqlerrm='caller_was_allowed_to_accept_call' then raise; end if;
-    if sqlerrm<>'call_transition_forbidden' then raise; end if;
-  end;
-end
-$$;
-
--- Participant can end an accepted call through the RPC, not table UPDATE.
-select (public.update_my_call_session_status(
-  '70000000-0000-0000-0000-000000000001','ended'
-)).status;
-
-do $$
-begin
-  begin
-    update public.call_sessions set status='rejected'
-    where id='70000000-0000-0000-0000-000000000004';
+    update public.call_sessions set status='accepted'
+    where id='70000000-0000-0000-0000-000000000001';
     raise exception 'direct_call_session_update_was_allowed';
   exception when insufficient_privilege then
     null;
