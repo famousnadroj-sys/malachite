@@ -209,3 +209,15 @@ Before implementation, define per-table treatment (erase, anonymize, retain with
 A first inventory using `information_schema.role_column_grants` showed effective column-level access rows for several tables. A follow-up inspection of `pg_class.relacl` and `pg_attribute.attacl` clarified that the broad INSERT/UPDATE/DELETE rights on `paiements`, `call_sessions`, `config`, `login_names`, `prives` and `statuts` are still present as **old table-level ACLs in production**, not independent per-column grants. The production `profiles` table has explicit per-column SELECT ACLs; the broad old INSERT/UPDATE rights are table-level.
 
 This is consistent with the production migration ledger ending at `20261124122733`: the PR's later revocation migrations have not yet been applied. The branch's post-migration CI assertions check the restricted table privileges and the negative write paths. No production permission was changed. This clarification supersedes any interpretation of the initial role-column-grant listing as proof of surviving per-column write grants.
+
+
+## Effective authenticated ACL and call-status RPC follow-up (25 November 2026)
+
+This follow-up was implemented on the security PR branch only; production remains read-only.
+
+- Migration `20261125141500_normalize_authenticated_table_acl.sql` revokes existing authenticated table-level privileges and enumerated column-level privileges from `call_sessions`, `config`, `login_names`, `paiements`, `statuts`, and `prives`, then restores only the required SELECT access to call history, login-name lookup, payment history, entitlement status, and owner-scoped private profile data.
+- `config` remains inaccessible to client roles because it contains payment destinations and payment intake is paused. No direct INSERT privilege is restored on `paiements`; its intake remains disabled. Direct INSERT/UPDATE/DELETE/TRUNCATE/REFERENCES/TRIGGER privileges remain revoked from authenticated on the targeted tables.
+- Call-session status transitions now use `public.update_my_call_session_status(uuid,text)`, a SECURITY DEFINER RPC with an empty search_path, explicit `auth.uid()` validation, participant ownership checks, and allowed-state checks. The client no longer performs direct `call_sessions` UPDATE statements; direct table UPDATE is revoked.
+- The disposable ACL fixture deliberately seeds broad table-level and column-level grants before applying the migration. The assertions check effective PostgreSQL privileges, confirm payment intake and config access stay closed, and exercise authorized/unauthorized call status transitions plus a denied direct UPDATE.
+- On code commit `d69a7e18f17a32307bcb6a3e03e3da9deb3b6baf`, the new `effective-authenticated-acl` job and all 16 validation jobs passed; both `Malachite validation` and `Match isolated PostgreSQL runtime` workflows completed successfully.
+- The production migration ledger and permissions were not changed. These branch corrections are not active in production until the separate coordinated deployment is approved and executed.
