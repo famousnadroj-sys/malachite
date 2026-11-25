@@ -16,8 +16,8 @@ using (
    where p.id = ((storage.foldername(name))[1])::uuid
      and not private.is_blocked_with(p.id)
      and (
-      (coalesce(p.profile_private,false) = false and name = any(coalesce(p.photos,'{}'::text[])))
-      or (p.profile_private = true and name = p.photos[1])
+      coalesce(p.profile_private,false) = false
+      and name = any(coalesce(p.photos,'{}'::text[]))
      )
   )
  )

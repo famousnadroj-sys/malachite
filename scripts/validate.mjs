@@ -4,9 +4,13 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 const html = fs.readFileSync('index.html', 'utf8');
-const frontendFiles = ['app-core.js', 'malachite-avatar-ui.js', 'malachite-chat-ui.js', 'malachite-avatar-helper.js', 'malachite-living-engine.js', 'malachite-premium-profiles.js'];
+const frontendFiles = ['app-core.js', 'malachite-avatar-ui.js', 'malachite-chat-ui.js', 'malachite-avatar-helper.js', 'malachite-living-engine.js', 'malachite-premium-profiles.js', 'malachite-user-experience.js'];
 const frontendScripts = frontendFiles.map((file) => fs.readFileSync(file, 'utf8'));
 const frontend = [html, ...frontendScripts].join('\n');
+const serviceWorker = fs.readFileSync('sw.js', 'utf8');
+if (frontend.includes('loadPublicCampaigns') || serviceWorker.includes('malachite-campaigns.js') || serviceWorker.includes('malachite-ad-studio.js')) {
+  throw new Error('Advertising surfaces must remain retired at launch.');
+}
 for (const [index, source] of frontendScripts.entries()) {
   const temp = path.join(os.tmpdir(), 'malachite-deferred-' + index + '.js');
   fs.writeFileSync(temp, source);
@@ -19,7 +23,8 @@ for (const [index, source] of frontendScripts.entries()) {
 
 const requiredFrontend = [
   "profiles').select('id,username,prenom,age",
-  "from('prives').upsert({id:me.id,prefs:merged})",
+  "rpc('update_my_preferences',{p_preferences:pr})",
+  "rpc('update_my_avatar',{p_avatar:avatar})",
   "from('chat-media').upload",
   "from('profile-photos').upload",
   "createSignedUrl",
@@ -36,6 +41,12 @@ const requiredFrontend = [
 for (const item of requiredFrontend) {
   if (!frontend.includes(item)) throw new Error('Frontend requirement missing: ' + item);
 }
+if (frontend.includes("from('prives').upsert(")) throw new Error('Private preference writes must use the validated RPC.');
+if (frontend.includes("from('config').select('cle,valeur')") || frontend.includes('window.NUM') || frontend.includes('window.ORANGE')) {
+  throw new Error('Payment destination numbers must not be loaded into the public client while payment intake is paused.');
+}
+if (frontend.includes("from('profiles').update({avatar:")) throw new Error('Avatar writes must use the owner-scoped avatar RPC.');
+if (frontend.includes("avatar.imageUrl=await signedUrl('profile-photos',path)")) throw new Error('Signed avatar URLs must not be persisted in profile JSON.');
 if (frontend.includes("profiles').select('*')")) throw new Error('Public profile query must not select private columns.');
 if (!frontend.includes("insert({de:me.id,profil:id,motif:motif})")) throw new Error('Report must include the authenticated reporter id.');
 if ((frontend.match(/storage\.from\('photos'\)\.upload/g) || []).length) throw new Error('New uploads must not use the legacy public photos bucket.');
@@ -56,7 +67,7 @@ if (!frontend.includes('function persistMalView()') || !frontend.includes('funct
 if (!frontend.includes('function sendSticker(emoji)') || !frontend.includes('m.media_type==="document"')) {
   throw new Error('Chat stickers and document rendering must remain available.');
 }
-if (!frontend.includes('createSignedUrl(path,3600,{download:true})')) {
+if (!frontend.includes('createSignedUrl(path,ttl,{download:true})')) {
   throw new Error('Private document downloads must use signed download URLs.');
 }
 if (frontend.includes('timer=setInterval(loadChat,4000)')) {
@@ -67,7 +78,7 @@ if (!frontend.includes('target===me.id')) {
 }
 
 
-const serviceWorker = fs.readFileSync('sw.js', 'utf8');
+
 const navigationStart = serviceWorker.indexOf('if (request.mode === "navigate") {');
 const navigationEnd = serviceWorker.indexOf('const staticPaths', navigationStart);
 const navigationSource = navigationStart >= 0 && navigationEnd > navigationStart ? serviceWorker.slice(navigationStart, navigationEnd) : '';
@@ -146,7 +157,7 @@ if (callsCheck.status !== 0) {
   process.stderr.write(callsCheck.stderr || callsCheck.stdout);
   process.exit(callsCheck.status || 1);
 }
-if (frontend.includes('<script src="calls.js" defer></script>') || !frontend.includes('core.onload=function(){') || !frontend.includes('calls.src="./calls.js?v=20261122-call-init-v2"')) throw new Error('Call client must load only after app-core has defined its functions.');
+if (frontend.includes('<script src="calls.js" defer></script>') || !frontend.includes('core.onload=function(){') || !frontend.includes('calls.src="./calls.js?v=20261124-photo-cache-v3"')) throw new Error('Call client must load only after app-core has defined its functions.');
 if (calls.includes("me.email==='famousnadroj@gmail.com'") ||
     calls.includes('me.email==="famousnadroj@gmail.com"') ||
     !calls.includes("sb.rpc('malachite_ai_manager_is_admin')") ||
@@ -154,15 +165,19 @@ if (calls.includes("me.email==='famousnadroj@gmail.com'") ||
     !calls.includes('if(adminPaymentUserId&&(!next||next.id!==adminPaymentUserId))stopPaymentRealtime()')) {
   throw new Error('Admin payment realtime must use the database admin role and clear its subscription when the session identity changes.');
 }
-if (!calls.includes('Les appels sécurisés seront réactivés après leur mise en place') ||
-    !calls.includes("h=h.replace('<button disabled title=")) {
-  throw new Error('Mutual-match call actions must replace the legacy disabled call button.');
+if (!calls.includes("var SECURE_JITSI_PROVIDER_READY=false;") ||
+    !calls.includes("if(!SECURE_JITSI_PROVIDER_READY||!me)return;") ||
+    calls.includes("var oldMatch=window.matchBox") ||
+    calls.includes("window.thread=function") ||
+    calls.includes('onclick="call(&quot;audio&quot;)')) {
+  throw new Error('Call controls must remain disabled until the secure provider is configured.');
 }
 for (const item of [
-  "Premium <span>2 $ / 30 jours</span>",
-  "Premium — 2 USD / 30 jours (appels inclus)",
-  'id="malReceipt"',
+  "Paiements temporairement désactivés",
+  "Tarif à confirmer",
+  'id="malPaymentHistory"',
   "malSubmitPayment({offer:offer.value,code:code,operator:network,file:proof.files[0]})",
+  "if(window.MAL_PAYMENTS_ENABLED!==true)",
 ]) {
   if (!calls.includes(item)) throw new Error('Secure calls/payment override requirement missing: ' + item);
 }
@@ -170,6 +185,28 @@ if (calls.includes("Premium <span>3 $ / 30 jours</span>") ||
     calls.includes("Premium — 3 USD / 30 jours") ||
     calls.includes("sb.from('paiements').insert(payload)")) {
   throw new Error('Calls offer override must not show the old price or bypass the shared receipt workflow.');
+}
+if (!calls.includes("var SECURE_JITSI_PROVIDER_READY=false;") ||
+    calls.includes("var oldMatch=window.matchBox") ||
+    calls.includes("mal-call-head")) {
+  throw new Error('Call controls must stay unavailable until a secure Jitsi provider is configured.');
+}
+if (calls.includes("Premium <span>2 $ / 30 jours</span>") ||
+    calls.includes("Premium — 2 USD / 30 jours") ||
+    calls.includes("Boost <span>0,50 $ / 24 h</span>") ||
+    calls.includes("Boost — 0,50 USD / 24 heures") ||
+    calls.includes("Numéro Airtel Money destinataire") ||
+    calls.includes("Numéro Orange Money destinataire")) {
+  throw new Error('Unapproved prices or old payment destinations must not appear in the offers UI.');
+}
+const paymentUi = fs.readFileSync('malachite-avatar-ui.js', 'utf8');
+if (!paymentUi.includes("var MAL_PAYMENTS_ENABLED=false;") ||
+    !paymentUi.includes("if(!MAL_PAYMENTS_ENABLED)") ||
+    paymentUi.includes("+243 993 315 532") ||
+    paymentUi.includes("+243 848 775 992") ||
+    paymentUi.includes("Premium : 2 USD / 30 jours") ||
+    paymentUi.includes("Boost : 0,50 USD / 24 h")) {
+  throw new Error('Legacy payment destinations and unapproved prices must remain hidden while payment intake is paused.');
 }
 if (!calls.includes("select('id,offre,statut,created_at,reviewed_at,admin_reason,operateur')") ||
     calls.includes('au plus tard sous 2 heures') ||
@@ -180,11 +217,38 @@ for (const item of ['online(targetProfile)', 'malAcceptCall', 'malRejectCall', "
   if (!calls.includes(item)) throw new Error('Call feature requirement missing: ' + item);
 }
 
+if (!calls.includes('var SECURE_JITSI_PROVIDER_READY=false;') ||
+    !calls.includes('if(!SECURE_JITSI_PROVIDER_READY){alert(') ||
+    !calls.includes("if(!SECURE_JITSI_PROVIDER_READY)throw new Error('Authentification JaaS non configurée") ||
+    !calls.includes('if(!SECURE_JITSI_PROVIDER_READY||!me)return;')) {
+  throw new Error('Calls must fail closed until room-level JaaS JWT authentication is configured.');
+}
+if (!calls.includes("createSignedUrls(batch,300)") ||
+    calls.includes("createSignedUrls(batch,3600)") ||
+    !calls.includes("uid+'|'+bucket+'|'+path") ||
+    !calls.includes("exp:now+270000") ||
+    !calls.includes("if(!me||me.id!==uid)return")) {
+  throw new Error('Call-module profile photo URLs must be short-lived, user-scoped and discarded after account changes.');
+}
+
+for (const path of ['calls.js', 'malachite-user-experience.js', 'malachite-avatar-ui.js']) {
+  const source = fs.readFileSync(path, 'utf8');
+  if (/Déblocage contact|Déblocage contact : 1 USD|déblocage contact séparément|Unlock contact: USD 1|Fungola contact: 1 USD|Kangula contact: 1 USD|Kufungua mawasiliano: USD 1/i.test(source)) {
+    throw new Error('Launch monetization must remain limited to Premium, Boost and paid calls.');
+  }
+}
 const manifest = JSON.parse(fs.readFileSync('manifest.webmanifest', 'utf8'));
 if (manifest.start_url !== './' || manifest.scope !== './' || manifest.display !== 'standalone') {
   throw new Error('PWA manifest configuration is incomplete.');
 }
-if (!frontend.includes("createSignedUrls(paths,3600)") || !frontend.includes("profilePhotoSignedCache") || !frontend.includes("if(tab==='me')draw(true)")) {
+const receiptUploadSource = fs.readFileSync('malachite-avatar-ui.js', 'utf8');
+if (frontend.includes("cacheControl:'31536000'") ||
+    (frontend.match(/cacheControl:'300'/g) || []).length < 4 ||
+    receiptUploadSource.includes("cacheControl:'3600'") ||
+    !receiptUploadSource.includes("cacheControl:'300'")) {
+  throw new Error('Private chat media, profile photos and payment receipts must use short cache headers.');
+}
+if (!frontend.includes("createSignedUrls(paths,300)") || !frontend.includes("profilePhotoSignedCache") || !frontend.includes("if(tab==='me')draw(true)")) {
   throw new Error('Own profile images must be signed in batches and rendered as soon as the profile is ready.');
 }
 if (!frontend.includes('fetchpriority="high"') || !frontend.includes('mal-own-cover-image')) {
@@ -299,7 +363,17 @@ if (!frontend.includes('if(firstLoad){\n    msgs=msgs.concat(fresh)')) throw new
 if (!frontend.includes('resolveMessagesMedia(priorityMedia).then(function()') || !frontend.includes('var deferredMedia=firstLoad?mediaRows.slice(0,-12):[]')) throw new Error('Recent chat media must be prioritized and older media resolved in the background.');
 if (!frontend.includes("Promise.all([sb.from('avis_match').select('ok')")) throw new Error('Conversation match checks must run concurrently.');
 if (!frontend.includes("sb.channel('msgs-'+me.id)")) throw new Error('Per-user Realtime message updates must remain enabled.');
-if (!frontend.includes('async function resolveMessagesMedia(rows)') || !frontend.includes("createSignedUrls(paths,3600)")) throw new Error('Chat media URLs must be resolved in batches.');
+if (!frontend.includes('async function resolveMessagesMedia(rows)') || !frontend.includes("createSignedUrls(paths,300)")) throw new Error('Chat media URLs must be resolved in batches.');
+const chatMediaResolverStart = frontend.indexOf('async function resolveMessagesMedia(rows)');
+const chatMediaResolverEnd = frontend.indexOf('function patchMessageMedia', chatMediaResolverStart);
+const chatMediaResolver = frontend.slice(chatMediaResolverStart, chatMediaResolverEnd);
+if (!chatMediaResolver.includes('uid=me&&me.id') ||
+    !chatMediaResolver.includes("uid+'|'+bucket+'|'+path") ||
+    !chatMediaResolver.includes('expiresAt=now+270000') ||
+    chatMediaResolver.includes('3500000')) {
+  throw new Error('Private media URL caches must be user-scoped and expire before their five-minute signed URLs.');
+}
+
 if (!frontend.includes("filter:'a=eq.'+me.id") || !frontend.includes("filter:'de=eq.'+me.id")) throw new Error('Realtime messages must be filtered to the signed-in user.');
 if (!frontend.includes("preload=\"none\"")) throw new Error('Chat videos must not preload all media data.');
 if (!frontend.includes('async function loadOlderMessages()')) throw new Error('Chat history must load older messages incrementally.');
@@ -330,9 +404,9 @@ if (!frontend.includes("msg-status read") || !frontend.includes("aria-label=\"Lu
 if (!migrations.includes('message_receipts') || !migrations.includes('recipient marks read') || !migrations.includes('revoke all on public.message_receipts')) throw new Error('Secure message receipt migrations are missing.');
 if (!migrations.includes('avatar=case when p_profile ?') || !migrations.includes('profile_private,avatar')) throw new Error('Profile avatar persistence migration is missing.');
 if (frontend.includes('Ajoute une photo de profil avant d’enregistrer.')) throw new Error('Profile creation must allow a saved avatar instead of requiring a photo.');
-if (!frontend.includes('cache.expiresAt=now+3500000')) throw new Error('Signed media URL cache must refresh its expiry after renewal.');
+if (!frontend.includes('cache.expiresAt=now+270000')) throw new Error('Signed media URL cache must refresh its expiry after renewal.');
 if (!frontend.includes("Signature des médias de la conversation ('+bucket+')")) throw new Error('Media URL resolution must isolate failures by storage bucket.');
-if (!sw.match(/malachite-static-v[0-9]+/) || !sw.includes('./calls.js') || !sw.includes('./malachite-ad-studio.js')) throw new Error('Service worker must cache a versioned app shell including the call client.');
+if (!sw.match(/malachite-static-v[0-9]+/) || !sw.includes('./calls.js') || !sw.includes('./malachite-chat-ui.js') || sw.includes('./malachite-ad-studio.js') || sw.includes('./malachite-campaigns.js')) throw new Error('Service worker must cache the active app shell and exclude retired advertising assets.');
 if (!frontend.includes("status==='SUBSCRIBED'")) throw new Error('Realtime recovery must immediately resync the active conversation after reconnect.');
 if (!frontend.includes("timer=setInterval(function(){if(tab==='chat'&&!document.hidden&&!msgRealtimeReady)loadChat()},20000)")) throw new Error('Fallback chat sync must pause while hidden and run only when Realtime is unavailable.');
 if (!frontend.includes("sb.channel('malachite-online-v1'")) throw new Error('Realtime online presence channel is missing.');
@@ -349,9 +423,38 @@ if (!appCoreSource.includes("sb.rpc('malachite_ai_manager_is_admin')") || !appCo
 
 if (frontend.includes('Aucun changement Match n’a été appliqué à la base de production') || frontend.includes('Code préparé, pas encore publié')) throw new Error('Founder dashboard must not claim Match is absent from production.');
 if (!frontend.includes('Agent IA · état vérifié') || !frontend.includes('Worker automatique actif') || !frontend.includes('Aucune alerte ouverte') || !frontend.includes('ne lit ni les messages privés ni les préférences privées')) throw new Error('Founder dashboard must expose verified AI operations and privacy boundaries.');
-const privateProfileMigration = fs.readFileSync('supabase/migrations/20261124140129_enforce_private_profile_public_projection.sql', 'utf8').toLowerCase();
-for (const item of ['new.profile_private', 'new.age := null', 'new.bio := null', "new.interets := '{}'::text[]", "new.prompts := '[]'::jsonb", 'new.derniere_vue := null', 'new.photos := new.photos[1:1]', 'create trigger enforce_private_profile_public_projection']) {
- if (!privateProfileMigration.includes(item)) throw new Error('Private profile public projection guard missing: ' + item);
+const privateProfileAccessMigration = fs.readFileSync('supabase/migrations/20261124150100_secure_private_profile_access.sql', 'utf8').toLowerCase();
+for (const item of [
+  'drop trigger if exists enforce_private_profile_public_projection on public.profiles',
+  'drop policy if exists "voir profils" on public.profiles',
+  'profile_private = false',
+  'private.is_blocked_with(id)',
+  'private.is_suspended(id)',
+  'drop policy if exists "profile photos read" on storage.objects',
+  'drop policy if exists "profile photos read published paths" on storage.objects',
+  'create policy "profile photos read published paths"',
+]) {
+  if (!privateProfileAccessMigration.includes(item)) throw new Error('Private profile access guard missing: ' + item);
+}
+if (privateProfileAccessMigration.includes('new.age := null') ||
+    privateProfileAccessMigration.includes('new.bio := null') ||
+    privateProfileAccessMigration.includes('new.photos :=') ||
+    privateProfileAccessMigration.includes('profile_private = true')) {
+  throw new Error('Private profile migration must preserve member data and hide all private photos.');
+}
+
+const profilePhotoSigningSource = fs.readFileSync('app-core.js', 'utf8');
+const profileResolverStart = profilePhotoSigningSource.indexOf('async function resolveProfilePhotos(p)');
+const profileResolverEnd = profilePhotoSigningSource.indexOf('function messageMediaLocation', profileResolverStart);
+const profileResolvers = profilePhotoSigningSource.slice(profileResolverStart, profileResolverEnd);
+if (!profilePhotoSigningSource.includes("var ttl=300;") ||
+    (profileResolvers.match(/createSignedUrls\(paths,300\)/g) || []).length !== 2 ||
+    profileResolvers.includes('createSignedUrls(paths,3600)') ||
+    !profileResolvers.includes('expiresAt:now+270000') ||
+    !profileResolvers.includes("uid+'|'+bucket+'|'+path") ||
+    !profileResolvers.includes("uid+'|profile-photos|'+avatarPath") ||
+    !profileResolvers.includes('if(!me||me.id!==uid)return')) {
+  throw new Error('Profile photo signed URLs must be short-lived, user-scoped and discarded after account changes.');
 }
 
 if (!frontend.includes('Backend Match présent en production') || !frontend.includes('Garde-fou d’expiration pas actif en production') || !frontend.includes('Authentification des salles Jitsi incomplète') || !frontend.includes('restauration réellement testée')) throw new Error('Founder dashboard must expose the verified production state and remaining launch blockers.');
@@ -359,30 +462,38 @@ if (!frontend.includes('Backend Match présent en production') || !frontend.incl
 console.log('Malachite frontend, PWA, private media, SQL policy and Admin security checks passed.');
 
 
-// Malachite launch/payment guardrails (static checks; not a live payment test).
+// Malachite launch/payment guardrails: payment intake stays closed until
+// the owner confirms the dedicated receiving SIM, prices and call provider.
 for (const item of [
+  "Paiements temporairement désactivés",
+  "Tarif à confirmer",
+  "Tarif à confirmer",
+  "var MAL_PAYMENTS_ENABLED=false;",
+  "operateur:data.operator",
+  "Ne transfère aucun argent.",
+]) {
+  if (!frontend.includes(item)) throw new Error('Launch payment safety requirement missing: ' + item);
+}
+if (!frontend.includes("Tarif à confirmer") || !calls.includes("Tarif à confirmer avant activation") || frontend.includes("1 USD / 7 jours après activation") || frontend.includes("USD 1 / 7 days after secure calls are activated") || frontend.includes("USD 1 / siku 7") || frontend.includes("1 USD / mikolo 7") || frontend.includes("1 USD / bilumbu 7") || calls.includes("1 USD / 7 jours") || calls.includes("1 $ / 7 jours") || calls.includes("USD 1 / 7 days")) throw new Error("Call pass price must remain unapproved until secure provider activation.");
+if (!frontend.includes("if(!MAL_PAYMENTS_ENABLED)") ||
+    !calls.includes("if(window.MAL_PAYMENTS_ENABLED!==true)") ||
+    !frontend.includes("var payload={offre:data.offer,code:data.code,operateur:data.operator,receipt_path:receipt.path}") ||
+    !frontend.includes("sb.from('paiements').insert(payload)")) {
+  throw new Error('Payment UI and client submission must fail closed while preserving the reviewed future receipt workflow.');
+}
+for (const retiredValue of [
   "Premium — 2 USD / mois",
   "Boost — 0,50 USD / 24 h",
   "+243 993 315 532",
   "+243 848 775 992",
-  "operateur:data.operator",
-  "Une capture d’écran seule ne déclenche jamais Premium.",
-  "Ne communique jamais ton code PIN ni ton OTP.",
 ]) {
-  if (!frontend.includes(item)) throw new Error('Launch payment requirement missing: ' + item);
-}
-if (!frontend.includes("var payload={offre:data.offer,code:data.code,operateur:data.operator,receipt_path:receipt.path}") ||
-    !frontend.includes("sb.from('paiements').insert(payload)")) {
-  throw new Error('Payment submission must preserve offer, reference, operator and private receipt path.');
+  if (frontend.includes(retiredValue)) throw new Error('Unapproved price or old payment destination remains in frontend: ' + retiredValue);
 }
 if (!frontend.includes("function aiManagerPreview()") || !frontend.includes("moteur IA Malachite existant") || !frontend.includes("actions sensibles restent sous ton contrôle")) {
   throw new Error('AI copilots must describe the existing engine and preserve human approval for sensitive actions.');
 }
 if (frontend.includes("Premium — 3 $")) {
   throw new Error('Legacy Premium price of 3 USD remains anywhere in the frontend.');
-}
-if (!frontend.includes("Premium — 2 USD / mois")) {
-  throw new Error('The active Premium price must be 2 USD per month.');
 }
 
 const paymentMigration = fs.readFileSync('supabase/migrations/20261120130000_restrict_payment_review_rpc.sql', 'utf8');
@@ -396,14 +507,81 @@ for (const item of [
     throw new Error('Payment RPC privilege guard missing: ' + item);
   }
 }
-if (!frontend.includes('maxlength="100" placeholder="Référence exacte du SMS"') ||
-    !frontend.includes('c.length<4||c.length>100')) {
-  throw new Error('Payment reference length must match the database RLS policy (4–100 characters).');
+if (!frontend.includes('c.length<4||c.length>100')) {
+  throw new Error('Retained payment code must validate reference length before any future reactivation.');
 }
 if (frontend.includes('maxlength="120" placeholder="Référence de transaction"')) {
   throw new Error('Payment reference input exceeds the database limit.');
 }
 
+const configStatusMutationMigration = fs.readFileSync('supabase/migrations/20261124181103_restrict_direct_config_and_status_mutations.sql', 'utf8').toLowerCase();
+for (const item of [
+  'revoke insert, update, delete on table public.config from authenticated',
+  'revoke insert, update, delete on table public.statuts from authenticated',
+]) {
+  if (!configStatusMutationMigration.includes(item)) throw new Error('Authenticated clients must not directly mutate config or entitlement status records.');
+}
+const contactUnlockMigration = fs.readFileSync('supabase/migrations/20261124200500_lock_legacy_contact_unlock_table.sql', 'utf8').toLowerCase();
+if (!contactUnlockMigration.includes('revoke all privileges on table public.deblocages from anon, authenticated')) {
+  throw new Error('Members must not be able to grant themselves legacy contact unlocks.');
+}
+const contactUnlockTest = fs.readFileSync('supabase/tests/entitlement_status_runtime_checks.sql', 'utf8');
+for (const item of ['legacy_contact_unlock_table_must_not_be_directly_accessible', 'guarded_contact_rpc_must_preserve_legacy_entitlements']) {
+  if (!contactUnlockTest.includes(item)) throw new Error('Legacy contact unlock ACL runtime test is incomplete.');
+}
+const statusVisibilityMigration = fs.readFileSync('supabase/migrations/20261124200100_limit_entitlement_status_visibility.sql', 'utf8').toLowerCase();
+for (const item of ['read own entitlement status', 'user_id = (select auth.uid())', 'public.public_status_badges()', 'private.is_suspended', 'private.is_blocked_with', 'profile_private = false', 'premium_until > now()', 'verified_until > now()', 'boost_until > now()', 'revoke all on function public.public_status_badges() from public, anon']) {
+  if (!statusVisibilityMigration.includes(item)) throw new Error('Entitlement timestamps must remain private behind the public boolean badge projection.');
+}
+const statusVisibilityTest = fs.readFileSync('supabase/tests/entitlement_status_visibility_checks.sql', 'utf8');
+for (const item of ['statuts_must_be_owner_only', 'legacy_public_status_policy_must_be_removed', 'public_status_badges_permissions_invalid']) {
+  if (!statusVisibilityTest.includes(item)) throw new Error('Entitlement status visibility SQL test is incomplete.');
+}
+if (!appCoreSource.includes("sb.rpc('public_status_badges')") || appCoreSource.includes("sb.from('statuts').select('*')") ||
+    !appCoreSource.includes('premium_active') || !appCoreSource.includes('verified_active') || !appCoreSource.includes('boost_active')) {
+  throw new Error('Public profile cards must consume only boolean entitlement badges, never exact expiry timestamps.');
+}
+if (!calls.includes('ownStatus.premium_active') || !fs.readFileSync('malachite-user-experience.js', 'utf8').includes('status.premium_active')) {
+  throw new Error('Own Premium status must remain available without exposing other members entitlement timestamps.');
+}
+const publicConfigMigration = fs.readFileSync('supabase/migrations/20261124270000_pause_payment_intake_until_activation.sql', 'utf8').toLowerCase();
+for (const item of [
+  'revoke all on table public.config from public, anon, authenticated',
+  'drop policy if exists "voir config" on public.config',
+  'revoke insert on table public.paiements from public, anon, authenticated',
+  'drop policy if exists "declarer un paiement" on public.paiements',
+  'drop policy if exists "payment receipts owner upload" on storage.objects',
+  'drop policy if exists "paid matched members can call" on public.call_sessions',
+  'drop policy if exists "call participants can update" on public.call_sessions',
+  'revoke insert, update, delete on table public.call_sessions from public, anon, authenticated',
+]) {
+  if (!publicConfigMigration.includes(item)) throw new Error('Payment intake and destination config must remain closed until owner activation.');
+}
+const privateWrapperMigration = fs.readFileSync('supabase/migrations/20261124181825_secure_public_private_function_wrappers.sql', 'utf8').toLowerCase();
+for (const item of ['alter function %s security definer', "alter function %s set search_path = %l", 'public.blocked_user_ids()', 'public.contact_de(uuid)', 'public.traiter_paiement(bigint,boolean,text)']) {
+  if (!privateWrapperMigration.includes(item)) throw new Error('Public RPC wrappers must securely invoke guarded private functions.');
+}
+const scheduledExpiryNotificationMigration = fs.readFileSync('supabase/migrations/20261124183430_remove_unapproved_prices_from_scheduled_expiry_notifications.sql', 'utf8');
+for (const item of ['private.process_expired_entitlements()', 'Consulte la page Offres pour renouveler Premium', 'security definer', "set search_path = ''"]) {
+  if (!scheduledExpiryNotificationMigration.toLowerCase().includes(item.toLowerCase())) throw new Error('Scheduled entitlement expiry notices must remain guarded and price-neutral.');
+}
+for (const item of ['3 USD', '2 USD', '0,50 USD', '1 USD pour 7 jours']) {
+  if (scheduledExpiryNotificationMigration.includes(item)) throw new Error('Scheduled expiry notices must not hardcode unapproved prices.');
+}
+const expiryNotificationMigration = fs.readFileSync('supabase/migrations/20261124182913_remove_unapproved_prices_from_expiry_notifications.sql', 'utf8');
+for (const item of ['not_authenticated', 'p.user_id=(select auth.uid())', 'Consulte la page Offres pour renouveler Premium']) {
+  if (!expiryNotificationMigration.includes(item)) throw new Error('Entitlement expiry notifications must remain authenticated, user-scoped and price-neutral.');
+}
+for (const item of ['3 USD', '2 USD', '0,50 USD', '1 USD pour 7 jours']) {
+  if (expiryNotificationMigration.includes(item)) throw new Error('Unapproved prices or durations must not be hardcoded into expiry notifications.');
+}
+const directPaymentMutationMigration = fs.readFileSync('supabase/migrations/20261124230000_restrict_direct_payment_mutations.sql', 'utf8').toLowerCase();
+if (!directPaymentMutationMigration.includes('revoke update, delete on table public.paiements from authenticated')) {
+  throw new Error('Authenticated clients must not directly update or delete payment records.');
+}
+if (!publicConfigMigration.includes('revoke insert on table public.paiements from public, anon, authenticated')) {
+  throw new Error('Authenticated clients must not submit payments before launch activation.');
+}
 const receiptMigration = fs.readFileSync('supabase/migrations/20261120140000_private_payment_receipts.sql', 'utf8');
 for (const item of [
   "values ('payment-receipts', 'payment-receipts', false, 5242880",
@@ -431,7 +609,6 @@ for (const item of [
   "async function malUploadPaymentReceipt(file)",
   "sb.storage.from('payment-receipts').upload",
   "createSignedUrl(x.receipt_path,300)",
-  "id=\"malReceipt\"",
   "receipt_path:receipt.path",
 ]) {
   if (!frontend.includes(item)) throw new Error('Payment receipt workflow missing: ' + item);
@@ -439,6 +616,9 @@ for (const item of [
 
 if (!frontend.includes("remove([receipt.path])")) {
   throw new Error('Failed payment inserts must clean up unlinked private receipt files.');
+}
+if (frontend.includes('id="malReceipt"')) {
+  throw new Error('Payment receipt upload form must remain hidden while payment intake is paused.');
 }
 
 
@@ -458,8 +638,9 @@ if (performanceCheck.status !== 0) { process.stderr.write(performanceCheck.stder
 for (const item of ['malachite-performance.js', 'img.loading', 'img.decoding']) {
   if (!performanceModule.includes(item) && !frontend.includes(item)) throw new Error('Mobile performance requirement missing: ' + item);
 }
-if (!sw.includes('./malachite-campaigns.js') || !sw.includes('./malachite-performance.js') || !sw.includes('malachite-static-v88')) {
-  throw new Error('Campaign, performance and payment AI modules must be included in the updated PWA cache.');
+if (sw.includes('./malachite-campaigns.js') || sw.includes('./malachite-ad-studio.js') ||
+    !sw.includes('./malachite-performance.js') || !sw.includes('malachite-static-v88')) {
+  throw new Error('PWA cache must retain performance assets and exclude retired advertising modules.');
 }
 
 const aiManagerModule = fs.readFileSync('malachite-ai.js', 'utf8');
@@ -529,7 +710,7 @@ const notificationActionsMigration = fs.readFileSync('supabase/migrations/202611
 for (const item of ['action_type', 'action_id', 'private.create_my_notification', 'security definer', 'user_notifications_user_created_idx']) {
   if (!notificationActionsMigration.includes(item)) throw new Error('Notification action-target migration requirement missing: ' + item);
 }
-for (const item of ['openLinkedMessage', 'back-to-site', 'p_related_user_id', 'Capture du SMS de confirmation de paiement', 'loadedAt']) {
+for (const item of ['openLinkedMessage', 'back-to-site', 'p_related_user_id', 'Ne transfère aucun argent.', 'loadedAt']) {
   if (!memberExperience.includes(item) && !frontend.includes(item)) throw new Error('Notification navigation or performance requirement missing: ' + item);
 }
 
@@ -543,8 +724,6 @@ if (!memberExperience.includes("rpc('create_my_action_notification'")) throw new
 // MALACHITE WORLD was intentionally removed; no obsolete prototype files are required by this site build.
 console.log('Legacy MALACHITE WORLD checks skipped: feature is not part of the current product.');
 
-// Founder finance UI must require the server-verified admin state before rendering,
-// loading finance data, or triggering the founder dashboard.
 const founderFinance = fs.readFileSync('malachite-founder-finance.js', 'utf8');
 if ((founderFinance.match(/!window\.malAdminAuthorized/g) || []).length < 2 ||
     !founderFinance.includes('window.malAdminAuthorized && window.tab === "founder"')) {
@@ -557,10 +736,6 @@ if (!adminRpcMigration.includes('security invoker') ||
     !adminRpcMigration.includes('grant execute on function public.malachite_ai_manager_is_admin() to authenticated')) {
   throw new Error('Admin authorization RPC must remain invoker-scoped and unavailable to anon/public.');
 }
-
-// The refresh handler must reject an unauthenticated/non-admin UI state before
-// making the finance RPC. Keep the check ahead of any request to avoid leaking
-// even response metadata through the client.
 const financeRefreshStart = founderFinance.indexOf('window.malFounderFinanceRefresh = async function ()');
 const financeRefreshEnd = founderFinance.indexOf('    };', financeRefreshStart);
 const financeRefreshSource = financeRefreshStart >= 0 && financeRefreshEnd > financeRefreshStart
@@ -571,7 +746,6 @@ const financeRpcCall = financeRefreshSource.indexOf('window.sb.rpc("founder_busi
 if (financeAdminGuard < 0 || financeRpcCall < 0 || financeAdminGuard > financeRpcCall) {
   throw new Error('Finance refresh must verify the admin UI state before invoking the finance RPC.');
 }
-
 const approvedLaunchFooter = 'Les seules offres payantes prévues au lancement sont Premium, Boost et Pass Appels. Les conditions et tarifs seront communiqués avant leur activation.';
 const legacyLaunchFooter = 'Les offres payantes disponibles au lancement sont Premium, Boost et Pass Appels.';
 if (!html.includes(approvedLaunchFooter) || html.includes(legacyLaunchFooter)) {
