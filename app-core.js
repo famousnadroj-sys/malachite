@@ -179,11 +179,15 @@ async function resolveMessagesMedia(rows){
 }
 function patchMessageMedia(rows){
  var box=$('msgs');if(!box)return;
+ // Index visible message nodes and message positions once; avoid rescanning the whole chat for every image.
+ var nodes=box.querySelectorAll('.m[data-message-id]'),nodeById=new Map();
+ nodes.forEach(function(node){nodeById.set(String(node.dataset.messageId),node)});
+ var indexById=new Map();
+ msgs.forEach(function(item,index){if(item&&item.id!=null)indexById.set(String(item.id),index)});
  (rows||[]).forEach(function(m){
   if(!m||!m.display_url||m.id==null)return;
-  var old=Array.from(box.querySelectorAll('.m[data-message-id]')).find(function(n){return String(n.dataset.messageId)===String(m.id)});
-  if(!old)return;
-  var index=msgs.findIndex(function(x){return String(x.id)===String(m.id)});
+  var old=nodeById.get(String(m.id));if(!old)return;
+  var index=indexById.has(String(m.id))?indexById.get(String(m.id)):-1;
   var holder=document.createElement('div');holder.innerHTML=bub(m,index);
   if(holder.firstElementChild)old.replaceWith(holder.firstElementChild);
  });
