@@ -60,7 +60,7 @@ The separate staging project currently reports the two campaign buckets as publi
 3. Deploy and validate the private call-provider/JWT architecture, or keep calls disabled.
 4. Apply PR #122 migrations to staging and run two-account/two-device tests.
 5. Verify a restorable backup and rehearse the coordinated database + frontend deployment.
-6. Enable leaked-password protection in Supabase Auth and verify the setting.
+6. Leaked-password protection: Supabase documents this feature as Pro Plan and above. The current organization is on Free, so this setting cannot be enabled without a paid-plan decision. Until then, document the accepted limitation and enforce the strongest available password policy/rate limits; do not claim leaked-password checks are active. Reference: https://supabase.com/docs/guides/auth/password-security.
 7. Obtain explicit approval before any production migration or deployment.
 
 ## Validation evidence
