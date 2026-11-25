@@ -1,5 +1,20 @@
 begin;
 
+-- Permissive RLS policies are OR-combined. The legacy broad photo policy must
+-- be absent, not merely accompanied by the new published-path policy.
+do $legacy_photo_policy$
+begin
+  if exists (
+    select 1 from pg_policies
+    where schemaname = 'storage'
+      and tablename = 'objects'
+      and policyname = 'profile photos read'
+  ) then
+    raise exception 'legacy_permissive_profile_photo_policy_still_installed';
+  end if;
+end
+$legacy_photo_policy$;
+
 -- Authenticated profile reads must be explicitly granted and remain filtered by RLS.
 do $profile_grant$
 begin
