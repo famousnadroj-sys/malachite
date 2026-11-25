@@ -4,7 +4,7 @@ create schema if not exists storage;
 do $$ begin
  if not exists(select 1 from pg_roles where rolname='authenticated') then create role authenticated nologin; end if;
 end $$;
-create table public.profiles(id uuid primary key);
+create table public.profiles(id uuid primary key, prenom text not null);
 create table public.suspensions(user_id uuid primary key);
 create table public.blocages(user_id uuid not null,cible uuid not null);
 create table public.messages(id bigint generated always as identity primary key,de uuid not null,a uuid not null,texte text not null default '',created_at timestamptz default now(),media_url text,media_type text);
