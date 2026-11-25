@@ -5,7 +5,7 @@ do $$ begin if not exists(select 1 from pg_roles where rolname='authenticated') 
 create table public.profiles(id uuid primary key references auth.users(id), prenom text not null);
 create table public.suspensions(user_id uuid primary key);
 create table public.blocages(user_id uuid not null,cible uuid not null);
-create table public.messages(id bigint primary key,de uuid not null,a uuid not null,texte text not null default '');
+create table public.messages(id bigint generated always as identity primary key,de uuid not null,a uuid not null,texte text not null default '');
 create table public.message_receipts(message_id bigint primary key,sender_id uuid not null,recipient_id uuid not null,delivered_at timestamptz,read_at timestamptz);
 create or replace function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
 create or replace function private.is_suspended(p_user uuid) returns boolean language sql stable security definer set search_path='' as $$ select exists(select 1 from public.suspensions where user_id=p_user) $$;
