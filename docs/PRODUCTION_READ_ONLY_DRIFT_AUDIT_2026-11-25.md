@@ -233,3 +233,14 @@ The ACL normalization migration has been tightened to:
 - revoke EXECUTE on both `start_call_session` and `update_my_call_session_status` from client roles while calls remain paused.
 
 The disposable PostgreSQL fixture now seeds a legacy authenticated EXECUTE grant for `start_call_session`. The checks assert that neither anon nor authenticated can read the restricted tables through inherited PUBLIC grants, perform direct writes, or execute either call RPC during the pause. Production remains unchanged.
+
+
+## ACL inherited column-grant correction (25 November 2026, 17:10 UTC)
+
+A further review of `20261125141500_normalize_authenticated_table_acl.sql` found that its first implementation enumerated column grants for `PUBLIC`, `anon`, and `authenticated`, but only revoked them from `authenticated`. This could leave column-level rights inherited from `PUBLIC` or granted directly to `anon`.
+
+The migration now revokes each enumerated column privilege from its actual grantee, handling PostgreSQL's special `PUBLIC` keyword separately from quoted role identifiers. The disposable ACL fixture now deliberately seeds column-level INSERT/UPDATE grants for `PUBLIC` and `anon` as well as the legacy authenticated grants. The existing assertions verify that anonymous clients inherit no column write privileges after the migration.
+
+Validation on updated PR #122 head `768da87c91648dcac099e06fd0b601629ab276ef`: all 15 Malachite validation jobs and the isolated Match PostgreSQL runtime job passed. A separate production transaction tested the dynamic revoke syntax against disposable test tables and was rolled back; no production ACL or application data was changed.
+
+This correction remains on the PR branch and is not deployed to production.
