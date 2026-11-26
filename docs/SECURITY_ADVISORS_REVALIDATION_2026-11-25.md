@@ -138,3 +138,18 @@ La PR #139 est maintenant fusionnée. Sur le commit `ec23afd50842634b2c841490719
 Le workflow de publication personnalisé n'a donc pas publié cet artefact, mais le chemin Pages dynamique a encore abouti. La source Pages du dépôt doit être réglée manuellement sur **GitHub Actions** dans Settings → Pages → Build and deployment → Source, puis le résultat doit être vérifié par un nouveau push contrôlé. Le connecteur ne permet pas de lire ni modifier ce paramètre. Jusqu'à cette vérification, le verrou de publication n'est pas considéré comme fermé.
 
 Aucune migration, modification de configuration Supabase, fusion ou publication n'a été effectuée par ce contrôle.
+
+
+## Événement Pages supplémentaire — 26 novembre 2026, 06:06 UTC
+
+Après le contrôle précédent, la PR #148 (`fix: improve MALACHITE header contrast and notification visibility`) a été fusionnée sur `main` au commit `f37312853d07daaa4b74e06270565de64ac2bb93`.
+
+- Son contrôle `Malachite release integration contract` (run `45765056606`) avait échoué à l'étape `Verify public index is only a footer overlay on current main` : la copie de l'index de la branche de publication publique ne correspondait pas à l'index courant de `main` plus le seul footer autorisé.
+- Malgré cet échec, GitHub enregistre la PR #148 comme fusionnée à 06:06:44 UTC.
+- Sur le commit fusionné, le workflow contrôlé de production (run `45765944021`) a de nouveau échoué sur `MALACHITE_DB_SECURITY_READY` absent ; les étapes de publication de ce workflow ont été ignorées.
+- Le workflow Pages dynamique (run `45765943355`) a, lui, réussi son étape `Deploy to GitHub Pages`.
+- La vérification HTTPS du site public (run `45765944062`) a réussi.
+
+Cela confirme deux problèmes de contrôle distincts : le déploiement Pages par branche publie encore malgré le garde-fou personnalisé, et un PR a pu être fusionné alors que son contrat d'intégration échouait. Ne pas conclure que la source Pages ou la protection de branche est corrigée. La source Pages doit être basculée manuellement sur **GitHub Actions** ; la protection de `main` doit être vérifiée par un administrateur afin d'exiger les checks de release et d'interdire les fusions avec checks requis échoués.
+
+Aucune fusion, modification de réglage GitHub, migration ou publication n'a été exécutée par cette revalidation.
