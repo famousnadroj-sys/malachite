@@ -954,10 +954,43 @@ function notify(t,b,dest,id){toast(t,b,dest,id);try{if(navigator.vibrate)navigat
 function initSW(){
  if(!('serviceWorker' in navigator)||window.__malSwInitStarted)return;
  window.__malSwInitStarted=true;
- var applying=false;
- function offerUpdate(reg){if(!reg||!reg.waiting||!navigator.serviceWorker.controller||document.getElementById('malSwUpdateNotice'))return;var notice=document.createElement('div');notice.id='malSwUpdateNotice';notice.className='toast';notice.innerHTML='<b>Nouvelle version de Malachite disponible</b><span>Tes données enregistrées restent sur ton compte. Actualise quand tu es prêt.</span><button type="button" class="b1">Actualiser</button>';notice.querySelector('button').addEventListener('click',function(){if(applying)return;applying=true;notice.querySelector('button').disabled=true;reg.waiting.postMessage({type:'SKIP_WAITING'})});document.body.appendChild(notice)}
- navigator.serviceWorker.addEventListener('controllerchange',function(){if(applying)window.location.reload()});
- navigator.serviceWorker.register('sw.js').then(function(reg){swr=reg;offerUpdate(reg);reg.addEventListener('updatefound',function(){var worker=reg.installing;if(!worker)return;worker.addEventListener('statechange',function(){if(worker.state==='installed')offerUpdate(reg)})});setInterval(function(){reg.update().catch(function(){})},600000)}).catch(function(){});
+ var applying=false,noticeShown=false;
+ function offerUpdate(reg){
+  if(!reg||!reg.waiting||!navigator.serviceWorker.controller||noticeShown)return;
+  noticeShown=true;
+  var notice=document.createElement('aside');
+  notice.id='malSwUpdateNotice';
+  notice.className='toast mal-update-toast';
+  notice.setAttribute('role','status');
+  notice.setAttribute('aria-live','polite');
+  notice.innerHTML='<div class="mal-update-copy"><b>✨ Une nouvelle version est prête</b><span>Malachite a été amélioré. Appuie sur Actualiser pour installer la mise à jour.</span></div><button type="button" class="b1">Actualiser</button>';
+  var button=notice.querySelector('button');
+  button.addEventListener('click',function(){
+   if(applying)return;
+   applying=true;
+   button.disabled=true;
+   button.textContent='Actualisation…';
+   reg.waiting.postMessage({type:'SKIP_WAITING'});
+  });
+  document.body.appendChild(notice);
+ }
+ navigator.serviceWorker.addEventListener('controllerchange',function(){
+  if(applying)window.location.reload();
+ });
+ navigator.serviceWorker.register('./sw.js').then(function(reg){
+  swr=reg;
+  offerUpdate(reg);
+  reg.addEventListener('updatefound',function(){
+   var worker=reg.installing;
+   if(!worker)return;
+   worker.addEventListener('statechange',function(){
+    if(worker.state==='installed')offerUpdate(reg);
+   });
+  });
+  reg.update().then(function(){offerUpdate(reg)}).catch(function(){});
+  window.addEventListener('online',function(){reg.update().then(function(){offerUpdate(reg)}).catch(function(){});});
+  setInterval(function(){reg.update().then(function(){offerUpdate(reg)}).catch(function(){});},300000);
+ }).catch(function(error){console.warn('Mise à jour Malachite indisponible',error)});
 }
 initSW();
 function askNotif(){if(!('Notification' in window)){alert('Ton navigateur ne gère pas les notifications.');return}Notification.requestPermission().then(function(){draw(true)})}
