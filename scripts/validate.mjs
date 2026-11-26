@@ -562,3 +562,9 @@ if (!memberExperience.includes("rpc('create_my_action_notification'")) throw new
 
 // MALACHITE WORLD was intentionally removed; no obsolete prototype files are required by this site build.
 console.log('Legacy MALACHITE WORLD checks skipped: feature is not part of the current product.');
+
+
+const aiWorkerSource = fs.readFileSync('supabase/functions/malachite-ai-worker/index.ts', 'utf8');
+if (!aiWorkerSource.includes('readLimitedUtf8Body(req)') || aiWorkerSource.includes('await req.text()')) {
+  throw new Error('AI worker must enforce the bounded UTF-8 request reader before HMAC verification.');
+}
