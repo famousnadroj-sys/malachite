@@ -624,3 +624,20 @@ const visualPolish = html.slice(html.indexOf('<style id="malachite-visual-polish
 for (const selector of ['body:not(.mal-chat-mode)>header',' #malUserMenuTrigger',' .mal-discover-card:hover',' nav#nav','@media(max-width:430px)','prefers-reduced-motion:reduce']) {
   if (!visualPolish.includes(selector.trim())) throw new Error('Responsive visual polish is missing: ' + selector);
 }
+
+const appShellStart = serviceWorker.indexOf('const APP_SHELL = [');
+const appShellEnd = serviceWorker.indexOf('];', appShellStart);
+const appShellSource = appShellStart >= 0 && appShellEnd > appShellStart ? serviceWorker.slice(appShellStart, appShellEnd) : '';
+if (!appShellSource.includes('"./malachite-share.js"') ||
+    !appShellSource.includes('"./malachite-founder-finance.js?v=1"')) {
+  throw new Error('First-party share and founder finance entry scripts must be included in the versioned app shell cache.');
+}
+const headMarkup = html.slice(0, html.indexOf('</head>'));
+if (!headMarkup.includes('rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces') ||
+    !headMarkup.includes('media="print" onload="this.media=\'all\'"') ||
+    headMarkup.includes('rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces')) {
+  throw new Error('Optional Google Fonts must remain non-render-blocking with the system-font fallback.');
+}
+if (!serviceWorker.includes('malachite-static-v105')) {
+  throw new Error('App-shell cache version must advance when its contents change.');
+}
