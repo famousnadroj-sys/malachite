@@ -1,6 +1,6 @@
 // Compatibility marker retained for the repository validation contract: malachite-static-v88 and malachite-static-v62.
-const CACHE = "malachite-static-v103";
-const APP_SHELL = ["./", "./manifest.webmanifest", "./icons/malachite.svg", "./calls.js?v=20261122-call-init-v2", "./i18n.js", "./avatar-builder.html", "./malachite-ai.js", "./malachite-copilots.js", "./malachite-campaigns.js", "./malachite-performance.js", "./malachite-ad-studio.js", "./admin-push.js", "./malachite-user-experience.js?v=20261122-chat-premium-v9", "./app-core.js", "./malachite-avatar-ui.js", "./malachite-chat-ui.js", "./malachite-avatar-helper.js", "./malachite-living-engine.js", "./malachite-premium-profiles.js"];
+const CACHE = "malachite-static-v108";
+const APP_SHELL = ["./", "./manifest.webmanifest", "./icons/malachite.svg", "./calls.js?v=20261126-photo-cache-v3", "./i18n.js", "./avatar-builder.html", "./malachite-ai.js", "./malachite-copilots.js", "./malachite-campaigns.js", "./malachite-performance.js", "./malachite-ad-studio.js", "./admin-push.js", "./malachite-user-experience.js?v=20261122-chat-premium-v9", "./app-core.js", "./malachite-avatar-ui.js", "./malachite-chat-ui.js", "./malachite-avatar-helper.js", "./malachite-living-engine.js", "./malachite-premium-profiles.js", "./malachite-share.js", "./malachite-founder-finance.js?v=1"];
 
 self.addEventListener("install", (event) => {
   // An unavailable optional asset must not abort installation of the whole app shell.
@@ -12,8 +12,7 @@ self.addEventListener("install", (event) => {
       } catch (_) {}
     }));
   }));
-  // Activate the new app shell immediately instead of waiting for every old tab to close.
-  self.skipWaiting();
+  // Keep the new worker waiting until the user chooses “Actualiser”.
 });
 
 self.addEventListener("message", (event) => {
@@ -37,23 +36,35 @@ self.addEventListener("fetch", (event) => {
   if (request.headers.has("Authorization")) return;
   if (request.mode === "navigate") {
     // Serve the cached app shell immediately, then refresh it in the background.
-    // This avoids making every return visit wait for a slow mobile connection.
-    const cachedPage = caches.match("./");
+    const cachePromise = caches.open(CACHE).catch(() => null);
+    const cachedPage = cachePromise.then((cache) => cache ? cache.match("./") : null);
     const networkPage = fetch(request).then((response) => {
-      if (response && response.ok) {
-        const copy = response.clone();
-        event.waitUntil(caches.open(CACHE).then((cache) => cache.put("./", copy)));
-      }
-      return response;
+      if (!response || !response.ok) return response;
+      return cachePromise.then((cache) => cache ? cache.put("./", response.clone()) : undefined)
+        .then(() => response, () => response);
     }).catch(() => null);
     event.waitUntil(networkPage.then(() => undefined));
     event.respondWith(
-      cachedPage.then((cached) => cached || networkPage).then((response) => response || caches.match("./"))
+      cachedPage.then((cached) => cached || networkPage).then((response) => response || Response.error())
     );
     return;
   }
   const staticPaths = APP_SHELL.map((path) => new URL(path, self.registration.scope).pathname);
-  if (staticPaths.includes(url.pathname)) event.respondWith(caches.match(request).then((cached) => cached || fetch(request)));
+  if (staticPaths.includes(url.pathname)) {
+    // Start the network refresh and register its lifetime before the fetch event handler returns.
+    const cachePromise = caches.open(CACHE).catch(() => null);
+    const refresh = fetch(request).then((response) => {
+      if (!response || !response.ok) return response;
+      return cachePromise.then((cache) => cache ? cache.put(request, response.clone()) : undefined)
+        .then(() => response, () => response);
+    }).catch(() => null);
+    event.waitUntil(refresh.then(() => undefined));
+    event.respondWith(
+      cachePromise.then((cache) => cache ? cache.match(request, { ignoreSearch: true }) : null)
+        .then((cached) => cached || refresh)
+        .then((response) => response || Response.error())
+    );
+  }
 });
 
 self.addEventListener("notificationclick", (event) => {
