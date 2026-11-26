@@ -714,6 +714,15 @@ if (avatarWriteClient.includes("rpc('update_my_avatar',{p_avatar:avatar})") ||
   throw new Error('3D avatar RPC must send only the database-allowed fields, never the transient signed image URL.');
 }
 
+const profileRpcMigration = fs.readFileSync('supabase/migrations/20261124260000_restrict_profile_writes_to_trusted_rpc.sql', 'utf8');
+if (!profileRpcMigration.includes("create or replace function public.save_my_profile(p_profile jsonb, p_private jsonb)") ||
+    !profileRpcMigration.includes("v_avatar := v_avatar - 'imageUrl'") ||
+    !profileRpcMigration.includes("v_avatar->>'imagePath'") ||
+    !profileRpcMigration.includes("array['type','version','config','imagePath']::text[]") ||
+    !profileWriteClient.includes("delete avatarForSave.imageUrl")) {
+  throw new Error('Profile save must validate avatar ownership and never persist transient signed URLs.');
+}
+
 if (profileWriteClient.includes("sb.from('statuts').select('*')") ||
     !profileWriteClient.includes("rpc('public_status_badges'") ||
     !profileWriteClient.includes("sb.from('config').select('cle,valeur').in('cle',['airtel','orange'])") ||
