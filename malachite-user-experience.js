@@ -647,12 +647,12 @@
       : '<article class="mal-offer-card"><h3>Pass Appels <span class="price">1 USD / 7 jours (prévu)</span></h3><p>Le tarif prévu est de 1 USD pour 7 jours. Les appels audio et vidéo restent indisponibles tant que le fournisseur sécurisé n’est pas validé. Aucun paiement ne peut être effectué avant leur activation.</p></article>';
     var body = '<div class="mal-offer-grid">' +
       '<article class="mal-offer-card"><h3>Gratuit <span class="price">0 USD</span></h3><p>Découvrir, aimer et discuter avec tes matchs.</p></article>' +
-      '<article class="mal-offer-card featured"><h3>Premium <span class="price">Tarif à confirmer</span></h3><p>Messages sans quota et rendez-vous illimités. Les appels seront inclus dès leur activation sécurisée.</p></article>' +
+      '<article class="mal-offer-card featured"><h3>Premium <span class="price">2 USD / 30 jours</span></h3><p>Messages sans quota et rendez-vous illimités. Les appels seront inclus dès leur activation sécurisée.</p></article>' +
       '<article class="mal-offer-card"><h3>Boost <span class="price">Tarif à confirmer</span></h3><p>Ton profil remontera en priorité dans Découvrir pendant la durée annoncée avant activation.</p></article>' +
       callsCard +
-      '</div><div class="mal-offer-card"><h3>Paiements temporairement désactivés</h3><p>Ne transfère aucun argent. Les tarifs Premium et Boost ainsi que le numéro de réception seront confirmés avant l’ouverture des paiements.</p></div>' +
+      '</div><div class="mal-offer-card"><h3>Paiements temporairement désactivés</h3><p>Ne transfère aucun argent. Le tarif Boost et le numéro de réception seront confirmés avant l’ouverture des paiements.</p></div>' +
       '<section id="malPaymentHistory"><h3>Suivi de mes demandes</h3><p class="note">Chargement…</p></section>';
-    var intro = '<div class="mal-offer-intro"><div><span class="ml-auth-kicker">MALACHITE · OFFRES</span><h2>Découvre les offres.</h2><p>Les fonctions payantes seront ouvertes après validation des tarifs, du moyen de réception et des appels sécurisés.</p></div></div>';
+    var intro = '<div class="mal-offer-intro"><div><span class="ml-auth-kicker">MALACHITE · OFFRES</span><h2>Découvre les offres.</h2><p>Les fonctions payantes seront ouvertes après validation du tarif Boost, du moyen de réception et des appels sécurisés.</p></div></div>';
     return '<section class="mal-offer-wizard">' + intro + body + '</section>';
   }
   window.offres = renderOffers;
