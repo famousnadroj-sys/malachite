@@ -709,6 +709,11 @@ if (!avatarWriteClient.includes("var a={type:'pro-vector',version:3,config:Objec
   throw new Error('Vector avatar save must send the constructed avatar object to the owner-scoped RPC.');
 }
 
+if (avatarWriteClient.includes("rpc('update_my_avatar',{p_avatar:avatar})") ||
+    (avatarWriteClient.match(/rpc\('update_my_avatar',\{p_avatar:\{type:avatar\.type,version:avatar\.version,config:avatar\.config,imagePath:avatar\.imagePath\}\}\)/g) || []).length !== 2) {
+  throw new Error('3D avatar RPC must send only the database-allowed fields, never the transient signed image URL.');
+}
+
 if (profileWriteClient.includes("sb.from('statuts').select('*')") ||
     !profileWriteClient.includes("rpc('public_status_badges'") ||
     !profileWriteClient.includes("sb.from('config').select('cle,valeur').in('cle',['airtel','orange'])") ||
