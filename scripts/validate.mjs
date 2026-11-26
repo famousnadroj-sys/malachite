@@ -497,7 +497,11 @@ for (const item of [
   'returning request_id into v_claimed',
   "interval '1 day'",
   "grant execute on function public.verify_malachite_ai_worker_signature(text,text,text)",
-  "jsonb_build_object('trigger', 'cron', 'request_id', gen_random_uuid()::text)"
+  "jsonb_build_object('trigger', 'cron', 'request_id', gen_random_uuid()::text)",
+  "where name = 'malachite_ai_worker_project_ref'",
+  'v_url_ref is distinct from v_expected_ref',
+  "to_regprocedure('cron.unschedule(bigint)')",
+  "to_regnamespace('net')"
 ]) {
   if (!aiWorkerReplayMigration.includes(item)) throw new Error('AI worker replay protection requirement missing: ' + item);
 }
