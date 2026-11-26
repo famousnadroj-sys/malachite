@@ -609,7 +609,7 @@ const installHandler = installHandlerStart >= 0 && installHandlerEnd > installHa
 if (!installHandler || installHandler.includes('skipWaiting') || !updateServiceWorker.includes('event.data.type === "SKIP_WAITING"')) {
   throw new Error('Service worker updates must wait for an explicit user action.');
 }
-if (!updateServiceWorker.includes('malachite-static-v105')) {
+if (!updateServiceWorker.includes('malachite-static-v106')) {
   throw new Error('Static cache version must change when a new release is prepared.');
 }
 const updateClient = fs.readFileSync('app-core.js', 'utf8');
@@ -638,6 +638,6 @@ if (!headMarkup.includes('rel="stylesheet" href="https://fonts.googleapis.com/cs
     headMarkup.includes('rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces')) {
   throw new Error('Optional Google Fonts must remain non-render-blocking with the system-font fallback.');
 }
-if (!serviceWorker.includes('malachite-static-v105')) {
+if (!serviceWorker.includes('malachite-static-v106')) {
   throw new Error('App-shell cache version must advance when its contents change.');
 }
