@@ -657,13 +657,13 @@ for (const marker of ["rpc('update_my_preferences'", "rpc('update_my_avatar'"]) 
 }
 
 
-// Members receive only boolean entitlement badges; raw timestamps and payment
-// destination configuration must not be selected directly from client code.
+// Members receive only boolean entitlement badges and the two payment-recipient
+// keys exposed by migration #152's narrow RLS policy.
 if (profileWriteClient.includes("sb.from('statuts').select('*')") ||
-    profileWriteClient.includes("sb.from('config').select('cle,valeur')") ||
     !profileWriteClient.includes("rpc('public_status_badges'") ||
+    !profileWriteClient.includes("sb.from('config').select('cle,valeur').in('cle',['airtel','orange'])") ||
     !profileWriteClient.includes('premium_active') ||
     !profileWriteClient.includes('verified_active') ||
     !profileWriteClient.includes('boost_active')) {
-  throw new Error('Client must use privacy-safe entitlement badge RPCs and never read raw status/config tables.');
+  throw new Error('Client must use privacy-safe badges and only the RLS-limited Airtel/Orange config query.');
 }
