@@ -10,6 +10,7 @@ create extension if not exists pgcrypto with schema extensions;
 create schema if not exists private;
 create schema if not exists vault;
 create schema if not exists cron;
+create schema if not exists net;
 
 create table if not exists vault.decrypted_secrets(
   name text primary key,
@@ -22,6 +23,11 @@ on conflict(name) do update set decrypted_secret=excluded.decrypted_secret;
 -- Explicit project-local endpoint for the isolated PostgreSQL fixture.
 insert into vault.decrypted_secrets(name,decrypted_secret)
 values('malachite_ai_worker_url','https://isolatedtest.supabase.co/functions/v1/malachite-ai-worker')
+on conflict(name) do update set decrypted_secret=excluded.decrypted_secret;
+
+-- Independent project identity allowlist for this isolated database.
+insert into vault.decrypted_secrets(name,decrypted_secret)
+values('malachite_ai_worker_project_ref','isolatedtest')
 on conflict(name) do update set decrypted_secret=excluded.decrypted_secret;
 
 create table if not exists cron.job (
