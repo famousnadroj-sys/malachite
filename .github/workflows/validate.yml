@@ -30,6 +30,7 @@ jobs:
           deno check supabase/functions/username-login/index.ts
           deno check supabase/functions/malachite-admin-push/index.ts
           deno check supabase/functions/malachite-ad-creative/index.ts
+          deno test supabase/functions/malachite-ai-worker/body_test.ts
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
