@@ -3,6 +3,11 @@ insert into auth.users(id) values
  ('10000000-0000-0000-0000-000000000001'),
  ('20000000-0000-0000-0000-000000000001');
 
+insert into public.call_sessions(id,caller_id,callee_id,room,mode,status,expires_at)
+values
+ ('30000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000001','Malachite-test-room-0001','audio','pending',now()+interval '2 minutes'),
+ ('30000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000001','Malachite-test-room-0002','video','pending',now()+interval '2 minutes');
+
 set local role authenticated;
 select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000001',true);
 
@@ -144,6 +149,35 @@ begin
  end;
 end
 $cross_account$;
+
+do $call_identity_guard$
+begin
+ begin
+  update public.call_sessions set callee_id='10000000-0000-0000-0000-000000000001'
+  where id='30000000-0000-0000-0000-000000000001';
+  raise exception 'call_callee_rewrite_was_accepted';
+ exception when others then
+  if sqlerrm = 'call_callee_rewrite_was_accepted' then raise; end if;
+ end;
+ begin
+  update public.call_sessions set room='attacker-controlled-room'
+  where id='30000000-0000-0000-0000-000000000001';
+  raise exception 'call_room_rewrite_was_accepted';
+ exception when others then
+  if sqlerrm = 'call_room_rewrite_was_accepted' then raise; end if;
+ end;
+ begin
+  update public.call_sessions set status='accepted'
+  where id='30000000-0000-0000-0000-000000000001';
+  raise exception 'caller_accepted_own_call_was_accepted';
+ exception when others then
+  if sqlerrm = 'caller_accepted_own_call_was_accepted' then raise; end if;
+ end;
+end
+$call_identity_guard$;
+
+update public.call_sessions set status='expired'
+where id='30000000-0000-0000-0000-000000000001';
 
 reset role;
 rollback;
