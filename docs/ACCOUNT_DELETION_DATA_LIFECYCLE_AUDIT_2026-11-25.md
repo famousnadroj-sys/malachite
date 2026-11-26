@@ -83,3 +83,15 @@ Two read-only checks were repeated against production:
 - No routines in the `public` or `private` schemas have names matching `%delet%`, `%remove%`, or `%account%`. This is not proof that no deletion code exists outside PostgreSQL (for example in Edge Functions or the client), but it confirms there is no database RPC/worker function with those naming patterns.
 
 The absence of a database deletion routine, together with the unlinked user-reference columns and Storage objects listed above, means there is no verified server-side account-deletion workflow in production. No account was deleted and no production object/schema was modified.
+
+
+## Recontrôle indépendant — 26 novembre 2026
+
+Nouvelle vérification strictement en lecture seule sur le projet de production actif :
+
+- Les clés étrangères référençant `auth.users` sont toujours au nombre de 35 : 28 `ON DELETE CASCADE` et 7 `ON DELETE SET NULL`.
+- Aucune routine des schémas `public` ou `private` ne porte un nom correspondant à `%delet%`, `%remove%` ou `%account%`.
+- L'inventaire des Edge Functions de production retourne six fonctions actives : `username-login`, `admin-user-moderation`, `malachite-ai-worker`, `malachite-admin-push`, `malachite-ad-creative` et `malachite-ai-manager`. Aucune n'est une fonction de suppression de compte.
+- La recherche de code GitHub sur les signatures courantes `deleteUser` / `supabase.auth.admin.deleteUser` n'a pas fourni de résultat exploitable ; l'indexation de code est signalée incomplète, donc cette absence de résultat n'est pas une preuve absolue sur tout le client.
+
+Conclusion inchangée : aucun parcours serveur complet de suppression de compte n'est vérifié. Les FKs ne couvrent pas à elles seules les références non-FK, les médias Storage, les règles de conservation, la révocation de sessions et les échecs partiels. Aucun compte ni objet Storage n'a été supprimé ; aucun schéma ou paramètre de production n'a été modifié.
