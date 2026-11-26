@@ -94,7 +94,7 @@ async function resolveProfilePhotosBatch(profiles){
    groups[bucket][path].push({profile:p,slot:slot,resolved:resolved});
   }
   photos.forEach(function(raw,index){
-   if(!raw)return;
+   if(index!==0||!raw)return;
    var str=String(raw),bucket=str.indexOf('/storage/v1/object/public/photos/')>=0?'photos':'profile-photos';
    if(str.indexOf('/storage/v1/object/public/profile-photos/')>=0)bucket='profile-photos';
    var path=storagePath(bucket,raw);
