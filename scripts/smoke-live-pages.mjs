@@ -33,10 +33,18 @@ if (html.includes("MALACHITE · ENVIRONNEMENT DE TEST") || html.includes("sbawkn
 const app = await get("app-core.js", "https://tscsmemsvgacqioncash.supabase.co");
 if (app.includes("sbawknyxcjslvhknomkd")) throw new Error("Staging Supabase reference leaked into production JavaScript.");
 
-await get("sw.js", "malachite-static-v107");
+if (!html.includes("./calls.js?v=20261126-photo-cache-v3")) {
+  throw new Error("Public homepage is not referencing the current signed-photo cache fix.");
+}
+await get("sw.js", "malachite-static-v108");
+const calls = await get("calls.js?v=20261126-photo-cache-v3", "performance.now()");
+if (calls.includes("localStorage.getItem('mal_photo_cache:'") ||
+    calls.includes("localStorage.setItem('mal_photo_cache:'")) {
+  throw new Error("Live call client still persists expiring signed photo URLs.");
+}
 await get("manifest.webmanifest", '"display"');
 await get("icons/malachite.svg", "<svg");
 await get("robots.txt", "Sitemap:");
 await get("sitemap.xml", "<urlset");
 
-console.log("MALACHITE LIVE PAGES CHECK PASSED: published homepage, production backend reference, cache v107, manifest, icon and SEO files verified over HTTPS.");
+console.log("MALACHITE LIVE PAGES CHECK PASSED: published homepage, production backend reference, photo-cache client, cache v108, manifest, icon and SEO files verified over HTTPS.");
