@@ -1626,5 +1626,17 @@ body.mal-chat-mode .mal-call-head{width:40px!important;height:40px!important;bor
   <a href="decouvrir.html">À propos de MALACHITE · Présentation et phase pilote</a>
   <p style="margin:6px 0 0">Les seules offres payantes prévues au lancement sont Premium, Boost et Pass Appels. Les conditions et tarifs seront communiqués avant leur activation.</p>
 </footer>
+
+<style id="malachite-update-notice-v2">
+#malSwUpdateNotice.mal-update-toast{position:fixed;z-index:99999;left:12px;right:12px;top:calc(12px + env(safe-area-inset-top,0px));bottom:auto;width:auto;max-width:560px;margin:0 auto;padding:14px 15px;display:flex;align-items:center;gap:14px;border:1px solid #f1b6cd;border-radius:18px;background:linear-gradient(135deg,#fff 0%,#fff4f8 100%);box-shadow:0 14px 38px rgba(76,16,42,.22);color:#3a1224;text-align:left;animation:malUpdateIn .28s ease-out both}
+#malSwUpdateNotice .mal-update-copy{display:grid;gap:4px;flex:1;min-width:0}
+#malSwUpdateNotice .mal-update-copy b{font-size:14px;line-height:1.3}
+#malSwUpdateNotice .mal-update-copy span{font-size:12px;line-height:1.4;color:#765566}
+#malSwUpdateNotice button{flex:none;min-height:42px;padding:9px 13px;border-radius:12px;background:linear-gradient(135deg,#d81b60,#ff4f8b);color:#fff;font-size:13px;box-shadow:0 5px 14px rgba(216,27,96,.2)}
+#malSwUpdateNotice button:disabled{opacity:.72}
+@keyframes malUpdateIn{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:390px){#malSwUpdateNotice.mal-update-toast{left:8px;right:8px;padding:11px;gap:9px}#malSwUpdateNotice .mal-update-copy b{font-size:13px}#malSwUpdateNotice .mal-update-copy span{font-size:11px}#malSwUpdateNotice button{padding:8px 10px;font-size:12px}}
+@media(prefers-reduced-motion:reduce){#malSwUpdateNotice.mal-update-toast{animation:none}}
+</style>
 </body>
 </html>
