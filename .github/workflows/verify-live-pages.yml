@@ -31,6 +31,8 @@ jobs:
           for attempt in $(seq 1 60); do
             runs=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${GITHUB_SHA}&per_page=100")
             result=$(printf '%s' "$runs" | jq -r --arg sha "$GITHUB_SHA" '.workflow_runs[] | select(.path == "dynamic/pages/pages-build-deployment" and .head_sha == $sha) | [.status, (.conclusion // "")] | @tsv' | head -n 1)
+            status=$(printf '%s' "$result" | cut -f1)
+            conclusion=$(printf '%s' "$result" | cut -f2)
             IFS=
             if [ "$status" = "completed" ]; then
               if [ "$conclusion" != "success" ]; then
