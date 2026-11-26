@@ -655,3 +655,15 @@ for (const marker of ["rpc('update_my_preferences'", "rpc('update_my_avatar'"]) 
     throw new Error('Trusted profile write RPC is missing: ' + marker);
   }
 }
+
+
+// Members receive only boolean entitlement badges; raw timestamps and payment
+// destination configuration must not be selected directly from client code.
+if (profileWriteClient.includes("sb.from('statuts').select('*')") ||
+    profileWriteClient.includes("sb.from('config').select('cle,valeur')") ||
+    !profileWriteClient.includes("rpc('public_status_badges'") ||
+    !profileWriteClient.includes('premium_active') ||
+    !profileWriteClient.includes('verified_active') ||
+    !profileWriteClient.includes('boost_active')) {
+  throw new Error('Client must use privacy-safe entitlement badge RPCs and never read raw status/config tables.');
+}
