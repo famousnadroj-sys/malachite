@@ -1663,22 +1663,23 @@ nav#nav button.on{font-weight:800;background:linear-gradient(145deg,#ffe5ef,#fff
 @media(max-width:430px){body:not(.mal-chat-mode)>header{padding:14px 13px 16px;gap:7px}body:not(.mal-chat-mode)>header .brand{font-size:20px}body:not(.mal-chat-mode)>header .logo{width:33px;height:33px}body:not(.mal-chat-mode)>header .tag2{font-size:10px;padding:5px 8px}#malUserMenuTrigger{min-height:37px;padding:7px 9px;gap:5px}#v:not(.mal-chat-mode){padding-left:13px;padding-right:13px}}
 @media(hover:none){.mal-discover-card:hover{transform:none;box-shadow:0 12px 30px rgba(72,18,41,.10)}}
 @media(prefers-reduced-motion:reduce){nav#nav button{transition:none}.mal-discover-card:hover{transform:none}}
-/* Header repair: preserve the full brand and keep notification actions visible on narrow screens. */
-body:not(.mal-chat-mode)>header{min-height:72px;gap:10px;flex-wrap:nowrap}
+/* Header contrast and layout: brand stays prominent; notification control stays distinct. */
+body:not(.mal-chat-mode)>header{min-height:76px;gap:10px;flex-wrap:nowrap}
 body:not(.mal-chat-mode)>header .lg0{flex:1 1 auto;min-width:0;gap:10px}
-body:not(.mal-chat-mode)>header .brand{display:block;white-space:nowrap;font-size:26px;line-height:1.08;letter-spacing:-.035em;opacity:1;visibility:visible}
+body:not(.mal-chat-mode)>header .brand{display:block!important;white-space:nowrap;font-size:30px!important;line-height:1.08;letter-spacing:-.04em;opacity:1!important;visibility:visible!important;color:#fff!important;background:none!important;-webkit-background-clip:border-box!important;background-clip:border-box!important;-webkit-text-fill-color:#fff!important;text-shadow:0 2px 12px rgba(68,0,27,.28)}
 body:not(.mal-chat-mode)>header .tag2{flex:0 0 auto;white-space:nowrap}
-body:not(.mal-chat-mode)>header #malUserMenuTrigger{display:inline-flex!important;flex:0 0 auto!important;align-items:center!important;justify-content:center!important;min-width:42px!important;min-height:42px!important;margin-left:0!important;position:relative!important;z-index:3!important;visibility:visible!important;opacity:1!important;white-space:nowrap!important}
-body:not(.mal-chat-mode)>header #malUserMenuTrigger .mal-user-menu-icon{display:inline-grid!important;place-items:center!important;flex:0 0 auto!important;min-width:18px!important;visibility:visible!important;opacity:1!important}
+body:not(.mal-chat-mode)>header #malUserMenuTrigger{display:inline-flex!important;flex:0 0 auto!important;align-items:center!important;justify-content:center!important;min-width:44px!important;min-height:44px!important;margin-left:0!important;position:relative!important;z-index:3!important;visibility:visible!important;opacity:1!important;white-space:nowrap!important;background:#fff!important;color:#a91249!important;border:1px solid rgba(255,255,255,.9)!important;box-shadow:0 5px 16px rgba(65,0,25,.2)!important}
+body:not(.mal-chat-mode)>header #malUserMenuTrigger .mal-user-menu-icon{display:inline-grid!important;place-items:center!important;flex:0 0 auto!important;min-width:20px!important;color:#a91249!important;visibility:visible!important;opacity:1!important}
+body:not(.mal-chat-mode)>header #malUserMenuTrigger .mal-notif-badge{background:#a91249!important;color:#fff!important;box-shadow:0 0 0 2px #fff}
 @media(max-width:430px){
- body:not(.mal-chat-mode)>header{min-height:66px;padding:12px 11px!important;gap:7px}
+ body:not(.mal-chat-mode)>header{min-height:68px;padding:12px 11px!important;gap:7px}
  body:not(.mal-chat-mode)>header .lg0{gap:7px}
  body:not(.mal-chat-mode)>header .logo{width:34px;height:34px;flex:0 0 34px}
- body:not(.mal-chat-mode)>header .brand{font-size:23px!important}
+ body:not(.mal-chat-mode)>header .brand{font-size:25px!important}
  body:not(.mal-chat-mode)>header .tag2{font-size:9px;padding:5px 7px}
- body:not(.mal-chat-mode)>header #malUserMenuTrigger{min-width:40px!important;width:40px!important;height:40px!important;padding:6px!important;gap:4px!important}
+ body:not(.mal-chat-mode)>header #malUserMenuTrigger{min-width:42px!important;width:42px!important;height:42px!important;padding:6px!important;gap:4px!important}
 }
-@media(max-width:360px){body:not(.mal-chat-mode)>header .brand{font-size:21px!important}body:not(.mal-chat-mode)>header .tag2{font-size:8px;padding:4px 6px}}
+@media(max-width:360px){body:not(.mal-chat-mode)>header .brand{font-size:22px!important}body:not(.mal-chat-mode)>header .tag2{font-size:8px;padding:4px 6px}}
 @media(prefers-reduced-motion:reduce){body:not(.mal-chat-mode)>header .brand{animation:none!important}}
 </style>
 </body>
