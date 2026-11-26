@@ -194,9 +194,7 @@ begin
  if v_uid is null then raise exception 'Authentification requise'; end if;
  if nullif(p_profile->>'id','')::uuid is distinct from v_uid then raise exception 'Profil non autorisé'; end if;
  if nullif(p_profile->>'prenom','') is null then raise exception 'Le prénom est obligatoire'; end if;
- if v_username is not null and v_username !~ '^[a-z0-9_]{3,24}
-grant execute on function public.save_my_profile(jsonb, jsonb) to authenticated;
- then raise exception 'Nom d’utilisateur invalide'; end if;
+ if v_username is not null and v_username !~ ('^[a-z0-9_]{3,24}' || chr(36)) then raise exception 'Nom d’utilisateur invalide'; end if;
  if nullif(p_private->>'profile_age','') is not null and (p_private->>'profile_age')::integer not between 18 and 100 then raise exception 'Âge autorisé : 18 à 100 ans'; end if;
 
  if p_profile ? 'avatar' then
@@ -217,9 +215,7 @@ grant execute on function public.save_my_profile(jsonb, jsonb) to authenticated;
    v_avatar := v_avatar - 'imageUrl';
    if v_avatar->>'version' is distinct from '1'
       or jsonb_typeof(v_avatar->'config') is distinct from 'object'
-      or coalesce(v_avatar->>'imagePath','') !~ ('^' || v_uid::text || '/avatar-[0-9]+[.]png
-grant execute on function public.save_my_profile(jsonb, jsonb) to authenticated;
-)
+      or coalesce(v_avatar->>'imagePath','') !~ ('^' || v_uid::text || '/avatar-[0-9]+[.]png' || chr(36))
       or (v_avatar - array['type','version','config','imagePath']::text[]) <> '{}'::jsonb then
     raise exception 'Avatar 3D invalide';
    end if;
