@@ -65,7 +65,7 @@ async function malPersistAvatar3d(config,image){
  var avatar={type:'humanforge-3d',version:1,config:config,imagePath:path};avatar.imageUrl=await signedUrl('profile-photos',path);
  try{
   if(mine&&mine.id){
-   var r=await sb.from('profiles').update({avatar:avatar}).eq('id',me.id).select('id,avatar').maybeSingle();
+   var r=await sb.rpc('update_my_avatar',{p_avatar:avatar});
    if(r.error)throw r.error;if(!r.data)throw new Error('Profil introuvable.');
    mine=Object.assign({},mine,r.data);try{await resolveProfilePhotos(mine)}catch(photoError){console.warn('Avatar enregistré; actualisation des autres photos différée.',photoError)}
    var ix=profs.findIndex(function(p){return p.id===me.id});if(ix>=0)profs[ix]=mine;else profs.push(mine);
@@ -90,7 +90,7 @@ async function malAttachPendingSignupAvatar(){
  if(up.error)throw up.error;
  var avatar={type:'humanforge-3d',version:1,config:saved.config,imagePath:path};
  avatar.imageUrl=await signedUrl('profile-photos',path);
- var result=await sb.from('profiles').update({avatar:avatar}).eq('id',me.id).select('id,avatar').maybeSingle();
+ var result=await sb.rpc('update_my_avatar',{p_avatar:avatar});
  if(result.error||!result.data){await sb.storage.from('profile-photos').remove([path]);throw result.error||new Error('Profil non prêt.')}
  mine=Object.assign({},mine||{},result.data);await resolveProfilePhotos(mine);
  var idx=profs.findIndex(function(p){return p.id===me.id});if(idx>=0)profs[idx]=mine;else profs.push(mine);
@@ -155,7 +155,7 @@ async function malSaveAvatar(){
  var a={type:'pro-vector',version:3,config:Object.assign({},malAvatarState)};
  if(!mine){malAvatarTouched=true;if(f)f.textContent='Avatar prêt. Il sera enregistré automatiquement avec ton premier enregistrement de profil.';return}
  try{
-  var r=await sb.from('profiles').update({avatar:a}).eq('id',me.id).select('id,avatar').maybeSingle();
+  var r=await sb.rpc('update_my_avatar',{p_avatar:a});
   if(r.error)throw r.error;
   if(!r.data)throw new Error('Ton profil n’existe pas encore. Enregistre d’abord les informations obligatoires de ton profil.');
   mine=Object.assign({},mine||{},r.data);
