@@ -565,7 +565,10 @@ if ((founderFinance.match(/!window\.malAdminAuthorized/g) || []).length < 2 ||
     !founderFinance.includes('window.malAdminAuthorized && window.tab === "founder"')) {
   throw new Error('Founder finance UI must be gated by the server-verified admin authorization state.');
 }
-const adminRpcMigration = fs.readFileSync('supabase/migrations/202611200002_harden_malachite_ai_admin_rpc.sql', 'utf8');
+const adminRpcMigrationPath = fs.existsSync('supabase/migrations/20261120210922_harden_malachite_ai_admin_rpc.sql')
+  ? 'supabase/migrations/20261120210922_harden_malachite_ai_admin_rpc.sql'
+  : 'supabase/migrations/202611200002_harden_malachite_ai_admin_rpc.sql';
+const adminRpcMigration = fs.readFileSync(adminRpcMigrationPath, 'utf8');
 if (!adminRpcMigration.includes('security invoker') ||
     !adminRpcMigration.includes('private.is_admin()') ||
     !adminRpcMigration.includes('revoke all on function public.malachite_ai_manager_is_admin() from public, anon') ||
