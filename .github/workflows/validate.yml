@@ -150,6 +150,8 @@ jobs:
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261124130100_reject_expired_call_acceptance.sql
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261124143000_harden_call_session_immutable_fields.sql
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/call_session_expiry_checks.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261126121000_harden_call_session_state_transitions.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/call_session_state_transition_checks.sql
 
 
   profile-age-enforcement:
