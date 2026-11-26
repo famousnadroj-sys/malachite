@@ -1353,6 +1353,7 @@ async function save(){
  var previewPhotos=pendingProfilePreview?[pendingProfilePreview].concat(phUrls||[]).slice(0,3):(phUrls||[]).slice(0,3);
  var oldPrefs=Object.assign({},priv.prefs||(mine&&mine.prefs)||{});
  var avatarForSave=malAvatar3dDraft||(mine&&mine.avatar&&Object.keys(mine.avatar).length&&!malAvatarTouched?mine.avatar:{});
+ if(avatarForSave&&avatarForSave.type==='humanforge-3d'){avatarForSave=Object.assign({},avatarForSave);delete avatarForSave.imageUrl;}
  mine=Object.assign({},mine||{},raw,{id:uid,photos:ph.slice(),photoUrls:previewPhotos,profile_private:isPrivate,prefs:oldPrefs,avatar:avatarForSave});
  phUrls=previewPhotos;profileEditing=false;profileSaving=true;tab='me';msg='Ton profil s’affiche maintenant. Enregistrement sécurisé en cours…';
  var idx=profs.findIndex(function(x){return x.id===uid});if(idx>=0)profs[idx]=mine;else profs.push(mine);malAvatar3dDraft=null;
