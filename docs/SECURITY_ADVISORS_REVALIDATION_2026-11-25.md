@@ -153,3 +153,10 @@ Après le contrôle précédent, la PR #148 (`fix: improve MALACHITE header cont
 Cela confirme deux problèmes de contrôle distincts : le déploiement Pages par branche publie encore malgré le garde-fou personnalisé, et un PR a pu être fusionné alors que son contrat d'intégration échouait. Ne pas conclure que la source Pages ou la protection de branche est corrigée. La source Pages doit être basculée manuellement sur **GitHub Actions** ; la protection de `main` doit être vérifiée par un administrateur afin d'exiger les checks de release et d'interdire les fusions avec checks requis échoués.
 
 Aucune fusion, modification de réglage GitHub, migration ou publication n'a été exécutée par cette revalidation.
+
+
+## Clarification après synchronisation — 26 novembre 2026, 06:09 UTC
+
+Le contrôle de la branche `website/public-launch-cleanup-2026-11-24` a été répété après la fusion de #148 : son `index.html` est maintenant identique à l'index courant de `main` avec le footer approuvé. Le run de contrat de release de cette PR #137, `45766143128`, est terminé avec succès. L'échec de #148 correspond donc à l'état de synchronisation observé au moment de son propre run ; il ne décrit plus l'état actuel de cette copie publique.
+
+Cette synchronisation ne ferme toutefois pas le contournement de publication : le workflow Pages dynamique a encore exécuté `Deploy to GitHub Pages` avec succès sur le commit main `f373128...`. Le réglage **Settings → Pages → Source = GitHub Actions** reste à confirmer.
