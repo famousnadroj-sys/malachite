@@ -33,10 +33,10 @@ if (html.includes("MALACHITE · ENVIRONNEMENT DE TEST") || html.includes("sbawkn
 const app = await get("app-core.js", "https://tscsmemsvgacqioncash.supabase.co");
 if (app.includes("sbawknyxcjslvhknomkd")) throw new Error("Staging Supabase reference leaked into production JavaScript.");
 
-await get("sw.js", "malachite-static-v105");
+await get("sw.js", "malachite-static-v106");
 await get("manifest.webmanifest", '"display"');
 await get("icons/malachite.svg", "<svg");
 await get("robots.txt", "Sitemap:");
 await get("sitemap.xml", "<urlset");
 
-console.log("MALACHITE LIVE PAGES CHECK PASSED: published homepage, production backend reference, cache v105, manifest, icon and SEO files verified over HTTPS.");
+console.log("MALACHITE LIVE PAGES CHECK PASSED: published homepage, production backend reference, cache v106, manifest, icon and SEO files verified over HTTPS.");
