@@ -81,7 +81,7 @@ insert into storage.buckets(id,public,file_size_limit,allowed_mime_types) values
 create table storage.objects(bucket_id text not null,name text not null);
 create or replace function storage.foldername(value text)
 returns text[] language sql immutable
-as $ select (string_to_array(value,'/'))[1:greatest(array_length(string_to_array(value,'/'),1)-1,0)] $;
+as $function$ select (string_to_array(value,'/'))[1:greatest(array_length(string_to_array(value,'/'),1)-1,0)] $function$;
 
 grant select,insert,delete on storage.objects to authenticated;
 alter table storage.objects enable row level security;
