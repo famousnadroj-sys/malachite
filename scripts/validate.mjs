@@ -4,13 +4,13 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 const html = fs.readFileSync('index.html', 'utf8');
-for (const asset of ['./app-core.js', './calls.js?v=20261122-call-init-v2']) {
+for (const asset of ['./app-core.js', './calls.js?v=20261126-photo-cache-v3']) {
   const marker = '<link rel="preload" as="script" href="' + asset + '"';
   const matches = html.split(marker).length - 1;
   if (matches !== 1) throw new Error('Critical app module must be preloaded exactly once: ' + asset);
 }
 if (!html.includes('href="./app-core.js" fetchpriority="high"') ||
-    !html.includes('href="./calls.js?v=20261122-call-init-v2" fetchpriority="low"')) {
+    !html.includes('href="./calls.js?v=20261126-photo-cache-v3" fetchpriority="low"')) {
   throw new Error('App core must preload at high priority and calls at low priority without competing with startup.');
 }
 const frontendFiles = ['app-core.js', 'malachite-avatar-ui.js', 'malachite-chat-ui.js', 'malachite-avatar-helper.js', 'malachite-living-engine.js', 'malachite-premium-profiles.js'];
@@ -155,7 +155,13 @@ if (callsCheck.status !== 0) {
   process.stderr.write(callsCheck.stderr || callsCheck.stdout);
   process.exit(callsCheck.status || 1);
 }
-if (frontend.includes('<script src="calls.js" defer></script>') || !frontend.includes('core.onload=function(){') || !frontend.includes('calls.src="./calls.js?v=20261122-call-init-v2"')) throw new Error('Call client must load only after app-core has defined its functions.');
+if (!calls.includes('performance.now()') ||
+    !calls.includes("localStorage.removeItem('mal_photo_cache:'") ||
+    calls.includes("localStorage.getItem('mal_photo_cache:'") ||
+    calls.includes("localStorage.setItem('mal_photo_cache:'")) {
+  throw new Error('Signed photo URLs must not persist in localStorage or depend on the device wall clock.');
+}
+if (frontend.includes('<script src="calls.js" defer></script>') || !frontend.includes('core.onload=function(){') || !frontend.includes('calls.src="./calls.js?v=20261126-photo-cache-v3"')) throw new Error('Call client must load only after app-core has defined its functions.');
 if (calls.includes("me.email==='famousnadroj@gmail.com'") ||
     calls.includes('me.email==="famousnadroj@gmail.com"') ||
     !calls.includes("sb.rpc('malachite_ai_manager_is_admin')") ||
@@ -618,7 +624,7 @@ const installHandler = installHandlerStart >= 0 && installHandlerEnd > installHa
 if (!installHandler || installHandler.includes('skipWaiting') || !updateServiceWorker.includes('event.data.type === "SKIP_WAITING"')) {
   throw new Error('Service worker updates must wait for an explicit user action.');
 }
-if (!updateServiceWorker.includes('malachite-static-v107')) {
+if (!updateServiceWorker.includes('malachite-static-v108')) {
   throw new Error('Static cache version must change when a new release is prepared.');
 }
 const updateClient = fs.readFileSync('app-core.js', 'utf8');
@@ -647,7 +653,7 @@ if (!headMarkup.includes('rel="stylesheet" href="https://fonts.googleapis.com/cs
     headMarkup.includes('rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces')) {
   throw new Error('Optional Google Fonts must remain non-render-blocking with the system-font fallback.');
 }
-if (!serviceWorker.includes('malachite-static-v107')) {
+if (!serviceWorker.includes('malachite-static-v108')) {
   throw new Error('App-shell cache version must advance when its contents change.');
 }
 
