@@ -642,10 +642,15 @@ if (!serviceWorker.includes('malachite-static-v106')) {
   throw new Error('App-shell cache version must advance when its contents change.');
 }
 
-const supabasePreload = headMarkup.match(/<link\\b[^>]*rel="preload"[^>]*as="script"[^>]*href="https:\/\/cdn\\.jsdelivr\\.net\/npm\/@supabase\/supabase-js@2\\.45\\.4\/dist\/umd\/supabase\\.min\\.js"[^>]*>/g) || [];
+const supabaseLinkTags = headMarkup.match(/<link\\b[^>]*>/g) || [];
+const supabasePreload = supabaseLinkTags.filter((tag) =>
+  /\\brel="preload"/.test(tag) &&
+  /\\bas="script"/.test(tag) &&
+  /\\bhref="https:\\/\\/cdn\\.jsdelivr\\.net\\/npm\\/@supabase\\/supabase-js@2\\.45\\.4\\/dist\\/umd\\/supabase\\.min\\.js"/.test(tag)
+);
 if (supabasePreload.length !== 1 ||
-    !supabasePreload[0].includes('crossorigin="anonymous"') ||
-    !supabasePreload[0].includes('fetchpriority="high"')) {
+    !/\\bcrossorigin="anonymous"/.test(supabasePreload[0] || '') ||
+    !/\\bfetchpriority="high"/.test(supabasePreload[0] || '')) {
   throw new Error('Supabase startup SDK must have exactly one high-priority, CORS-compatible preload.');
 }
 const supabaseLoaderStart = html.indexOf('<script id="malachite-dependency-loader">');
