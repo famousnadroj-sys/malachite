@@ -51,9 +51,9 @@ before update on public.call_sessions
 for each row execute function private.guard_call_session_update();
 
 -- Authenticated test role used by the participant-transition assertions.
-do $ begin
- if not exists (select 1 from pg_roles where rolname='authenticated') then create role authenticated; end if;
- if not exists (select 1 from pg_roles where rolname='anon') then create role anon; end if;
-end $;
-grant usage on schema public, private, auth to authenticated;
+DO $roles$ BEGIN
+ IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN EXECUTE 'CREATE ROLE authenticated'; END IF;
+ IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN EXECUTE 'CREATE ROLE anon'; END IF;
+END $roles$;
+GRANT USAGE ON SCHEMA public, private, auth TO authenticated;
 grant select, update on public.call_sessions to authenticated;
