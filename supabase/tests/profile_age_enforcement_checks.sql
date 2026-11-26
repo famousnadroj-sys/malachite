@@ -1,4 +1,5 @@
 begin;
+grant update on public.call_sessions to authenticated;
 insert into auth.users(id) values
  ('10000000-0000-0000-0000-000000000001'),
  ('20000000-0000-0000-0000-000000000001');
