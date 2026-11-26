@@ -641,3 +641,19 @@ if (!headMarkup.includes('rel="stylesheet" href="https://fonts.googleapis.com/cs
 if (!serviceWorker.includes('malachite-static-v106')) {
   throw new Error('App-shell cache version must advance when its contents change.');
 }
+
+const supabasePreload = headMarkup.match(/<link\\b[^>]*rel="preload"[^>]*as="script"[^>]*href="https:\/\/cdn\\.jsdelivr\\.net\/npm\/@supabase\/supabase-js@2\\.45\\.4\/dist\/umd\/supabase\\.min\\.js"[^>]*>/g) || [];
+if (supabasePreload.length !== 1 ||
+    !supabasePreload[0].includes('crossorigin="anonymous"') ||
+    !supabasePreload[0].includes('fetchpriority="high"')) {
+  throw new Error('Supabase startup SDK must have exactly one high-priority, CORS-compatible preload.');
+}
+const supabaseLoaderStart = html.indexOf('<script id="malachite-dependency-loader">');
+const supabaseLoaderEnd = html.indexOf('</script>', supabaseLoaderStart);
+const supabaseLoader = supabaseLoaderStart >= 0 && supabaseLoaderEnd > supabaseLoaderStart ? html.slice(supabaseLoaderStart, supabaseLoaderEnd) : '';
+if (!supabaseLoader.includes('script.crossOrigin="anonymous"') ||
+    !supabaseLoader.includes('script.fetchPriority="high"') ||
+    !supabaseLoader.includes('https://unpkg.com/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js')) {
+  throw new Error('Supabase SDK loader must reuse the preload request and preserve its CDN fallback.');
+}
+
