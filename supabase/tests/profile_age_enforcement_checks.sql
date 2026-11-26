@@ -90,5 +90,60 @@ begin
 end
 $private_adult$;
 
+
+select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000001',true);
+
+do $secure_preferences$
+declare result jsonb;
+begin
+ result := public.update_my_preferences(
+  '{"genre":"F","amin":20,"amax":35,"communes":["Lubumbashi"],"ints":["lecture"],"rel":["Amour"],"desc":"test transactionnel"}'::jsonb
+ );
+ if result->>'genre' <> 'F' or result->>'amin' <> '20' or result->>'amax' <> '35' then
+  raise exception 'valid_preferences_rpc_failed';
+ end if;
+ begin
+  perform public.update_my_preferences('{"admin":true}'::jsonb);
+  raise exception 'unapproved_preference_key_was_accepted';
+ exception when others then
+  if sqlerrm = 'unapproved_preference_key_was_accepted' then raise; end if;
+ end;
+end
+$secure_preferences$;
+
+do $secure_avatar$
+declare result jsonb;
+begin
+ result := public.update_my_avatar(
+  '{"type":"pro-vector","version":3,"config":{"gender":"woman"}}'::jsonb
+ );
+ if result->'avatar'->>'type' <> 'pro-vector' then
+  raise exception 'valid_avatar_rpc_failed';
+ end if;
+ begin
+  perform public.update_my_avatar(
+   '{"type":"humanforge-3d","version":1,"config":{},"imagePath":"20000000-0000-0000-0000-000000000001/avatar-123.png"}'::jsonb
+  );
+  raise exception 'foreign_avatar_storage_path_was_accepted';
+ exception when others then
+  if sqlerrm = 'foreign_avatar_storage_path_was_accepted' then raise; end if;
+ end;
+end
+$secure_avatar$;
+
+do $cross_account$
+begin
+ begin
+  perform public.save_my_profile(
+   '{"id":"20000000-0000-0000-0000-000000000001","prenom":"Intrusion","age":25,"profile_private":false}'::jsonb,
+   '{"profile_age":25}'::jsonb
+  );
+  raise exception 'cross_account_profile_write_was_accepted';
+ exception when others then
+  if sqlerrm = 'cross_account_profile_write_was_accepted' then raise; end if;
+ end;
+end
+$cross_account$;
+
 reset role;
 rollback;
