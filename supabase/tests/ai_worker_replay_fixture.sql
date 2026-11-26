@@ -19,6 +19,11 @@ insert into vault.decrypted_secrets(name,decrypted_secret)
 values('malachite_ai_worker_hmac','isolated-test-secret-do-not-use-in-production')
 on conflict(name) do update set decrypted_secret=excluded.decrypted_secret;
 
+-- Explicit project-local endpoint for the isolated PostgreSQL fixture.
+insert into vault.decrypted_secrets(name,decrypted_secret)
+values('malachite_ai_worker_url','https://isolatedtest.supabase.co/functions/v1/malachite-ai-worker')
+on conflict(name) do update set decrypted_secret=excluded.decrypted_secret;
+
 create table if not exists cron.job (
   jobid bigserial primary key,
   jobname text,
