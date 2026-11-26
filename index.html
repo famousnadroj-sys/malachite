@@ -673,7 +673,7 @@ body.mal-chat-mode .recbar{position:fixed!important;left:0!important;right:0!imp
 </style>
 </head>
 <body>
-<header><div class="lg0"><svg class="logo" viewBox="0 0 40 40" width="30" height="30" aria-hidden="true"><path d="M20 35C8 26 4 19 4 13.5 4 9 7.5 6 11.5 6c3.5 0 6.5 2 8.5 5 2-3 5-5 8.5-5C32.5 6 36 9 36 13.5 36 19 32 26 20 35z" fill="url(#lg)"/><path d="M11.5 6 20 11 28.5 6M4 13.5h32M4 13.5 20 35 36 13.5M13 13.5 20 11 27 13.5 20 35z" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width=".9" stroke-linejoin="round"/><path d="M33 1v6M30 4h6" stroke="#C9A227" stroke-width="1.1" stroke-linecap="round"/></svg><div class="mal-brand-lockup"><div class="brand">Malachite</div><div class="mal-brand-tagline">Des rencontres sincères, près de chez toi</div></div></div><div class="tag2">Lubumbashi</div></header>
+<header><div class="lg0"><svg class="logo" viewBox="0 0 40 40" width="30" height="30" aria-hidden="true"><path d="M20 35C8 26 4 19 4 13.5 4 9 7.5 6 11.5 6c3.5 0 6.5 2 8.5 5 2-3 5-5 8.5-5C32.5 6 36 9 36 13.5 36 19 32 26 20 35z" fill="url(#lg)"/><path d="M11.5 6 20 11 28.5 6M4 13.5h32M4 13.5 20 35 36 13.5M13 13.5 20 11 27 13.5 20 35z" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width=".9" stroke-linejoin="round"/><path d="M33 1v6M30 4h6" stroke="#C9A227" stroke-width="1.1" stroke-linecap="round"/></svg><div class="brand">Malachite</div></div><div class="tag2">Lubumbashi</div></header>
 <div class="mal-share-row" style="display:flex;justify-content:flex-end;padding:8px 14px 2px;max-width:640px;margin:0 auto"><button id="malachite-share-header" type="button" aria-label="Partager le site MALACHITE" onclick="window.malShareOpen&&window.malShareOpen()" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,#D81B60,#F0457F);color:#fff;border:1px solid #D81B60;border-radius:999px;padding:10px 17px;font-size:13px;font-weight:800;white-space:nowrap;box-shadow:0 5px 16px rgba(216,27,96,.20)"><span aria-hidden="true">↗</span> Partager le site</button></div>
 <aside id="malInstallBanner" style="display:flex;align-items:center;gap:10px;justify-content:space-between;padding:10px 14px;margin:10px 12px;border:1px solid #F3CCDA;border-radius:14px;background:#FFF5F8;color:#3A1224">
  <div style="font-size:13px;line-height:1.35"><b>📲 Ajouter Malachite à l’écran d’accueil</b><br><span>Un raccourci pratique, sans télécharger d’application ni payer.</span></div>
@@ -1663,6 +1663,23 @@ nav#nav button.on{font-weight:800;background:linear-gradient(145deg,#ffe5ef,#fff
 @media(max-width:430px){body:not(.mal-chat-mode)>header{padding:14px 13px 16px;gap:7px}body:not(.mal-chat-mode)>header .brand{font-size:20px}body:not(.mal-chat-mode)>header .logo{width:33px;height:33px}body:not(.mal-chat-mode)>header .tag2{font-size:10px;padding:5px 8px}#malUserMenuTrigger{min-height:37px;padding:7px 9px;gap:5px}#v:not(.mal-chat-mode){padding-left:13px;padding-right:13px}}
 @media(hover:none){.mal-discover-card:hover{transform:none;box-shadow:0 12px 30px rgba(72,18,41,.10)}}
 @media(prefers-reduced-motion:reduce){nav#nav button{transition:none}.mal-discover-card:hover{transform:none}}
+/* Header repair: preserve the full brand and keep notification actions visible on narrow screens. */
+body:not(.mal-chat-mode)>header{min-height:72px;gap:10px;flex-wrap:nowrap}
+body:not(.mal-chat-mode)>header .lg0{flex:1 1 auto;min-width:0;gap:10px}
+body:not(.mal-chat-mode)>header .brand{display:block;white-space:nowrap;font-size:26px;line-height:1.08;letter-spacing:-.035em;opacity:1;visibility:visible}
+body:not(.mal-chat-mode)>header .tag2{flex:0 0 auto;white-space:nowrap}
+body:not(.mal-chat-mode)>header #malUserMenuTrigger{display:inline-flex!important;flex:0 0 auto!important;align-items:center!important;justify-content:center!important;min-width:42px!important;min-height:42px!important;margin-left:0!important;position:relative!important;z-index:3!important;visibility:visible!important;opacity:1!important;white-space:nowrap!important}
+body:not(.mal-chat-mode)>header #malUserMenuTrigger .mal-user-menu-icon{display:inline-grid!important;place-items:center!important;flex:0 0 auto!important;min-width:18px!important;visibility:visible!important;opacity:1!important}
+@media(max-width:430px){
+ body:not(.mal-chat-mode)>header{min-height:66px;padding:12px 11px!important;gap:7px}
+ body:not(.mal-chat-mode)>header .lg0{gap:7px}
+ body:not(.mal-chat-mode)>header .logo{width:34px;height:34px;flex:0 0 34px}
+ body:not(.mal-chat-mode)>header .brand{font-size:23px!important}
+ body:not(.mal-chat-mode)>header .tag2{font-size:9px;padding:5px 7px}
+ body:not(.mal-chat-mode)>header #malUserMenuTrigger{min-width:40px!important;width:40px!important;height:40px!important;padding:6px!important;gap:4px!important}
+}
+@media(max-width:360px){body:not(.mal-chat-mode)>header .brand{font-size:21px!important}body:not(.mal-chat-mode)>header .tag2{font-size:8px;padding:4px 6px}}
+@media(prefers-reduced-motion:reduce){body:not(.mal-chat-mode)>header .brand{animation:none!important}}
 </style>
-\n<style id="malachite-brand-refresh-v2">\nbody:not(.mal-chat-mode)>header .mal-brand-lockup{display:grid;gap:0;min-width:0;line-height:1.05}\nbody:not(.mal-chat-mode)>header .mal-brand-tagline{margin-top:4px;color:rgba(255,255,255,.88);font:500 10px/1.2 Inter,system-ui,sans-serif;letter-spacing:.035em;white-space:nowrap}\nbody:not(.mal-chat-mode)>header .brand{line-height:1.05}\n@media(max-width:430px){body:not(.mal-chat-mode)>header .mal-brand-tagline{font-size:9px;letter-spacing:0}body:not(.mal-chat-mode)>header .mal-brand-lockup{gap:1px}}\n@media(prefers-reduced-motion:reduce){body:not(.mal-chat-mode)>header .brand{animation:none!important}}\n</style>\n</body>
+</body>
 </html>
