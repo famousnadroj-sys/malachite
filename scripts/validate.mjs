@@ -609,7 +609,7 @@ const installHandler = installHandlerStart >= 0 && installHandlerEnd > installHa
 if (!installHandler || installHandler.includes('skipWaiting') || !updateServiceWorker.includes('event.data.type === "SKIP_WAITING"')) {
   throw new Error('Service worker updates must wait for an explicit user action.');
 }
-if (!updateServiceWorker.includes('malachite-static-v104')) {
+if (!updateServiceWorker.includes('malachite-static-v105')) {
   throw new Error('Static cache version must change when a new release is prepared.');
 }
 const updateClient = fs.readFileSync('app-core.js', 'utf8');
