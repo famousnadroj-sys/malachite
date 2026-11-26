@@ -155,7 +155,7 @@ async function malSaveAvatar(){
  var a={type:'pro-vector',version:3,config:Object.assign({},malAvatarState)};
  if(!mine){malAvatarTouched=true;if(f)f.textContent='Avatar prêt. Il sera enregistré automatiquement avec ton premier enregistrement de profil.';return}
  try{
-  var r=await sb.rpc('update_my_avatar',{p_avatar:avatar});
+  var r=await sb.rpc('update_my_avatar',{p_avatar:a});
   if(r.error)throw r.error;
   if(!r.data)throw new Error('Ton profil n’existe pas encore. Enregistre d’abord les informations obligatoires de ton profil.');
   mine=Object.assign({},mine||{},r.data);
