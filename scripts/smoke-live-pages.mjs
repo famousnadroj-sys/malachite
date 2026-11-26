@@ -39,4 +39,4 @@ await get("icons/malachite.svg", "<svg");
 await get("robots.txt", "Sitemap:");
 await get("sitemap.xml", "<urlset");
 
-console.log("MALACHITE LIVE PAGES CHECK PASSED: published homepage, production backend reference, cache v105, manifest, icon and SEO files verified over HTTPS.");
+console.log("MALACHITE LIVE PAGES CHECK PASSED: published homepage, production backend reference, cache v106, manifest, icon and SEO files verified over HTTPS.");

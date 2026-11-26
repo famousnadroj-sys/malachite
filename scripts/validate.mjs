@@ -4,6 +4,15 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 const html = fs.readFileSync('index.html', 'utf8');
+for (const asset of ['./app-core.js', './calls.js?v=20261122-call-init-v2']) {
+  const marker = '<link rel="preload" as="script" href="' + asset + '"';
+  const matches = html.split(marker).length - 1;
+  if (matches !== 1) throw new Error('Critical app module must be preloaded exactly once: ' + asset);
+}
+if (!html.includes('href="./app-core.js" fetchpriority="high"') ||
+    !html.includes('href="./calls.js?v=20261122-call-init-v2" fetchpriority="low"')) {
+  throw new Error('App core must preload at high priority and calls at low priority without competing with startup.');
+}
 const frontendFiles = ['app-core.js', 'malachite-avatar-ui.js', 'malachite-chat-ui.js', 'malachite-avatar-helper.js', 'malachite-living-engine.js', 'malachite-premium-profiles.js'];
 const frontendScripts = frontendFiles.map((file) => fs.readFileSync(file, 'utf8'));
 const frontend = [html, ...frontendScripts].join('\n');
@@ -641,3 +650,31 @@ if (!headMarkup.includes('rel="stylesheet" href="https://fonts.googleapis.com/cs
 if (!serviceWorker.includes('malachite-static-v106')) {
   throw new Error('App-shell cache version must advance when its contents change.');
 }
+
+const supabaseLinkTags = headMarkup.match(/<link\\b[^>]*>/g) || [];
+const performanceSource = fs.readFileSync('malachite-performance.js', 'utf8');
+if (!html.includes('<script src="malachite-performance.js" defer>') ||
+    !performanceSource.includes('img.decoding = "async"') ||
+    !performanceSource.includes('img.loading = rect.top > window.innerHeight * 1.25 ? "lazy" : "eager"') ||
+    !performanceSource.includes('new MutationObserver')) {
+  throw new Error('Mobile performance guard must remain deferred and apply async decoding/lazy loading to dynamic images.');
+}
+const supabasePreload = headMarkup.split('<link').filter((tag) =>
+  tag.includes('rel="preload"') &&
+  tag.includes('as="script"') &&
+  tag.includes('href="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"')
+);
+if (supabasePreload.length !== 1 ||
+    !supabasePreload[0].includes('crossorigin="anonymous"') ||
+    !supabasePreload[0].includes('fetchpriority="high"')) {
+  throw new Error('Supabase startup SDK must have exactly one high-priority, CORS-compatible preload.');
+}
+const supabaseLoaderStart = html.indexOf('<script id="malachite-dependency-loader">');
+const supabaseLoaderEnd = html.indexOf('</script>', supabaseLoaderStart);
+const supabaseLoader = supabaseLoaderStart >= 0 && supabaseLoaderEnd > supabaseLoaderStart ? html.slice(supabaseLoaderStart, supabaseLoaderEnd) : '';
+if (!supabaseLoader.includes('script.crossOrigin="anonymous"') ||
+    !supabaseLoader.includes('script.fetchPriority="high"') ||
+    !supabaseLoader.includes('https://unpkg.com/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js')) {
+  throw new Error('Supabase SDK loader must reuse the preload request and preserve its CDN fallback.');
+}
+
