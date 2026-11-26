@@ -641,3 +641,17 @@ if (!headMarkup.includes('rel="stylesheet" href="https://fonts.googleapis.com/cs
 if (!serviceWorker.includes('malachite-static-v106')) {
   throw new Error('App-shell cache version must advance when its contents change.');
 }
+
+
+// Profile and discovery writes must use owner-scoped SECURITY DEFINER RPCs.
+const profileWriteClient = fs.readFileSync('app-core.js', 'utf8');
+const avatarWriteClient = fs.readFileSync('malachite-avatar-ui.js', 'utf8');
+if (profileWriteClient.includes("sb.from('prives').upsert") ||
+    avatarWriteClient.includes("sb.from('profiles').update({avatar:")) {
+  throw new Error('Direct client writes to private preferences or profile avatars must remain disabled.');
+}
+for (const marker of ["rpc('update_my_preferences'", "rpc('update_my_avatar'"]) {
+  if (!profileWriteClient.includes(marker) && !avatarWriteClient.includes(marker)) {
+    throw new Error('Trusted profile write RPC is missing: ' + marker);
+  }
+}
