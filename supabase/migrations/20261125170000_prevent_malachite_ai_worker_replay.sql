@@ -53,7 +53,7 @@ begin
   limit 1;
   if v_secret is null then
     return false;
-  end;
+  end if;
 
   v_expected := encode(
     extensions.hmac(
@@ -65,7 +65,7 @@ begin
   );
   if v_expected <> lower(p_signature) then
     return false;
-  end;
+  end if;
 
   -- The unique key makes replay rejection atomic even for concurrent requests.
   insert into private.malachite_ai_worker_nonces(request_id)
