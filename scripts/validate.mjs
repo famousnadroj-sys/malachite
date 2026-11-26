@@ -4,6 +4,15 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 const html = fs.readFileSync('index.html', 'utf8');
+for (const asset of ['./app-core.js', './calls.js?v=20261122-call-init-v2']) {
+  const escaped = asset.replace(/[.*+?^${}()|[\]\\]/g, '\\const html = fs.readFileSync('index.html', 'utf8');');
+  const matches = html.match(new RegExp('<link\\s+rel="preload"\\s+as="script"\\s+href="' + escaped + '"', 'g')) || [];
+  if (matches.length !== 1) throw new Error('Critical app module must be preloaded exactly once: ' + asset);
+}
+if (!html.includes('href="./app-core.js" fetchpriority="high"') ||
+    !html.includes('href="./calls.js?v=20261122-call-init-v2" fetchpriority="low"')) {
+  throw new Error('App core must preload at high priority and calls at low priority without competing with startup.');
+}
 const frontendFiles = ['app-core.js', 'malachite-avatar-ui.js', 'malachite-chat-ui.js', 'malachite-avatar-helper.js', 'malachite-living-engine.js', 'malachite-premium-profiles.js'];
 const frontendScripts = frontendFiles.map((file) => fs.readFileSync(file, 'utf8'));
 const frontend = [html, ...frontendScripts].join('\n');
