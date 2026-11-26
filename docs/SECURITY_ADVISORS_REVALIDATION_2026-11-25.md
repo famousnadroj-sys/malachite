@@ -101,3 +101,40 @@ La protection contre les mots de passe divulgués est désactivée. Le projet es
 - Lecture de `GET /repos/.../rulesets` : aucune ruleset de dépôt renvoyée (`[]`).
 - Lecture de `branches/main/protection` : refusée par GitHub avec HTTP 403 « Resource not accessible by integration ». L'état de la protection classique de branche est donc **inconnu**, pas réputé désactivé.
 - Les outils GitHub disponibles ne permettent pas de créer ou modifier les protections de branche. Après fermeture du contournement Pages, l'administrateur doit vérifier que `main` exige une PR, les checks `Malachite validation`, `Match isolated PostgreSQL runtime` et `Malachite release integration contract`, et interdit les pushes directs/force pushes.
+
+
+## Recontrôle indépendant — 26 novembre 2026, 05:58 UTC
+
+Les deux projets Supabase sont actifs en PostgreSQL 17.12. Contrôles en lecture seule uniquement.
+
+### Security Advisors
+
+Les deux environnements signalent 12 tables avec RLS activé sans policy (niveau INFO, donc refus par défaut), une fonction SECURITY DEFINER exécutable par `anon`, neuf exécutables par `authenticated`, et la protection Auth contre les mots de passe compromis désactivée.
+
+La fonction publique relue directement en production reste `public.get_malachite_referrer_preview(uuid)` : `SECURITY DEFINER`, `search_path` vide, EXECUTE accordé à `anon` et `authenticated`; elle ne retourne que `prenom` et `username` pour un profil dont `profile_private=false`. Cette surface publique est limitée mais doit rester surveillée.
+
+### Performance Advisors
+
+- Production : 19 index signalés comme non utilisés. Aucun n'a été supprimé.
+- Staging : 25 index signalés comme non utilisés et deux clés étrangères sans index couvrant : `messages.sender_id` et `conversation_pair_index.member_high`.
+- La vérification des index confirme que `messages.sender_id` n'a pas d'index dédié dans la staging et que la clé primaire composite `(member_low, member_high)` ne couvre pas le préfixe `member_high`. La table `conversation_pair_index` et la FK `messages.sender_id` ne sont pas présentes en production au contrôle effectué.
+
+Ne pas transposer automatiquement ces index staging vers la production : ils concernent un schéma de prévisualisation différent. Ajouter un index de production sans vérifier la présence de la colonne et l'ordre des migrations serait incorrect.
+
+### Journaux Supabase — fenêtre des dernières 24 heures
+
+- Staging : 228 événements agrégés ; deux avertissements Auth ; aucun événement avec niveau `error` dans l'agrégation retournée.
+- Production : 13 585 événements agrégés ; un événement `error` dans `realtime_logs`, deux avertissements Storage et deux avertissements Auth.
+- Les champs de détail du seul événement Realtime en erreur étaient vides dans la réponse du flux unifié. Sa cause n'est donc pas déterminable à partir de cette extraction ; ne pas le qualifier de panne applicative sans détail supplémentaire.
+
+### GitHub Pages — contournement encore observé après PR #139
+
+La PR #139 est maintenant fusionnée. Sur le commit `ec23afd50842634b2c84149071964f63ed02a5d6` (push main du 26 novembre à 05:52 UTC) :
+
+- Le workflow contrôlé `MALACHITE production and isolated Match preview`, run `45764414260`, a échoué sur le garde `MALACHITE_DB_SECURITY_READY` absent. Les étapes de build, upload et publication de ce workflow ont été ignorées.
+- Le workflow Pages dynamique `pages build and deployment`, run `45764413941`, s'est néanmoins terminé avec succès sur le même commit.
+- La vérification du site public, run `45764414334`, a réussi.
+
+Le workflow de publication personnalisé n'a donc pas publié cet artefact, mais le chemin Pages dynamique a encore abouti. La source Pages du dépôt doit être réglée manuellement sur **GitHub Actions** dans Settings → Pages → Build and deployment → Source, puis le résultat doit être vérifié par un nouveau push contrôlé. Le connecteur ne permet pas de lire ni modifier ce paramètre. Jusqu'à cette vérification, le verrou de publication n'est pas considéré comme fermé.
+
+Aucune migration, modification de configuration Supabase, fusion ou publication n'a été effectuée par ce contrôle.
