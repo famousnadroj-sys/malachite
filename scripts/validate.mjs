@@ -598,3 +598,19 @@ const expectedPreviewBannerInjection = String.raw`re.subn(r"(<body\b[^>]*>)", la
 if (!previewDeployWorkflow.includes(expectedPreviewBannerInjection)) {
   throw new Error('Isolated preview banner must match the body tag using a word boundary and preserve the matched tag.');
 }
+
+
+const updateServiceWorker = fs.readFileSync('sw.js', 'utf8');
+if (updateServiceWorker.includes('self.skipWaiting();') || !updateServiceWorker.includes('event.data.type === "SKIP_WAITING"')) {
+  throw new Error('Service worker updates must wait for an explicit user action.');
+}
+if (!updateServiceWorker.includes('malachite-static-v104')) {
+  throw new Error('Static cache version must change when a new release is prepared.');
+}
+const updateClient = fs.readFileSync('app-core.js', 'utf8');
+for (const marker of ['malSwUpdateNotice','reg.waiting.postMessage({type:\'SKIP_WAITING\'})','navigator.serviceWorker.addEventListener(\'controllerchange\'','setInterval(function(){reg.update()']) {
+  if (!updateClient.includes(marker)) throw new Error('Reliable update prompt missing: ' + marker);
+}
+if (!html.includes('malachite-update-notice-v2') || !html.includes('#malSwUpdateNotice button')) {
+  throw new Error('The update prompt must have accessible, responsive styling.');
+}
