@@ -5,9 +5,9 @@ import { spawnSync } from 'node:child_process';
 
 const html = fs.readFileSync('index.html', 'utf8');
 for (const asset of ['./app-core.js', './calls.js?v=20261122-call-init-v2']) {
-  const escaped = asset.replace(/[.*+?^${}()|[\]\\]/g, '\\const html = fs.readFileSync('index.html', 'utf8');');
-  const matches = html.match(new RegExp('<link\\s+rel="preload"\\s+as="script"\\s+href="' + escaped + '"', 'g')) || [];
-  if (matches.length !== 1) throw new Error('Critical app module must be preloaded exactly once: ' + asset);
+  const marker = '<link rel="preload" as="script" href="' + asset + '"';
+  const matches = html.split(marker).length - 1;
+  if (matches !== 1) throw new Error('Critical app module must be preloaded exactly once: ' + asset);
 }
 if (!html.includes('href="./app-core.js" fetchpriority="high"') ||
     !html.includes('href="./calls.js?v=20261122-call-init-v2" fetchpriority="low"')) {
