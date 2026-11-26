@@ -1,7 +1,7 @@
 create schema if not exists auth;
 create or replace function auth.uid()
 returns uuid language sql stable
-as $$ select null::uuid $$;
+as $ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $;
 
 -- Minimal production-shaped fixture: the existing status-transition guard
 -- is installed first, then the new expiry guard is applied by the workflow.
@@ -49,3 +49,8 @@ $$;
 create trigger guard_call_session_update
 before update on public.call_sessions
 for each row execute function private.guard_call_session_update();
+
+-- Authenticated test role used by the participant-transition assertions.
+do $$ begin if not exists (select 1 from pg_roles where rolname='authenticated') then create role authenticated; end if; end $$;
+grant usage on schema public, private, auth to authenticated;
+grant select, update on public.call_sessions to authenticated;
