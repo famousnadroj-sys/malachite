@@ -618,7 +618,7 @@ const installHandler = installHandlerStart >= 0 && installHandlerEnd > installHa
 if (!installHandler || installHandler.includes('skipWaiting') || !updateServiceWorker.includes('event.data.type === "SKIP_WAITING"')) {
   throw new Error('Service worker updates must wait for an explicit user action.');
 }
-if (!updateServiceWorker.includes('malachite-static-v106')) {
+if (!updateServiceWorker.includes('malachite-static-v107')) {
   throw new Error('Static cache version must change when a new release is prepared.');
 }
 const updateClient = fs.readFileSync('app-core.js', 'utf8');
@@ -647,7 +647,7 @@ if (!headMarkup.includes('rel="stylesheet" href="https://fonts.googleapis.com/cs
     headMarkup.includes('rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces')) {
   throw new Error('Optional Google Fonts must remain non-render-blocking with the system-font fallback.');
 }
-if (!serviceWorker.includes('malachite-static-v106')) {
+if (!serviceWorker.includes('malachite-static-v107')) {
   throw new Error('App-shell cache version must advance when its contents change.');
 }
 
@@ -678,3 +678,16 @@ if (!supabaseLoader.includes('script.crossOrigin="anonymous"') ||
   throw new Error('Supabase SDK loader must reuse the preload request and preserve its CDN fallback.');
 }
 
+
+const profileSource = fs.readFileSync('app-core.js', 'utf8');
+const batchStart = profileSource.indexOf('async function resolveProfilePhotosBatch(profiles){');
+const batchEnd = profileSource.indexOf('function messageMediaLocation', batchStart);
+const batchResolver = batchStart >= 0 && batchEnd > batchStart ? profileSource.slice(batchStart, batchEnd) : '';
+const fullStart = profileSource.indexOf('async function resolveProfilePhotos(p){');
+const fullResolver = fullStart >= 0 && batchStart > fullStart ? profileSource.slice(fullStart, batchStart) : '';
+if (!batchResolver.includes('if(index!==0||!raw)return;') ||
+    !batchResolver.includes('job.profile._photoGalleryResolved=false;') ||
+    !fullResolver.includes('p._photoGalleryResolved=true;') ||
+    !profileSource.includes('else if(!p._photoGalleryResolved)await resolveProfilePhotos(p);')) {
+  throw new Error('Discovery must sign only each member primary photo; the full gallery must load only when a profile is opened.');
+}
