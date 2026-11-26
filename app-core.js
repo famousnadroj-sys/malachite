@@ -310,11 +310,14 @@ async function load(){
   var tasks=await Promise.all([
    sb.rpc('blocked_user_ids'),
    sb.rpc('my_blocked_profiles'),
-   sb.rpc('public_status_badges')
+   sb.rpc('public_status_badges'),
+   // Migration #152 RLS allows authenticated reads only for Airtel/Orange recipient keys.
+   sb.from('config').select('cle,valeur').in('cle',['airtel','orange'])
   ]);
   if(seq!==loadSeq||!me||me.id!==uid)return;
   blocked=tasks[0].error?[]:(tasks[0].data||[]);blockedProfiles=tasks[1].error?[]:(tasks[1].data||[]);
   st={};(tasks[2].data||[]).forEach(function(x){st[x.user_id]=x});NUM='';ORANGE='';
+  if(!tasks[3].error)(tasks[3].data||[]).forEach(function(x){if(x.cle==='airtel')NUM=x.valeur||'';if(x.cle==='orange')ORANGE=x.valeur||''});
   if(tab==='home'||tab==='search')draw(true);
   await Promise.all([othersPhotos,loadRdv(),loadAns(),loadMyAvis()]);
   await loadMatchData();
