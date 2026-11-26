@@ -28,7 +28,14 @@ Le worker planifié est appelé par `pg_cron` via `pg_net`. Son endpoint Edge Fu
 
 Après application de la migration `20261125170000_prevent_malachite_ai_worker_replay.sql` :
 
-Avant d'appliquer cette migration, créer dans Supabase Vault, séparément dans chaque environnement, le secret `malachite_ai_worker_url` contenant l'URL Edge Function de CE projet (`https://<project-ref>.supabase.co/functions/v1/malachite-ai-worker`). Ne jamais copier l'URL de production dans staging. Si ce secret est absent ou invalide, la migration laisse le cron worker non planifié (fail closed).
+Avant d'appliquer cette migration, créer dans Supabase Vault, séparément dans chaque environnement, deux secrets indépendants :
+
+- `malachite_ai_worker_url` : URL Edge Function de CE projet (`https://<project-ref>.supabase.co/functions/v1/malachite-ai-worker`).
+- `malachite_ai_worker_project_ref` : project-ref exact attribué à cette base Supabase, saisi séparément de l'URL.
+
+La migration extrait le project-ref de l'URL et le compare au second secret. Une URL d'un autre projet, un secret absent ou une URL invalide laisse le worker non planifié (fail closed). Ne jamais copier les valeurs de production dans staging.
+
+Si `pg_cron` ou `pg_net` n'est pas installé dans un environnement, la migration installe la protection anti-rejeu mais ne crée aucun cron. Le worker planifié reste donc inactif dans cet environnement, sans appel inter-projet. En production, vérifier que les deux extensions sont installées avant d'attendre une planification.
 
 - chaque appel cron inclut un UUID `request_id` dans le corps signé ;
 - une table du schéma privé consomme atomiquement chaque UUID une seule fois ;
