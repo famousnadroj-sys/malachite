@@ -1,0 +1,30 @@
+name: MALACHITE live Pages verification
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_run:
+    workflows: ["pages build and deployment"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-live-site:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout verification script
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify the actual public site over HTTPS
+        env:
+          SITE_URL: https://famousnadroj-sys.github.io/malachite/
+        run: node scripts/smoke-live-pages.mjs
