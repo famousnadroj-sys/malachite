@@ -19,7 +19,7 @@ for (const [index, source] of frontendScripts.entries()) {
 
 const requiredFrontend = [
   "profiles').select('id,username,prenom,age",
-  "from('prives').upsert({id:me.id,prefs:merged})",
+  "rpc('update_my_preferences',{p_preferences:pr})",
   "from('chat-media').upload",
   "from('profile-photos').upload",
   "createSignedUrl",
@@ -640,4 +640,30 @@ if (!headMarkup.includes('rel="stylesheet" href="https://fonts.googleapis.com/cs
 }
 if (!serviceWorker.includes('malachite-static-v106')) {
   throw new Error('App-shell cache version must advance when its contents change.');
+}
+
+
+// Profile and discovery writes must use owner-scoped SECURITY DEFINER RPCs.
+const profileWriteClient = fs.readFileSync('app-core.js', 'utf8');
+const avatarWriteClient = fs.readFileSync('malachite-avatar-ui.js', 'utf8');
+if (profileWriteClient.includes("sb.from('prives').upsert") ||
+    avatarWriteClient.includes("sb.from('profiles').update({avatar:")) {
+  throw new Error('Direct client writes to private preferences or profile avatars must remain disabled.');
+}
+for (const marker of ["rpc('update_my_preferences'", "rpc('update_my_avatar'"]) {
+  if (!profileWriteClient.includes(marker) && !avatarWriteClient.includes(marker)) {
+    throw new Error('Trusted profile write RPC is missing: ' + marker);
+  }
+}
+
+
+// Members receive only boolean entitlement badges; raw timestamps and payment
+// destination configuration must not be selected directly from client code.
+if (profileWriteClient.includes("sb.from('statuts').select('*')") ||
+    profileWriteClient.includes("sb.from('config').select('cle,valeur')") ||
+    !profileWriteClient.includes("rpc('public_status_badges'") ||
+    !profileWriteClient.includes('premium_active') ||
+    !profileWriteClient.includes('verified_active') ||
+    !profileWriteClient.includes('boost_active')) {
+  throw new Error('Client must use privacy-safe entitlement badge RPCs and never read raw status/config tables.');
 }
