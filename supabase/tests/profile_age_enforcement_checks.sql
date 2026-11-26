@@ -79,10 +79,13 @@ declare result jsonb;
 begin
  result := public.save_my_profile(
   '{"id":"20000000-0000-0000-0000-000000000001","prenom":"Private","age":null,"profile_private":true}'::jsonb,
-  '{"profile_age":100}'::jsonb
+  '{"profile_age":100,"prefs":{"profile_private":{"age":100}}}'::jsonb
  );
  if result->>'age' is not null or result->>'profile_private' <> 'true' then
   raise exception 'valid_private_adult_profile_not_saved';
+ end if;
+ if (select prefs #>> '{profile_private,age}' from public.prives where id='20000000-0000-0000-0000-000000000001') <> '100' then
+  raise exception 'private_profile_age_not_saved_in_owner_preferences';
  end if;
 end
 $private_adult$;
