@@ -1,7 +1,7 @@
 create schema if not exists auth;
 create or replace function auth.uid()
 returns uuid language sql stable
-as $ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $;
+as $uid$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $uid$;
 
 -- Minimal production-shaped fixture: the existing status-transition guard
 -- is installed first, then the new expiry guard is applied by the workflow.
