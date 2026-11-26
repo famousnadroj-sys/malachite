@@ -601,7 +601,12 @@ if (!previewDeployWorkflow.includes(expectedPreviewBannerInjection)) {
 
 
 const updateServiceWorker = fs.readFileSync('sw.js', 'utf8');
-if (updateServiceWorker.includes('self.skipWaiting();') || !updateServiceWorker.includes('event.data.type === "SKIP_WAITING"')) {
+const installHandlerStart = updateServiceWorker.indexOf('self.addEventListener("install"');
+const installHandlerEnd = updateServiceWorker.indexOf('self.addEventListener("message"', installHandlerStart);
+const installHandler = installHandlerStart >= 0 && installHandlerEnd > installHandlerStart
+  ? updateServiceWorker.slice(installHandlerStart, installHandlerEnd)
+  : '';
+if (!installHandler || installHandler.includes('skipWaiting') || !updateServiceWorker.includes('event.data.type === "SKIP_WAITING"')) {
   throw new Error('Service worker updates must wait for an explicit user action.');
 }
 if (!updateServiceWorker.includes('malachite-static-v104')) {
