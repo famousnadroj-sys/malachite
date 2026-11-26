@@ -19,7 +19,7 @@ for (const [index, source] of frontendScripts.entries()) {
 
 const requiredFrontend = [
   "profiles').select('id,username,prenom,age",
-  "from('prives').upsert({id:me.id,prefs:merged})",
+  "rpc('update_my_preferences',{p_preferences:pr})",
   "from('chat-media').upload",
   "from('profile-photos').upload",
   "createSignedUrl",
