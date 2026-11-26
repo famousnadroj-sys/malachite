@@ -643,6 +643,14 @@ if (!serviceWorker.includes('malachite-static-v106')) {
 }
 
 const supabaseLinkTags = headMarkup.match(/<link\\b[^>]*>/g) || [];
+const performanceScriptTag = html.match(/<script\\b[^>]*src="malachite-performance\\.js"[^>]*>/);
+const performanceSource = fs.readFileSync('malachite-performance.js', 'utf8');
+if (!performanceScriptTag || !/\\bdefer\\b/.test(performanceScriptTag[0]) ||
+    !performanceSource.includes('img.decoding = "async"') ||
+    !performanceSource.includes('img.loading = rect.top > window.innerHeight * 1.25 ? "lazy" : "eager"') ||
+    !performanceSource.includes('new MutationObserver')) {
+  throw new Error('Mobile performance guard must remain deferred and apply async decoding/lazy loading to dynamic images.');
+}
 const supabasePreload = supabaseLinkTags.filter((tag) =>
   /\\brel="preload"/.test(tag) &&
   /\\bas="script"/.test(tag) &&
