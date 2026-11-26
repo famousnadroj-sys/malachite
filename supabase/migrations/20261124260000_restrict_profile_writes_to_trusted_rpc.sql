@@ -190,12 +190,38 @@ declare
  v_profile public.profiles;
  v_username text := nullif(lower(trim(coalesce(p_profile->>'username',''))),'');
  v_avatar jsonb;
+ v_profile_age_text text := nullif(trim(coalesce(p_private->>'profile_age','')),'');
+ v_profile_age integer;
+ v_public_age_text text := nullif(trim(coalesce(p_profile->>'age','')),'');
+ v_is_private boolean := coalesce((p_profile->>'profile_private')::boolean,false);
 begin
  if v_uid is null then raise exception 'Authentification requise'; end if;
  if nullif(p_profile->>'id','')::uuid is distinct from v_uid then raise exception 'Profil non autorisé'; end if;
  if nullif(p_profile->>'prenom','') is null then raise exception 'Le prénom est obligatoire'; end if;
  if v_username is not null and v_username !~ ('^[a-z0-9_]{3,24}' || chr(36)) then raise exception 'Nom d’utilisateur invalide'; end if;
- if nullif(p_private->>'profile_age','') is not null and (p_private->>'profile_age')::integer not between 18 and 100 then raise exception 'Âge autorisé : 18 à 100 ans'; end if;
+ -- Always require an integer age from 18 to 100 in the owner-only record.
+ if v_profile_age_text is null
+    or length(v_profile_age_text) not between 1 and 3
+    or v_profile_age_text ~ '[^0-9]' then
+  raise exception 'Âge obligatoire : 18 à 100 ans';
+ end if;
+ v_profile_age := v_profile_age_text::integer;
+ if v_profile_age < 18 or v_profile_age > 100 then
+  raise exception 'Âge minimum : 18 ans (maximum 100 ans)';
+ end if;
+
+ -- Public profiles expose the same validated age; private profiles keep it
+ -- exclusively in the owner-only record.
+ if not v_is_private and v_public_age_text is null then
+  raise exception 'Âge obligatoire sur un profil public';
+ end if;
+ if v_public_age_text is not null then
+  if length(v_public_age_text) not between 1 and 3
+     or v_public_age_text ~ '[^0-9]'
+     or v_public_age_text::integer <> v_profile_age then
+   raise exception 'Les informations d’âge ne correspondent pas';
+  end if;
+ end if;
 
  if p_profile ? 'avatar' then
   if jsonb_typeof(p_profile->'avatar') is distinct from 'object' or octet_length((p_profile->'avatar')::text) > 8192 then
