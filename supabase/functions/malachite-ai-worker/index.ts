@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
+import { readLimitedUtf8Body } from "./body.ts";
 
 const CONFIGURED_MODEL = Deno.env.get("MALACHITE_AI_MODEL") || "";
 const MODEL = CONFIGURED_MODEL.startsWith("gemini-2.5-") ? "gemini-3.5-flash-lite" : (CONFIGURED_MODEL || "gemini-3.5-flash-lite");
@@ -191,7 +192,12 @@ Deno.serve(async (req: Request) => {
   // function or placed in pg_net's request queue.
   const timestamp = req.headers.get("x-mal-timestamp") || "";
   const signature = req.headers.get("x-mal-signature") || "";
-  const bodyText = await req.text();
+  const bodyRead = await readLimitedUtf8Body(req);
+  if (!bodyRead.ok) {
+    const status = bodyRead.reason === "too_large" ? 413 : 400;
+    return json(status, { error: bodyRead.reason === "too_large" ? "body_too_large" : "invalid_body" });
+  }
+  const bodyText = bodyRead.text;
   const admin = createClient(url, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
