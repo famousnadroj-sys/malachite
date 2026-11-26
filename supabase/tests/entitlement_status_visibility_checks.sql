@@ -26,5 +26,15 @@ begin
      or has_function_privilege('anon','public.public_status_badges()','EXECUTE') then
     raise exception 'public_status_badges_permissions_invalid';
   end if;
+  if has_table_privilege('anon','public.campagnes','SELECT')
+     or has_table_privilege('anon','public.campagnes','INSERT')
+     or has_table_privilege('anon','public.campagnes','UPDATE')
+     or has_table_privilege('anon','public.campagnes','DELETE')
+     or has_table_privilege('authenticated','public.campagnes','SELECT')
+     or has_table_privilege('authenticated','public.campagnes','INSERT')
+     or has_table_privilege('authenticated','public.campagnes','UPDATE')
+     or has_table_privilege('authenticated','public.campagnes','DELETE') then
+    raise exception 'retired_campaign_table_must_not_be_client_accessible';
+  end if;
 end
 $$;
