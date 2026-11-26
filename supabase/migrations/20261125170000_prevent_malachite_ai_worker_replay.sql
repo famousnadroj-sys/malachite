@@ -91,13 +91,18 @@ revoke all on function public.verify_malachite_ai_worker_signature(text,text,tex
 grant execute on function public.verify_malachite_ai_worker_signature(text,text,text)
   to service_role;
 
--- Replace the previous named job before scheduling the nonce-aware request.
--- Without this, the legacy cron command (which has no request_id) could remain
--- active alongside the hardened worker and generate repeated unauthorized calls.
+-- Replace the previous named job only when pg_cron is installed.
+-- Staging may intentionally omit pg_cron/pg_net; the nonce RPC remains usable,
+-- but no outbound worker call is scheduled in that environment.
 do $replace_legacy_cron$
 declare
   r record;
 begin
+  if to_regclass('cron.job') is null
+     or to_regprocedure('cron.unschedule(bigint)') is null then
+    raise notice 'pg_cron unavailable; legacy worker cron cannot be replaced and no new job will be scheduled';
+    return;
+  end if;
   for r in select jobid from cron.job where jobname = 'malachite-ai-ops-worker'
   loop
     perform cron.unschedule(r.jobid);
@@ -105,24 +110,38 @@ begin
 end
 $replace_legacy_cron$;
 
--- Configure this Vault secret separately in each Supabase environment:
--- malachite_ai_worker_url = https://<that-project-ref>.supabase.co/functions/v1/malachite-ai-worker
--- Never embed the production project URL in a migration that also runs on staging.
+-- Configure both Vault values independently in each Supabase environment:
+-- malachite_ai_worker_url = https://<project-ref>.supabase.co/functions/v1/malachite-ai-worker
+-- malachite_ai_worker_project_ref = the exact project ref assigned to this database.
+-- The second value is an independent allowlist; URL format alone is not identity proof.
 do $schedule_nonce_worker$
 declare
   v_url text;
+  v_expected_ref text;
+  v_url_ref text;
   v_command text;
 begin
   select decrypted_secret into v_url
   from vault.decrypted_secrets
   where name = 'malachite_ai_worker_url'
   limit 1;
+  select decrypted_secret into v_expected_ref
+  from vault.decrypted_secrets
+  where name = 'malachite_ai_worker_project_ref'
+  limit 1;
 
-  -- Fail closed: do not schedule any outbound worker call unless this environment
-  -- has an explicitly configured, project-local Edge Function URL.
-  if v_url is null
-     or v_url !~ '^https://[a-z0-9]+\.supabase\.co/functions/v1/malachite-ai-worker$' then
-    raise notice 'malachite_ai_worker_url missing or invalid; worker cron left unscheduled';
+  v_url_ref := substring(v_url from '^https://([a-z0-9]+)\.supabase\.co/functions/v1/malachite-ai-worker$');
+  if v_url_ref is null or v_expected_ref is null
+     or v_url_ref is distinct from v_expected_ref then
+    raise notice 'worker URL project ref does not match the independently configured project ref; cron left unscheduled';
+    return;
+  end if;
+
+  -- Missing scheduler/HTTP extensions are a supported fail-closed staging state.
+  if to_regclass('cron.job') is null
+     or to_regprocedure('cron.schedule(text,text,text)') is null
+     or to_regnamespace('net') is null then
+    raise notice 'pg_cron or pg_net unavailable; worker cron left unscheduled';
     return;
   end if;
 
