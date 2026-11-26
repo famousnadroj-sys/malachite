@@ -32,7 +32,7 @@ update public.call_sessions set status='accepted' where id='40000000-0000-0000-0
 select set_config('request.jwt.claim.sub','50000000-0000-0000-0000-000000000001',true);
 update public.call_sessions set status='ended' where id='40000000-0000-0000-0000-000000000001';
 
-select set_config('request.jwt.claim.sub','50000000-0000-0000-0000-000000000002',true);
+select set_config('request.jwt.claim.sub','60000000-0000-0000-0000-000000000002',true);
 do $$
 begin
  begin
