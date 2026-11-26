@@ -42,7 +42,7 @@ create policy "voir ses paiements" on public.paiements
 for select to authenticated
 using (user_id=(select auth.uid()));
 
-insert into public.paiements(user_id,offre,code,operateur,receipt_path)
+insert into public.paiements(user_id,offre,code,operateur,receipt_path,statut,cible)
 values('50000000-0000-0000-0000-000000000001','Premium','OLD-REF-1234','airtel','50000000-0000-0000-0000-000000000001/old-receipt.png','attente',null);
 
 create table public.config(cle text primary key,valeur text);
