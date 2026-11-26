@@ -270,9 +270,10 @@ jobs:
         run: |
           set -euo pipefail
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/payment_pause_fixture.sql
-          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261124230000_restrict_direct_payment_mutations.sql
-          # Verify the receipt upload/read/delete rules before the explicit intake pause.
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261120170000_enforce_payment_receipt_policy.sql
+          # Verify receipt security before any intake or call shutdown.
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/payment_receipts_security_checks.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261124230000_restrict_direct_payment_mutations.sql
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261124270000_pause_payment_intake_until_activation.sql
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/payment_pause_checks.sql
 
