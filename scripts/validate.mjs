@@ -586,3 +586,15 @@ if (!mobileNavigationStyle.includes('@media(max-width:600px){#nav{justify-conten
     !mobileNavigationStyle.includes('overscroll-behavior-x:contain')) {
   throw new Error('Mobile navigation must scroll horizontally on small screens with stable touch targets and controlled overscroll.');
 }
+
+const productionDeployWorkflow = fs.readFileSync('.github/workflows/deploy-production.yml', 'utf8');
+const productionTriggerHeader = productionDeployWorkflow.slice(0, productionDeployWorkflow.indexOf('permissions:'));
+if (productionTriggerHeader.includes('preview/malachite-match-staging-clean') ||
+    !productionTriggerHeader.includes('workflow_dispatch:')) {
+  throw new Error('Production Pages must publish automatically only from main and retain manual dispatch.');
+}
+const previewDeployWorkflow = fs.readFileSync('.github/workflows/deploy-public-test.yml', 'utf8');
+const expectedPreviewBannerInjection = String.raw`re.subn(r"(<body\b[^>]*>)", lambda match: match.group(1) + banner`;
+if (!previewDeployWorkflow.includes(expectedPreviewBannerInjection)) {
+  throw new Error('Isolated preview banner must match the body tag using a word boundary and preserve the matched tag.');
+}

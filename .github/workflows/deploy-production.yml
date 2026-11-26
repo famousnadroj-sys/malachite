@@ -2,11 +2,12 @@ name: MALACHITE production and isolated Match preview
 # Rebuild production and the Match preview from their separate source branches.
 # Match has its own authenticated in-app screen and staging-only Supabase project.
 # Use a unique artifact name to avoid collisions with stale github-pages artifacts.
+# Production publication is only triggered by reviewed changes merged to main.
+# Preview-branch pushes must never invoke the production Pages deployment workflow.
 on:
   push:
     branches:
       - main
-      - preview/malachite-match-staging-clean
   workflow_dispatch:
 permissions:
   contents: read
