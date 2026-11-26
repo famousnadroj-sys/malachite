@@ -5,20 +5,13 @@
  var photoCache=Object.create(null),callInbox=null,callInboxUserId=null,sessionChannel=null,callState=null,incoming=null,jitsiApi=null,callBusy=false,joiningCallId=null,callClockTimer=null,callStartedAt=0,audioOutputDevices=[],offerStatusFor=null,offerStatusPending=false;
  if(typeof PRIX==='object')PRIX.Appels='1 $ / 7 jours';
 
- function readPhotoCache(key){
-  // Signed Storage URLs expire on the server clock. Do not persist them in
-  // localStorage: a device clock that is behind can keep an expired JWT alive
-  // for days. Use only a monotonic, in-memory TTL for this page session.
-  var v=photoCache[key],now=performance.now();
-  if(v&&v.expMono>now+30000)return v;
-  delete photoCache[key];
-  try{localStorage.removeItem('mal_photo_cache:'+key)}catch(e){}
+ function readPhotoCache(key,now){
+  var v=photoCache[key];
+  if(v&&v.exp>now+30000)return v;
+  try{var raw=localStorage.getItem('mal_photo_cache:'+key);if(raw){v=JSON.parse(raw);if(v&&v.url&&v.exp>now+30000){photoCache[key]=v;return v}localStorage.removeItem('mal_photo_cache:'+key)}}catch(e){}
   return null;
  }
- function writePhotoCache(key,value){
-  photoCache[key]={url:value.url,expMono:performance.now()+3500000};
-  try{localStorage.removeItem('mal_photo_cache:'+key)}catch(e){}
- }
+ function writePhotoCache(key,value){photoCache[key]=value;try{localStorage.setItem('mal_photo_cache:'+key,JSON.stringify(value))}catch(e){}}
  async function resolveProfilesPhotosFast(list){
   list=list||[];
   var groups=Object.create(null),resolved=Object.create(null),refs=[],now=Date.now();
