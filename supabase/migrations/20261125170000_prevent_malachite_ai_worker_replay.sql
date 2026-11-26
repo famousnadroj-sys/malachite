@@ -45,7 +45,7 @@ begin
   end;
   if v_request_id is null then
     return false;
-  end;
+  end if;
 
   select decrypted_secret into v_secret
   from vault.decrypted_secrets
