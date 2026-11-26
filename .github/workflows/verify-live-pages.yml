@@ -1,11 +1,9 @@
 name: MALACHITE live Pages verification
 
 on:
-  pull_request:
+  push:
     branches: [main]
-  workflow_run:
-    workflows: ["pages build and deployment"]
-    types: [completed]
+  pull_request:
     branches: [main]
   workflow_dispatch:
 
@@ -14,7 +12,6 @@ permissions:
 
 jobs:
   verify-live-site:
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
