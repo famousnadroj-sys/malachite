@@ -95,3 +95,8 @@ Nouvelle vérification strictement en lecture seule sur le projet de production 
 - La recherche de code GitHub sur les signatures courantes `deleteUser` / `supabase.auth.admin.deleteUser` n'a pas fourni de résultat exploitable ; l'indexation de code est signalée incomplète, donc cette absence de résultat n'est pas une preuve absolue sur tout le client.
 
 Conclusion inchangée : aucun parcours serveur complet de suppression de compte n'est vérifié. Les FKs ne couvrent pas à elles seules les références non-FK, les médias Storage, les règles de conservation, la révocation de sessions et les échecs partiels. Aucun compte ni objet Storage n'a été supprimé ; aucun schéma ou paramètre de production n'a été modifié.
+
+
+## Revalidation du contrat de release après synchronisation — 26 novembre 2026
+
+Le run de release de cette PR, `45765701580`, avait échoué avant la synchronisation de la branche publique. Le contrôle postérieur confirme que `website/public-launch-cleanup-2026-11-24/index.html` correspond maintenant exactement à `main` et que le contrat de release a réussi sur la PR #137 (run `45766143128`, puis `45766482561`). Le résultat négatif de `45765701580` est donc historique ; il ne doit pas être présenté comme l'état actuel du contrat. La validation propre à cette PR #138 doit néanmoins être relancée sur son HEAD actuel avant toute fusion.
