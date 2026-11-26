@@ -6,7 +6,7 @@ values
 
 set local role authenticated;
 select set_config('request.jwt.claim.sub','50000000-0000-0000-0000-000000000001',true);
-do $caller_cannot_rewrite$
+do $
 begin
  begin
   update public.call_sessions set room='attacker-room' where id='40000000-0000-0000-0000-000000000001';
@@ -24,7 +24,7 @@ begin
  exception when insufficient_privilege then null;
  end;
 end
-$caller_cannot_rewrite$;
+$;
 
 select set_config('request.jwt.claim.sub','60000000-0000-0000-0000-000000000001',true);
 update public.call_sessions set status='accepted' where id='40000000-0000-0000-0000-000000000001';
@@ -33,7 +33,7 @@ select set_config('request.jwt.claim.sub','50000000-0000-0000-0000-000000000001'
 update public.call_sessions set status='ended' where id='40000000-0000-0000-0000-000000000001';
 
 select set_config('request.jwt.claim.sub','50000000-0000-0000-0000-000000000002',true);
-do $callee_cannot_expire$
+do $
 begin
  begin
   update public.call_sessions set status='expired' where id='40000000-0000-0000-0000-000000000002';
@@ -41,13 +41,13 @@ begin
  exception when insufficient_privilege then null;
  end;
 end
-$callee_cannot_expire$;
+$;
 
 select set_config('request.jwt.claim.sub','60000000-0000-0000-0000-000000000002',true);
 update public.call_sessions set status='rejected' where id='40000000-0000-0000-0000-000000000002';
 
 reset role;
-do $assert$
+do $
 begin
  if (select status from public.call_sessions where id='40000000-0000-0000-0000-000000000001') <> 'ended' then
   raise exception 'valid_call_end_transition_broken';
@@ -56,5 +56,5 @@ begin
   raise exception 'valid_callee_reject_transition_broken';
  end if;
 end
-$assert$;
+$;
 rollback;
