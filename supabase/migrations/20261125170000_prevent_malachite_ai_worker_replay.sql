@@ -45,7 +45,7 @@ begin
   end;
   if v_request_id is null then
     return false;
-  end if;
+  end;
 
   select decrypted_secret into v_secret
   from vault.decrypted_secrets
@@ -53,7 +53,7 @@ begin
   limit 1;
   if v_secret is null then
     return false;
-  end if;
+  end;
 
   v_expected := encode(
     extensions.hmac(
@@ -65,7 +65,7 @@ begin
   );
   if v_expected <> lower(p_signature) then
     return false;
-  end if;
+  end;
 
   -- The unique key makes replay rejection atomic even for concurrent requests.
   insert into private.malachite_ai_worker_nonces(request_id)
@@ -105,11 +105,28 @@ begin
 end
 $replace_legacy_cron$;
 
--- Every scheduled invocation gets a fresh nonce included in the signed body.
-select cron.schedule(
-  'malachite-ai-ops-worker',
-  '*/15 * * * *',
-  $cron$
+-- Configure this Vault secret separately in each Supabase environment:
+-- malachite_ai_worker_url = https://<that-project-ref>.supabase.co/functions/v1/malachite-ai-worker
+-- Never embed the production project URL in a migration that also runs on staging.
+do $schedule_nonce_worker$
+declare
+  v_url text;
+  v_command text;
+begin
+  select decrypted_secret into v_url
+  from vault.decrypted_secrets
+  where name = 'malachite_ai_worker_url'
+  limit 1;
+
+  -- Fail closed: do not schedule any outbound worker call unless this environment
+  -- has an explicitly configured, project-local Edge Function URL.
+  if v_url is null
+     or v_url !~ '^https://[a-z0-9]+\.supabase\.co/functions/v1/malachite-ai-worker$' then
+    raise notice 'malachite_ai_worker_url missing or invalid; worker cron left unscheduled';
+    return;
+  end if;
+
+  v_command := format($cron$
     with request_data as (
       select
         extract(epoch from clock_timestamp())::bigint::text as ts,
@@ -118,7 +135,7 @@ select cron.schedule(
           where name = 'malachite_ai_worker_hmac' limit 1) as secret
     )
     select net.http_post(
-      url := 'https://tscsmemsvgacqioncash.supabase.co/functions/v1/malachite-ai-worker',
+      url := %L,
       headers := jsonb_build_object(
         'Content-Type', 'application/json',
         'x-mal-timestamp', ts,
@@ -136,5 +153,12 @@ select cron.schedule(
     )
     from request_data
     where secret is not null;
-  $cron$
-);
+  $cron$, v_url);
+
+  perform cron.schedule(
+    'malachite-ai-ops-worker',
+    '*/15 * * * *',
+    v_command
+  );
+end
+$schedule_nonce_worker$;
