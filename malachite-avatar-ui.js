@@ -65,7 +65,7 @@ async function malPersistAvatar3d(config,image){
  var avatar={type:'humanforge-3d',version:1,config:config,imagePath:path};avatar.imageUrl=await signedUrl('profile-photos',path);
  try{
   if(mine&&mine.id){
-   var r=await sb.rpc('update_my_avatar',{p_avatar:avatar});
+   var r=await sb.rpc('update_my_avatar',{p_avatar:{type:avatar.type,version:avatar.version,config:avatar.config,imagePath:avatar.imagePath}});
    if(r.error)throw r.error;if(!r.data)throw new Error('Profil introuvable.');
    mine=Object.assign({},mine,r.data);try{await resolveProfilePhotos(mine)}catch(photoError){console.warn('Avatar enregistré; actualisation des autres photos différée.',photoError)}
    var ix=profs.findIndex(function(p){return p.id===me.id});if(ix>=0)profs[ix]=mine;else profs.push(mine);
@@ -90,7 +90,7 @@ async function malAttachPendingSignupAvatar(){
  if(up.error)throw up.error;
  var avatar={type:'humanforge-3d',version:1,config:saved.config,imagePath:path};
  avatar.imageUrl=await signedUrl('profile-photos',path);
- var result=await sb.rpc('update_my_avatar',{p_avatar:avatar});
+ var result=await sb.rpc('update_my_avatar',{p_avatar:{type:avatar.type,version:avatar.version,config:avatar.config,imagePath:avatar.imagePath}});
  if(result.error||!result.data){await sb.storage.from('profile-photos').remove([path]);throw result.error||new Error('Profil non prêt.')}
  mine=Object.assign({},mine||{},result.data);await resolveProfilePhotos(mine);
  var idx=profs.findIndex(function(p){return p.id===me.id});if(idx>=0)profs[idx]=mine;else profs.push(mine);
