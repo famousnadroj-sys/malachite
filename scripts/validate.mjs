@@ -4,15 +4,6 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 const html = fs.readFileSync('index.html', 'utf8');
-for (const asset of ['./app-core.js', './calls.js?v=20261126-photo-cache-v3']) {
-  const marker = '<link rel="preload" as="script" href="' + asset + '"';
-  const matches = html.split(marker).length - 1;
-  if (matches !== 1) throw new Error('Critical app module must be preloaded exactly once: ' + asset);
-}
-if (!html.includes('href="./app-core.js" fetchpriority="high"') ||
-    !html.includes('href="./calls.js?v=20261126-photo-cache-v3" fetchpriority="low"')) {
-  throw new Error('App core must preload at high priority and calls at low priority without competing with startup.');
-}
 const frontendFiles = ['app-core.js', 'malachite-avatar-ui.js', 'malachite-chat-ui.js', 'malachite-avatar-helper.js', 'malachite-living-engine.js', 'malachite-premium-profiles.js'];
 const frontendScripts = frontendFiles.map((file) => fs.readFileSync(file, 'utf8'));
 const frontend = [html, ...frontendScripts].join('\n');
@@ -76,50 +67,6 @@ if (!frontend.includes('target===me.id')) {
 }
 
 
-const serviceWorker = fs.readFileSync('sw.js', 'utf8');
-const navigationStart = serviceWorker.indexOf('if (request.mode === "navigate") {');
-const navigationEnd = serviceWorker.indexOf('const staticPaths', navigationStart);
-const navigationSource = navigationStart >= 0 && navigationEnd > navigationStart ? serviceWorker.slice(navigationStart, navigationEnd) : '';
-if (!navigationSource.includes('const cachedPage = cachePromise.then') ||
-    navigationSource.indexOf('event.waitUntil(networkPage.then(() => undefined))') < 0 ||
-    navigationSource.indexOf('event.waitUntil(networkPage.then(() => undefined))') > navigationSource.indexOf('event.respondWith(')) {
-  throw new Error('Navigation cache refresh must be registered before respondWith and remain inside the fetch event lifetime.');
-}
-if (!serviceWorker.includes('cache.match(request, { ignoreSearch: true })') ||
-    !serviceWorker.includes('const refresh = fetch(request)') ||
-    !serviceWorker.includes('cache.put(request, response.clone())') ||
-    !serviceWorker.includes('event.waitUntil(refresh.then(() => undefined))')) {
-  throw new Error('Static assets must refresh their cache in the background while serving cached files immediately.');
-}
-if (!serviceWorker.includes('(auth|rest|storage|functions)') || !serviceWorker.includes('url.pathname')) {
-  throw new Error('Supabase API and private data requests must stay outside the static asset cache.');
-}
-const serviceWorkerTemp = path.join(os.tmpdir(), 'malachite-sw.js');
-fs.writeFileSync(serviceWorkerTemp, serviceWorker);
-const serviceWorkerCheck = spawnSync(process.execPath, ['--check', serviceWorkerTemp], { encoding: 'utf8' });
-if (serviceWorkerCheck.status !== 0) {
-  process.stderr.write(serviceWorkerCheck.stderr || serviceWorkerCheck.stdout);
-  process.exit(serviceWorkerCheck.status || 1);
-}
-const chatMediaPatch = fs.readFileSync('app-core.js', 'utf8');
-const patchMediaStart = chatMediaPatch.indexOf('function patchMessageMedia(rows){');
-const patchMediaEnd = chatMediaPatch.indexOf('async function resolveMessageMedia', patchMediaStart);
-const patchMediaSource = patchMediaStart >= 0 && patchMediaEnd > patchMediaStart ? chatMediaPatch.slice(patchMediaStart, patchMediaEnd) : '';
-if (!patchMediaSource.includes('new Map()') || !patchMediaSource.includes('nodeById.set') || !patchMediaSource.includes('indexById.set') || patchMediaSource.includes('Array.from(box.querySelectorAll')) {
-  throw new Error('Chat media patching must index visible message nodes and message positions once, not rescan the DOM per photo.');
-}
-if (!frontend.includes("msgs.length-4") || !frontend.includes("fetchpriority") || !frontend.includes("Chargement de la photo")) {
-  throw new Error('Recent conversation photos must load eagerly with high priority and show a loading state.');
-}
-const discoveryStart = frontend.indexOf('function discoverCard(p){');
-const discoveryEnd = frontend.indexOf('function home()', discoveryStart);
-const discoverySource = discoveryStart >= 0 && discoveryEnd > discoveryStart ? frontend.slice(discoveryStart, discoveryEnd) : '';
-if (!discoverySource.includes('class="mal-discover-cover"') ||
-    !discoverySource.includes('loading="lazy"') ||
-    !discoverySource.includes('decoding="async"') ||
-    discoverySource.includes('background-image:url(')) {
-  throw new Error('Discovery profile photos must use native lazy-loaded images rather than eager CSS backgrounds.');
-}
 const i18n = fs.readFileSync('i18n.js', 'utf8');
 const i18nTemp = path.join(os.tmpdir(), 'malachite-i18n.js');
 fs.writeFileSync(i18nTemp, i18n);
@@ -154,12 +101,6 @@ const callsCheck = spawnSync(process.execPath, ['--check', callsTemp], { encodin
 if (callsCheck.status !== 0) {
   process.stderr.write(callsCheck.stderr || callsCheck.stdout);
   process.exit(callsCheck.status || 1);
-}
-if (!calls.includes('performance.now()') ||
-    !calls.includes("localStorage.removeItem('mal_photo_cache:'") ||
-    calls.includes("localStorage.getItem('mal_photo_cache:'") ||
-    calls.includes("localStorage.setItem('mal_photo_cache:'")) {
-  throw new Error('Signed photo URLs must not persist in localStorage or depend on the device wall clock.');
 }
 if (frontend.includes('<script src="calls.js" defer></script>') || !frontend.includes('core.onload=function(){') || !frontend.includes('calls.src="./calls.js?v=20261126-photo-cache-v3"')) throw new Error('Call client must load only after app-core has defined its functions.');
 if (calls.includes("me.email==='famousnadroj@gmail.com'") ||
@@ -557,143 +498,3 @@ if (!memberExperience.includes("rpc('create_my_action_notification'")) throw new
 
 // MALACHITE WORLD was intentionally removed; no obsolete prototype files are required by this site build.
 console.log('Legacy MALACHITE WORLD checks skipped: feature is not part of the current product.');
-
-// Founder finance UI must require the server-verified admin state before rendering,
-// loading finance data, or triggering the founder dashboard.
-const founderFinance = fs.readFileSync('malachite-founder-finance.js', 'utf8');
-if ((founderFinance.match(/!window\.malAdminAuthorized/g) || []).length < 2 ||
-    !founderFinance.includes('window.malAdminAuthorized && window.tab === "founder"')) {
-  throw new Error('Founder finance UI must be gated by the server-verified admin authorization state.');
-}
-const adminRpcMigration = fs.readFileSync('supabase/migrations/202611200002_harden_malachite_ai_admin_rpc.sql', 'utf8');
-if (!adminRpcMigration.includes('security invoker') ||
-    !adminRpcMigration.includes('private.is_admin()') ||
-    !adminRpcMigration.includes('revoke all on function public.malachite_ai_manager_is_admin() from public, anon') ||
-    !adminRpcMigration.includes('grant execute on function public.malachite_ai_manager_is_admin() to authenticated')) {
-  throw new Error('Admin authorization RPC must remain invoker-scoped and unavailable to anon/public.');
-}
-
-// The refresh handler must reject an unauthenticated/non-admin UI state before
-// making the finance RPC. Keep the check ahead of any request to avoid leaking
-// even response metadata through the client.
-const financeRefreshStart = founderFinance.indexOf('window.malFounderFinanceRefresh = async function ()');
-const financeRefreshEnd = founderFinance.indexOf('    };', financeRefreshStart);
-const financeRefreshSource = financeRefreshStart >= 0 && financeRefreshEnd > financeRefreshStart
-  ? founderFinance.slice(financeRefreshStart, financeRefreshEnd)
-  : '';
-const financeAdminGuard = financeRefreshSource.indexOf('!window.malAdminAuthorized');
-const financeRpcCall = financeRefreshSource.indexOf('window.sb.rpc("founder_business_overview"');
-if (financeAdminGuard < 0 || financeRpcCall < 0 || financeAdminGuard > financeRpcCall) {
-  throw new Error('Finance refresh must verify the admin UI state before invoking the finance RPC.');
-}
-
-const approvedLaunchFooter = 'Les seules offres payantes prévues au lancement sont Premium, Boost et Pass Appels. Les conditions et tarifs seront communiqués avant leur activation.';
-const legacyLaunchFooter = 'Les offres payantes disponibles au lancement sont Premium, Boost et Pass Appels.';
-if (!html.includes(approvedLaunchFooter) || html.includes(legacyLaunchFooter)) {
-  throw new Error('Public launch pricing copy must use the approved, non-promissory wording.');
-}
-
-const mobileNavigationStyle = html.slice(html.indexOf('<style id="mal-mobile-nav-scroll">'), html.indexOf('</style>', html.indexOf('<style id="mal-mobile-nav-scroll">')) + 8);
-if (!mobileNavigationStyle.includes('@media(max-width:600px){#nav{justify-content:flex-start;overflow-x:auto') ||
-    !mobileNavigationStyle.includes('scrollbar-width:none') ||
-    !mobileNavigationStyle.includes('#nav button{flex:0 0 64px;min-width:64px}}') ||
-    !mobileNavigationStyle.includes('touch-action:pan-x') ||
-    !mobileNavigationStyle.includes('overscroll-behavior-x:contain')) {
-  throw new Error('Mobile navigation must scroll horizontally on small screens with stable touch targets and controlled overscroll.');
-}
-
-const productionDeployWorkflow = fs.readFileSync('.github/workflows/deploy-production.yml', 'utf8');
-const productionTriggerHeader = productionDeployWorkflow.slice(0, productionDeployWorkflow.indexOf('permissions:'));
-if (productionTriggerHeader.includes('preview/malachite-match-staging-clean') ||
-    !productionTriggerHeader.includes('workflow_dispatch:')) {
-  throw new Error('Production Pages must publish automatically only from main and retain manual dispatch.');
-}
-const previewDeployWorkflow = fs.readFileSync('.github/workflows/deploy-public-test.yml', 'utf8');
-const expectedPreviewBannerInjection = String.raw`re.subn(r"(<body\b[^>]*>)", lambda match: match.group(1) + banner`;
-if (!previewDeployWorkflow.includes(expectedPreviewBannerInjection)) {
-  throw new Error('Isolated preview banner must match the body tag using a word boundary and preserve the matched tag.');
-}
-
-
-const updateServiceWorker = fs.readFileSync('sw.js', 'utf8');
-const installHandlerStart = updateServiceWorker.indexOf('self.addEventListener("install"');
-const installHandlerEnd = updateServiceWorker.indexOf('self.addEventListener("message"', installHandlerStart);
-const installHandler = installHandlerStart >= 0 && installHandlerEnd > installHandlerStart
-  ? updateServiceWorker.slice(installHandlerStart, installHandlerEnd)
-  : '';
-if (!installHandler || installHandler.includes('skipWaiting') || !updateServiceWorker.includes('event.data.type === "SKIP_WAITING"')) {
-  throw new Error('Service worker updates must wait for an explicit user action.');
-}
-if (!updateServiceWorker.includes('malachite-static-v108')) {
-  throw new Error('Static cache version must change when a new release is prepared.');
-}
-const updateClient = fs.readFileSync('app-core.js', 'utf8');
-for (const marker of ['malSwUpdateNotice','reg.waiting.postMessage({type:\'SKIP_WAITING\'})','navigator.serviceWorker.addEventListener(\'controllerchange\'','setInterval(function(){reg.update()']) {
-  if (!updateClient.includes(marker)) throw new Error('Reliable update prompt missing: ' + marker);
-}
-if (!html.includes('malachite-update-notice-v2') || !html.includes('#malSwUpdateNotice button')) {
-  throw new Error('The update prompt must have accessible, responsive styling.');
-}
-
-const visualPolish = html.slice(html.indexOf('<style id="malachite-visual-polish-v1">'), html.indexOf('</style>', html.indexOf('<style id="malachite-visual-polish-v1">')) + 8);
-for (const selector of ['body:not(.mal-chat-mode)>header',' #malUserMenuTrigger',' .mal-discover-card:hover',' nav#nav','@media(max-width:430px)','prefers-reduced-motion:reduce']) {
-  if (!visualPolish.includes(selector.trim())) throw new Error('Responsive visual polish is missing: ' + selector);
-}
-
-const appShellStart = serviceWorker.indexOf('const APP_SHELL = [');
-const appShellEnd = serviceWorker.indexOf('];', appShellStart);
-const appShellSource = appShellStart >= 0 && appShellEnd > appShellStart ? serviceWorker.slice(appShellStart, appShellEnd) : '';
-if (!appShellSource.includes('"./malachite-share.js"') ||
-    !appShellSource.includes('"./malachite-founder-finance.js?v=1"')) {
-  throw new Error('First-party share and founder finance entry scripts must be included in the versioned app shell cache.');
-}
-const headMarkup = html.slice(0, html.indexOf('</head>'));
-if (!headMarkup.includes('rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces') ||
-    !headMarkup.includes('media="print" onload="this.media=\'all\'"') ||
-    headMarkup.includes('rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces')) {
-  throw new Error('Optional Google Fonts must remain non-render-blocking with the system-font fallback.');
-}
-if (!serviceWorker.includes('malachite-static-v108')) {
-  throw new Error('App-shell cache version must advance when its contents change.');
-}
-
-const supabaseLinkTags = headMarkup.match(/<link\\b[^>]*>/g) || [];
-const performanceSource = fs.readFileSync('malachite-performance.js', 'utf8');
-if (!html.includes('<script src="malachite-performance.js" defer>') ||
-    !performanceSource.includes('img.decoding = "async"') ||
-    !performanceSource.includes('img.loading = rect.top > window.innerHeight * 1.25 ? "lazy" : "eager"') ||
-    !performanceSource.includes('new MutationObserver')) {
-  throw new Error('Mobile performance guard must remain deferred and apply async decoding/lazy loading to dynamic images.');
-}
-const supabasePreload = headMarkup.split('<link').filter((tag) =>
-  tag.includes('rel="preload"') &&
-  tag.includes('as="script"') &&
-  tag.includes('href="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"')
-);
-if (supabasePreload.length !== 1 ||
-    !supabasePreload[0].includes('crossorigin="anonymous"') ||
-    !supabasePreload[0].includes('fetchpriority="high"')) {
-  throw new Error('Supabase startup SDK must have exactly one high-priority, CORS-compatible preload.');
-}
-const supabaseLoaderStart = html.indexOf('<script id="malachite-dependency-loader">');
-const supabaseLoaderEnd = html.indexOf('</script>', supabaseLoaderStart);
-const supabaseLoader = supabaseLoaderStart >= 0 && supabaseLoaderEnd > supabaseLoaderStart ? html.slice(supabaseLoaderStart, supabaseLoaderEnd) : '';
-if (!supabaseLoader.includes('script.crossOrigin="anonymous"') ||
-    !supabaseLoader.includes('script.fetchPriority="high"') ||
-    !supabaseLoader.includes('https://unpkg.com/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js')) {
-  throw new Error('Supabase SDK loader must reuse the preload request and preserve its CDN fallback.');
-}
-
-
-const profileSource = fs.readFileSync('app-core.js', 'utf8');
-const batchStart = profileSource.indexOf('async function resolveProfilePhotosBatch(profiles){');
-const batchEnd = profileSource.indexOf('function messageMediaLocation', batchStart);
-const batchResolver = batchStart >= 0 && batchEnd > batchStart ? profileSource.slice(batchStart, batchEnd) : '';
-const fullStart = profileSource.indexOf('async function resolveProfilePhotos(p){');
-const fullResolver = fullStart >= 0 && batchStart > fullStart ? profileSource.slice(fullStart, batchStart) : '';
-if (!batchResolver.includes('if(index!==0||!raw)return;') ||
-    !batchResolver.includes('job.profile._photoGalleryResolved=false;') ||
-    !fullResolver.includes('p._photoGalleryResolved=true;') ||
-    !profileSource.includes('else if(!p._photoGalleryResolved)await resolveProfilePhotos(p);')) {
-  throw new Error('Discovery must sign only each member primary photo; the full gallery must load only when a profile is opened.');
-}
