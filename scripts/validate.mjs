@@ -619,3 +619,8 @@ for (const marker of ['malSwUpdateNotice','reg.waiting.postMessage({type:\'SKIP_
 if (!html.includes('malachite-update-notice-v2') || !html.includes('#malSwUpdateNotice button')) {
   throw new Error('The update prompt must have accessible, responsive styling.');
 }
+
+const visualPolish = html.slice(html.indexOf('<style id="malachite-visual-polish-v1">'), html.indexOf('</style>', html.indexOf('<style id="malachite-visual-polish-v1">')) + 8);
+for (const selector of ['body:not(.mal-chat-mode)>header',' #malUserMenuTrigger',' .mal-discover-card:hover',' nav#nav','@media(max-width:430px)','prefers-reduced-motion:reduce']) {
+  if (!visualPolish.includes(selector.trim())) throw new Error('Responsive visual polish is missing: ' + selector);
+}
