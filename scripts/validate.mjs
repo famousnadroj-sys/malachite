@@ -704,6 +704,11 @@ for (const marker of ["rpc('update_my_preferences'", "rpc('update_my_avatar'"]) 
     throw new Error('Trusted profile write RPC is missing: ' + marker);
   }
 }
+if (!avatarWriteClient.includes("var a={type:'pro-vector',version:3,config:Object.assign({},malAvatarState)};") ||
+    !avatarWriteClient.includes("sb.rpc('update_my_avatar',{p_avatar:a})")) {
+  throw new Error('Vector avatar save must send the constructed avatar object to the owner-scoped RPC.');
+}
+
 if (profileWriteClient.includes("sb.from('statuts').select('*')") ||
     !profileWriteClient.includes("rpc('public_status_badges'") ||
     !profileWriteClient.includes("sb.from('config').select('cle,valeur').in('cle',['airtel','orange'])") ||
