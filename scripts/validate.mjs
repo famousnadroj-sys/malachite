@@ -643,22 +643,21 @@ if (!serviceWorker.includes('malachite-static-v106')) {
 }
 
 const supabaseLinkTags = headMarkup.match(/<link\\b[^>]*>/g) || [];
-const performanceScriptTag = html.match(/<script\\b[^>]*src="malachite-performance\\.js"[^>]*>/);
 const performanceSource = fs.readFileSync('malachite-performance.js', 'utf8');
-if (!performanceScriptTag || !/\\bdefer\\b/.test(performanceScriptTag[0]) ||
+if (!html.includes('<script src="malachite-performance.js" defer>') ||
     !performanceSource.includes('img.decoding = "async"') ||
     !performanceSource.includes('img.loading = rect.top > window.innerHeight * 1.25 ? "lazy" : "eager"') ||
     !performanceSource.includes('new MutationObserver')) {
   throw new Error('Mobile performance guard must remain deferred and apply async decoding/lazy loading to dynamic images.');
 }
-const supabasePreload = supabaseLinkTags.filter((tag) =>
-  /\\brel="preload"/.test(tag) &&
-  /\\bas="script"/.test(tag) &&
-  /\\bhref="https:\\/\\/cdn\\.jsdelivr\\.net\\/npm\\/@supabase\\/supabase-js@2\\.45\\.4\\/dist\\/umd\\/supabase\\.min\\.js"/.test(tag)
+const supabasePreload = headMarkup.split('<link').filter((tag) =>
+  tag.includes('rel="preload"') &&
+  tag.includes('as="script"') &&
+  tag.includes('href="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"')
 );
 if (supabasePreload.length !== 1 ||
-    !/\\bcrossorigin="anonymous"/.test(supabasePreload[0] || '') ||
-    !/\\bfetchpriority="high"/.test(supabasePreload[0] || '')) {
+    !supabasePreload[0].includes('crossorigin="anonymous"') ||
+    !supabasePreload[0].includes('fetchpriority="high"')) {
   throw new Error('Supabase startup SDK must have exactly one high-priority, CORS-compatible preload.');
 }
 const supabaseLoaderStart = html.indexOf('<script id="malachite-dependency-loader">');
