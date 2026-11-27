@@ -69,3 +69,5 @@ The migration has passed a dedicated PostgreSQL test job for disabled-provider r
 ## Durée des appels acceptés — 27 novembre 2026
 
 L'expiration de 90 secondes concerne uniquement la sonnerie et la réponse à l'appel. À l'acceptation, le RPC serveur prolonge la session à une fenêtre active maximale de 60 minutes. Cette fenêtre permet la reconnexion et le renouvellement des jetons JaaS tout en imposant une fin automatique bornée. Le client ne peut pas modifier lui-même l'expiration; le trigger autorise uniquement la transition serveur pending → accepted avec fournisseur privé actif. Le test de non-régression vérifie que l'appel accepté reçoit bien au moins 59 minutes restantes.
+
+Le jeton JWT de jonction dure au maximum 120 secondes et son `exp` est plafonné à l'expiration réelle de la session. Si la session expire dans moins de cinq secondes, aucun nouveau jeton n'est délivré.
