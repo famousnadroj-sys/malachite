@@ -200,3 +200,8 @@ Cela confirme les ACL/policies effectives du staging, pas la production. La prod
 ### Correction staging — stockage campagne rendu privé
 
 Le balayage de sécurité du staging du 27 novembre a révélé que les deux buckets campagne étaient redevenus `public=true` et que les policies SELECT publiques étaient encore actives, malgré zéro objet présent. J'ai appliqué uniquement au staging la migration équivalente à `20261124130000_disable_public_campaign_storage.sql` : buckets passés à `public=false`, policies de lecture publique retirées. Vérification post-migration : les deux buckets sont privés, aucune policy de lecture publique restante, zéro objet conservé/supprimé. Production inchangée.
+
+
+### Correction staging — ACL des tables de conversation
+
+Le contrôle effectif a aussi trouvé des grants historiques `anon` complets (INSERT/SELECT/UPDATE/DELETE/TRUNCATE/REFERENCES/TRIGGER) sur `conversation_threads`, `conversation_members` et `conversation_pair_index`, sans aucune policy RLS pour `anon`. Les tables ont RLS activé et les seuls accès applicatifs attendus sont SELECT authentifié par participant; les écritures passent par les RPC sécurisés. J'ai retiré tous les privilèges `anon` sur ces trois tables et les privilèges inutiles `TRUNCATE/REFERENCES/TRIGGER` d'`authenticated`, en conservant SELECT. Vérification post-correction : zéro grant `anon`, SELECT uniquement pour `authenticated`. Staging seulement; production inchangée.
