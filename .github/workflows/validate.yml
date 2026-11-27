@@ -927,3 +927,31 @@ jobs:
           psql -h localhost -U postgres -d malachite_no_scheduler -v ON_ERROR_STOP=1 -f supabase/tests/ai_worker_no_scheduler_fixture.sql
           psql -h localhost -U postgres -d malachite_no_scheduler -v ON_ERROR_STOP=1 -f supabase/migrations/20261125170000_prevent_malachite_ai_worker_replay.sql
           psql -h localhost -U postgres -d malachite_no_scheduler -v ON_ERROR_STOP=1 -f supabase/tests/ai_worker_no_scheduler_checks.sql
+
+  campaigns-rls:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: malachite_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d malachite_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: sudo apt-get install -y postgresql-client
+      - name: Verify campaign RLS policies and admin-only writes
+        env:
+          PGPASSWORD: postgres
+        run: |
+          set -euo pipefail
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/campaigns_rls_fixture.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261128011000_reconcile_campaigns_rls_policies.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/campaigns_rls_checks.sql
