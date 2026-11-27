@@ -333,3 +333,8 @@ Staging atomic login throttle exercised directly as `service_role` in rollback t
 ### Payment intake migration requires owner decision
 
 Candidate `20261124270000_pause_payment_intake_until_activation.sql` revokes INSERT on all `paiements`, drops the receipt-upload policy, hides `config` from clients, and disables call-session writes. It therefore pauses **Premium and Boost payments too**, not only Appels. This migration must not be merged/applied as an automatic part of security hardening until the owner confirms the receiving Airtel/Orange details and final prices. A blocking PR comment requests keeping the payment pause separate from profile/chat/auth fixes. No payment config or production payment data changed.
+
+
+### Production entitlement status visibility — exact timestamps exposed
+
+Live `public.statuts` SELECT policy `voir les statuts` has `qual=true` for all authenticated users. That exposes other members' exact `premium_until`, `verified_until`, and `boost_until` timestamps. Candidate `20261124200100_limit_entitlement_status_visibility.sql` restricts table reads to owner and adds a boolean-only public badge RPC filtered by profile privacy, suspension, and blocks. This migration is absent from production ledger; blocking privacy fix, no live change performed.
