@@ -126,3 +126,8 @@ La comparaison brute par numéro de version trouve également plusieurs anciens 
 ### Dernier point de blocage relevé sur le client d'appels — 27 novembre
 
 Revue du code HEAD de la PR #158 : `calls.js` fixe `CALL_PROVIDER_ENABLED=false` au chargement et exporte immédiatement cette valeur sur `window.CALL_PROVIDER_ENABLED`. Aucun chemin ne rafraîchit cet état depuis le serveur. Par conséquent, même après activation de la configuration privée JaaS et déploiement des secrets, le client restera bloqué : `startCall()`, `startInbox()` et les offres n'activeront jamais les appels. Un commentaire de revue bloquant a été ajouté à la PR #158 (commentaire GitHub 7224685242) pour exiger un statut serveur authentifié, limité à un booléen non secret, avec tests fournisseur désactivé/activé. Le coupe-circuit serveur doit rester fermé tant que cette correction et le test réel entre appareils ne sont pas terminés.
+
+
+### Correction candidate applied to PR #158 — status refresh
+
+Après le commentaire de revue, la branche #158 a reçu deux commits candidats : `6a6b8c05` ajoute à `malachite-jaas-token` une action `status` authentifiée qui ne renvoie qu'un booléen; `f346e207` fait rafraîchir ce statut par `calls.js` après authentification, au retour en ligne et à la reprise de visibilité. En cas d'erreur ou d'absence de fonction, le client reste désactivé (fail closed). Les workflows Pages et release contract sont verts; la validation complète est en attente et le runtime Match est encore en cours au dernier contrôle. Ne pas considérer cette correction comme validée tant que ces deux contrôles ne sont pas terminés.
