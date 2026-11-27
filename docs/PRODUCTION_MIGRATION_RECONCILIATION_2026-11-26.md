@@ -183,3 +183,15 @@ Cela explique pourquoi une comparaison de noms/version bruts surestime les migra
 J'ai déployé la révision candidate de `malachite-jaas-token` **uniquement** sur le projet isolé `sbawknyxcjslvhknomkd` : version 2, `verify_jwt=true`. La production `tscsmemsvgacqioncash` n'a pas été touchée.
 
 Vérification directe du staging : `public.call_provider_is_enabled()` renvoie `false`; EXECUTE est accordé à `service_role` seulement et refusé à `anon` et `authenticated`. L'Edge Function version 2 est active. Je n'ai pas pu tester la réponse `action=status` avec une session Auth réelle faute de jeton de compte de test disponible; aucun secret JaaS n'a été configuré ni exposé.
+
+
+### Vérification effective des ACL sur staging — 27 novembre
+
+Après les migrations candidate déjà enregistrées sur le staging, j'ai interrogé `information_schema`, `pg_proc` et `pg_policies` en lecture seule :
+
+- `authenticated` n'a que SELECT table-level sur `profiles`, `prives`, `login_names`, `call_sessions`, `paiements` et `user_notifications` selon les grants observés; `profiles.derniere_vue` est la seule colonne UPDATE accordée parmi les tables ciblées.
+- `start_call_session` et `update_my_call_session_status` sont exécutables par `authenticated`, pas par `anon`; la création est fermée par le coupe-circuit privé actuellement à `false`.
+- `call_provider_is_enabled` et `call_session_token_eligible` sont exécutables par `service_role` seulement.
+- La policy Storage `profile photos read published paths` est présente et filtre les profils publics, chemins photos/avatars 3D publiés, blocages et suspensions.
+
+Cela confirme les ACL/policies effectives du staging, pas la production. La production conserve encore les grants et la policy Storage large décrits plus haut.
