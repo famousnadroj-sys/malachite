@@ -149,3 +149,17 @@ Une requête catalogue read-only sur les fonctions actuellement déployées conf
 - La policy Storage live `profile photos read` autorise la lecture des objets `profile-photos` dès que le lecteur n'est pas bloqué par le propriétaire; elle ne contrôle pas le profil public, la publication du chemin ni la suspension. Les buckets de médias observés sont privés, mais cette policy authentifiée reste une surface de lecture trop large.
 
 Ces résultats sont des défauts de configuration/code présents en production au moment du contrôle. Ils n'ont pas été corrigés sur la base live pendant cette session; les migrations candidate restent non appliquées.
+
+
+### Validation complète — 27 novembre, dernier HEAD confirmé
+
+HEAD PR #158 : `6ea8e69cb10fea77241f164f5d7f5df792aa224d`.
+
+- `Malachite validation` run `46044324325` : **28/28 jobs réussis**.
+- `Match isolated PostgreSQL runtime` : succès.
+- `MALACHITE live Pages verification` : succès.
+- `Malachite release integration contract` : succès.
+
+Un échec CI précédent du job `security-definer-search-path` provenait du miroir Microsoft APT (HTTP 403), pas du SQL. J'ai retiré le rafraîchissement global des index APT avant l'installation de `postgresql-client` dans les 25 étapes de la workflow validation; le job fautif repasse vert sur le dernier HEAD.
+
+La PR #158 reste **draft / non fusionnée**. Les contrôles CI isolés ne changent pas le statut NO-GO de production : aucun backup/restauration complète, aucune migration de sécurité appliquée, aucun secret JaaS déployé, aucun appel réel inter-appareils vérifié.
