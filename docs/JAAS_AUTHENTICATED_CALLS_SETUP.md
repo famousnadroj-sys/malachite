@@ -64,3 +64,8 @@ The candidate now includes `supabase/migrations/20261127140000_enable_call_creat
 - transaction advisory locks for both users, in stable order, to prevent simultaneous overlapping calls.
 
 The migration has passed a dedicated PostgreSQL test job for disabled-provider rejection, valid creation when enabled, duplicate active call prevention, missing entitlement, block and suspension rejection. It has also been applied to the isolated staging project only. A live catalog recheck confirms provider remains disabled, authenticated EXECUTE is present, anon EXECUTE is absent, and the guard/concurrency locks are installed. No production migration or provider activation occurred.
+
+
+## Durée des appels acceptés — 27 novembre 2026
+
+L'expiration de 90 secondes concerne uniquement la sonnerie et la réponse à l'appel. À l'acceptation, le RPC serveur prolonge la session à une fenêtre active maximale de 60 minutes. Cette fenêtre permet la reconnexion et le renouvellement des jetons JaaS tout en imposant une fin automatique bornée. Le client ne peut pas modifier lui-même l'expiration; le trigger autorise uniquement la transition serveur pending → accepted avec fournisseur privé actif. Le test de non-régression vérifie que l'appel accepté reçoit bien au moins 59 minutes restantes.
