@@ -26,8 +26,8 @@ begin
    raise exception 'private_call_provider_config_must_not_be_client_accessible';
  end if;
  if has_function_privilege('anon','public.start_call_session(uuid,uuid,text,text,timestamp with time zone)','EXECUTE')
-    or has_function_privilege('authenticated','public.start_call_session(uuid,uuid,text,text,timestamp with time zone)','EXECUTE') then
-   raise exception 'call_creation_rpc_must_not_be_executable_by_clients';
+    or not has_function_privilege('authenticated','public.start_call_session(uuid,uuid,text,text,timestamp with time zone)','EXECUTE') then
+   raise exception 'call_creation_rpc_grants_are_invalid';
  end if;
  if not has_function_privilege('authenticated','public.update_my_call_session_status(uuid,text)','EXECUTE')
     or has_function_privilege('anon','public.update_my_call_session_status(uuid,text)','EXECUTE') then
