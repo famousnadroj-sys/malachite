@@ -275,3 +275,6 @@ HEAD `46eeaf5c07ae0cd56b3009eb487dda41a57021b8` : **4 workflows verts** — Mala
 
 
 Test transactionnel du staging exécuté directement : `profile_write_authorization_checks.sql` complet réussi contre la base staging après application de la migration finale corrigée. Les deux IDs fixture ont été vérifiés absents après rollback; aucune donnée de membre staging n'a été conservée/modifiée par le test.
+
+
+Test staging de médias de message exécuté avec fixtures Auth temporaires dans une transaction rollback : `message_media_type_reconciliation_checks.sql` passe, incluant le rejet `meet.jit.si`, le rejet de chemin de document forgé et le refus de media_type inconnu. Les deux comptes fixture sont absents après rollback; aucun message/notification de test conservé.
