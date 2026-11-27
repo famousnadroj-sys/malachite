@@ -35,3 +35,10 @@ Also store the current project's base API URL in Vault as `malachite_push_projec
 6. Confirm queue drain removes a delivered item and retains it when no device is registered or delivery fails.
 
 No real payment should be submitted solely to test push delivery on production.
+
+
+## Live check — 27 November 2026
+
+Production read-only check: VAPID public/private keys and the internal hook are present; one active administrator device subscription exists; the pending queue is empty. The required `malachite_push_project_url` Vault secret is **absent**, so the insert trigger and fallback cron cannot dispatch to the Edge Function. The exact production value is `https://tscsmemsvgacqioncash.supabase.co`. Add it through the owner-controlled Supabase Vault workflow only after explicit approval, then send the Admin test notification (not a real payment) and verify receipt on the phone.
+
+Staging currently has no VAPID keys or active device subscriptions. Do not copy production push secrets into staging.
