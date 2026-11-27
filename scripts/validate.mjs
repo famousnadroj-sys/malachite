@@ -213,11 +213,13 @@ if (!jaasIssuer.includes('npm:@supabase/supabase-js@2.45.4') ||
     !jaasIssuer.includes('authClient.auth.getUser()') ||
     !jaasIssuer.includes('call_session_token_eligible') ||
     !jaasIssuer.includes('session.status !== "accepted"') ||
-    !jaasIssuer.includes('exp: now + 120') ||
+    !jaasIssuer.includes('exp: expiresAt') ||
+    !jaasIssuer.includes('Math.min(now + 120, sessionExpiry)') ||
+    !jaasIssuer.includes('call_session_expiring') ||
     !jaasIssuer.includes('sub: appId') ||
     !jaasIssuer.includes('room: roomName') ||
     !jaasIssuer.includes('room: { regex: false }') ||
-    !jaasIssuer.includes('signJaasJwt(appId, keyId, privateKey, session.room, user.id, displayName)') ||
+    !jaasIssuer.includes('signJaasJwt(appId, keyId, privateKey, session.room, user.id, displayName, tokenExpiry)') ||
     !jaasIssuer.includes('const roomName = appId + "/" + session.room;') ||
     jaasIssuer.includes('room: "*"') ||
     jaasIssuer.includes('regex: true')) {
