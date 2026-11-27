@@ -131,3 +131,10 @@ Revue du code HEAD de la PR #158 : `calls.js` fixe `CALL_PROVIDER_ENABLED=false`
 ### Correction candidate applied to PR #158 — status refresh
 
 Après le commentaire de revue, la branche #158 a reçu deux commits candidats : `6a6b8c05` ajoute à `malachite-jaas-token` une action `status` authentifiée qui ne renvoie qu'un booléen; `f346e207` fait rafraîchir ce statut par `calls.js` après authentification, au retour en ligne et à la reprise de visibilité. En cas d'erreur ou d'absence de fonction, le client reste désactivé (fail closed). Les workflows Pages et release contract sont verts; la validation complète est en attente et le runtime Match est encore en cours au dernier contrôle. Ne pas considérer cette correction comme validée tant que ces deux contrôles ne sont pas terminés.
+
+
+### Revalidation de la correction de statut — dernier checkpoint 27 novembre
+
+HEAD PR #158 : `7cba3f6115844b5ed78077cdd529e641c3aaaa63`. La fonction de statut ne renvoie désormais `enabled=true` que si le coupe-circuit SQL est activé **et** que les trois paramètres JaaS requis sont présents et que l'AppID a un format acceptable. Le client ignore les réponses tardives après un changement de session Auth et reste fermé en cas d'erreur.
+
+Au dernier contrôle GitHub : `MALACHITE live Pages verification` et `Malachite release integration contract` réussis; `Malachite validation` et `Match isolated PostgreSQL runtime` encore en cours. La révision n'est pas fusionnée. Les clés JaaS réelles et le test d'appel entre deux appareils restent à faire par le propriétaire après configuration.
