@@ -76,10 +76,10 @@ if (!avatarUi.includes("if(!airtel&&!orange)") ||
     !offerUi.includes("N’effectue aucun transfert")) {
   throw new Error("Payment intake must fail closed until the owner confirms the launch settings.");
 }
-if (!calls.includes("var SECURE_JITSI_PROVIDER_READY=false;") ||
-    !calls.includes("if(!SECURE_JITSI_PROVIDER_READY||!me)return;") ||
-    calls.includes("var oldMatch=window.matchBox") ||
-    calls.includes("window.thread=function") ||
+if (!calls.includes("var CALL_PROVIDER_ENABLED=false") ||
+    !calls.includes("if(!CALL_PROVIDER_ENABLED)") ||
+    !calls.includes("if(typeof oldMatch==='function')window.matchBox=oldMatch;") ||
+    !calls.includes("if(typeof oldThread==='function')window.thread=oldThread;") ||
     calls.includes('onclick="call(&quot;audio&quot;)')) {
   throw new Error("Call controls must stay unavailable until the secure provider is configured.");
 }
