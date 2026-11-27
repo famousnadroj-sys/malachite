@@ -15,7 +15,16 @@ grant usage on schema auth to authenticated;
 grant execute on function auth.uid() to authenticated;
 
 create schema if not exists private;
+create schema if not exists storage;
 grant usage on schema private to authenticated;
+
+-- Match Supabase's existing postgres default ACL contract: no PUBLIC function
+-- execution, explicit anon/authenticated defaults in public and storage.
+alter default privileges for role postgres revoke execute on functions from public;
+alter default privileges for role postgres in schema public
+  grant execute on functions to anon, authenticated, service_role;
+alter default privileges for role postgres in schema storage
+  grant execute on functions to anon, authenticated, service_role;
 
 create or replace function private.is_admin() returns boolean
 language sql stable security definer set search_path=''
@@ -53,6 +62,9 @@ create or replace function private.create_my_notification(text,text,text,text) r
 language sql security definer set search_path=''
 as $fn$ select 1::bigint $fn$;
 
+-- Simulate the legacy broad grants that the candidate migration must remove.
+grant execute on all functions in schema private to anon, authenticated;
+
 create or replace function public.get_malachite_referrer_preview(uuid)
 returns table(prenom text,username text)
 language sql security definer set search_path=''
@@ -70,6 +82,7 @@ create or replace function public.match_like_quota() returns jsonb
 language sql security definer set search_path=''
 as $fn$ select '{}'::jsonb $fn$;
 
+revoke execute on function public.contact_de(uuid), public.moderate_user(uuid,text,text), public.traiter_paiement(bigint,boolean,text), public.match_like_quota() from anon;
 grant execute on function public.get_malachite_referrer_preview(uuid) to anon, authenticated;
 grant execute on function public.contact_de(uuid) to authenticated;
 grant execute on function public.moderate_user(uuid,text,text) to authenticated;
@@ -92,7 +105,6 @@ create policy acl_messages_insert on public.messages
 create policy acl_match_read on public.avis_match
   for select to authenticated using (not private.is_suspended('00000000-0000-0000-0000-000000000001'));
 
-create schema if not exists storage;
 create table storage.objects(name text primary key);
 alter table storage.objects enable row level security;
 create policy acl_storage_read on storage.objects
