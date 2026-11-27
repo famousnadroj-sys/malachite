@@ -229,3 +229,8 @@ Advisor live production : 12 RLS-enabled/no-policy notices (tables privées/admi
 
 
 Production storage recheck : les deux buckets campagne sont déjà `public=false`, aucune policy SELECT publique campagne n'existe, et zéro objet campagne est stocké. La migration correspondante a donc déjà son effet live; le risque restant côté campagne est le grant table-level sur `public.campagnes`, pas les fichiers Storage.
+
+
+### AI worker replay protection — production vs staging
+
+Contrôle live des fonctions HMAC : la production valide le timestamp à ±300 secondes et le HMAC, mais n'exige aucun `request_id` unique et n'a pas de table nonce; un payload signé capturé peut donc être rejoué pendant la fenêtre de cinq minutes. Le staging a la migration candidate `prevent_malachite_ai_worker_replay` : taille du body plafonnée à 8 KiB, `request_id` UUID obligatoire, insertion atomique dans `private.malachite_ai_worker_nonces` avec contrainte unique, nettoyage des nonces > 1 jour, aucun grant client. **Production à corriger après backup/restauration**, migration déjà présente dans le candidat; aucune invocation worker ni mutation production effectuée.
