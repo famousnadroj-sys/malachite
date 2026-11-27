@@ -55,13 +55,12 @@ const productionAssets = [
 for (const [path, marker] of productionAssets) await get(path, marker);
 
 const appCore = await get("app-core.js", "rpc('update_my_preferences'");
-if (appCore.includes("from('config').select('cle,valeur')") ||
-    appCore.includes("NUM='';ORANGE=''")) {
+if (appCore.includes("from('config').select('cle,valeur')")) {
   throw new Error("Payment destination numbers must not be loaded into the public browser.");
 }
-const calls = await get("calls.js", "if(window.MAL_PAYMENTS_ENABLED!==true)");
-const avatarUi = await get("malachite-avatar-ui.js", "var MAL_PAYMENTS_ENABLED=false;");
-const offerUi = await get("malachite-user-experience.js", "Paiements temporairement désactivés");
+const calls = await get("calls.js", "var CALL_PROVIDER_ENABLED=false;");
+const avatarUi = await get("malachite-avatar-ui.js", "function malPaymentPanel()");
+const offerUi = await get("malachite-user-experience.js", "Paiements temporairement suspendus");
 for (const retiredValue of [
   "Premium — 2 USD / mois",
   "Boost — 0,50 USD / 24 h",
@@ -72,8 +71,9 @@ for (const retiredValue of [
     throw new Error(`Un prix non approuvé ou un ancien numéro de paiement est encore publié : ${retiredValue}`);
   }
 }
-if (!avatarUi.includes("if(!MAL_PAYMENTS_ENABLED)") ||
-    !offerUi.includes("Ne transfère aucun argent.")) {
+if (!avatarUi.includes("if(!airtel&&!orange)") ||
+    !avatarUi.includes("Les paiements sont temporairement suspendus") ||
+    !offerUi.includes("N’effectue aucun transfert")) {
   throw new Error("Payment intake must fail closed until the owner confirms the launch settings.");
 }
 if (!calls.includes("var SECURE_JITSI_PROVIDER_READY=false;") ||
