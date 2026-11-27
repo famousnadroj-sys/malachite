@@ -176,3 +176,10 @@ Contrôle des effets réels en catalogues PostgreSQL/Storage, sans mutation :
 - `20261124143000_harden_call_session_immutable_fields.sql` : un trigger `guard_call_session_update` existe déjà, mais sa définition live est plus faible que le fichier : elle ne protège pas `id`, `expires_at` ou `ended_at`. La migration de transitions de la PR #158 remplace ce guard et ajoute le RPC de statut; ne pas considérer le trigger actuel comme suffisant.
 
 Cela explique pourquoi une comparaison de noms/version bruts surestime les migrations manquantes. Le déploiement doit se baser sur les effets live et une restauration de staging, pas sur un simple comptage de fichiers.
+
+
+### Déploiement contrôlé du statut JaaS sur staging — 27 novembre
+
+J'ai déployé la révision candidate de `malachite-jaas-token` **uniquement** sur le projet isolé `sbawknyxcjslvhknomkd` : version 2, `verify_jwt=true`. La production `tscsmemsvgacqioncash` n'a pas été touchée.
+
+Vérification directe du staging : `public.call_provider_is_enabled()` renvoie `false`; EXECUTE est accordé à `service_role` seulement et refusé à `anon` et `authenticated`. L'Edge Function version 2 est active. Je n'ai pas pu tester la réponse `action=status` avec une session Auth réelle faute de jeton de compte de test disponible; aucun secret JaaS n'a été configuré ni exposé.
