@@ -251,3 +251,8 @@ Rectification : l'appendice antérieur comptait à tort `prefs->profile_age`; le
 ### Production web client — public Jitsi path still present
 
 Inspection of the current `main` `calls.js` confirms it still references `meet.jit.si`, invokes `start_call_session` directly, and has no `malachite-jaas-token` integration. The production Edge Function inventory also lacks `malachite-jaas-token`. This means the live code path is not the secured JaaS candidate and public rooms can bypass the intended authenticated private-room flow. PR #158 replaces it with authenticated JaaS JWTs and a fail-closed provider status. A blocking review comment was added; no production deploy performed.
+
+
+### PR #158 — regression de validation avatar corrigée
+
+Revue des migrations candidates a trouvé que `20261127150000_secure_profile_save_rpc_after_acl_cutover.sql` réécrivait `save_my_profile` avec une validation avatar moins stricte que la migration précédente. Correction sur la branche #158 : le dernier fichier réaffirme la fonction complète, et le test `profile_write_authorization_checks.sql` vérifie maintenant le rejet d'un `imagePath` d'un autre utilisateur et l'absence de persistance d'un `imageUrl` signé. CI en cours sur HEAD `5199f5fafb1a40da2742f0a160cc076fced324fa`; ne pas marquer la migration validée avant le résultat vert.
