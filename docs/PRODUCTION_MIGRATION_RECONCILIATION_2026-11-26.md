@@ -59,7 +59,11 @@ La PR #158 ajoute un trigger de transitions immuables, mais son test actuel exer
 3. le remplacement des cinq mutations directes de `calls.js` par ce RPC;
 4. un test exécutant d'abord la migration 19, prouvant le refus des UPDATE directs puis le succès des transitions autorisées par RPC.
 
-Indépendamment de ce point, `calls.js` charge toujours `https://meet.jit.si/external_api.js` et rejoint `meet.jit.si` sans JWT Jitsi observé. L'inventaire des fonctions Edge de production ne contient pas de service d'émission de jetons JaaS.\n\n**Écart critique de l'état actuellement publié :** `index.html` charge `calls.js`, et le wrapper `oldMatch` dans `calls.js` remplace sans condition les boutons d'appel désactivés de `matchBox()` par des boutons audio/vidéo actifs. En outre, la définition de `public.start_call_session(...)` relue directement en production le 26 novembre vérifie l'authentification, l'abonnement, le match réciproque, les blocages et les sessions existantes, mais ne contient aucun contrôle de fournisseur sécurisé (`call_provider_is_enabled`) ni contrôle de suspension. La migration qui ajoute ce coupe-circuit n'est pas appliquée. Le code actuel ne permet donc pas d'affirmer que les appels sont réellement désactivés côté client ou serveur. Aucun appel non autorisé n'a été observé dans cet audit, mais l'accès à la salle Jitsi n'est pas authentifié et sa confidentialité n'est pas garantie. Un commentaire de revue a été ajouté à la PR #158 pour exiger la fermeture de ce chemin. La PR #158 porte maintenant un candidat de correction : boutons d'appel désactivés, suppression de l'endpoint public `meet.jit.si`, RPC de transition participant-scopé, coupe-circuit SQL fail-closed, contrôle d'éligibilité et squelette Edge Function d'émission JWT JaaS. Le test PostgreSQL isolé `call-session-expiry` est passé sur le dernier checkpoint testé; la validation JavaScript/TypeScript complète est encore en cours sur la dernière révision. Rien de cette correction n'est déployé en production.\n\nLes appels doivent rester en NO-GO jusqu'à ce qu'une fermeture serveur fail-closed soit installée et testée, que l'interface ne contourne plus l'état désactivé, et qu'un fournisseur contrôlé émette des JWT distincts et limités pour chaque participant. Le trigger SQL seul ne rend pas une salle Jitsi privée.
+Indépendamment de ce point, `calls.js` charge toujours `https://meet.jit.si/external_api.js` et rejoint `meet.jit.si` sans JWT Jitsi observé. L'inventaire des fonctions Edge de production ne contient pas de service d'émission de jetons JaaS.
+
+**Écart critique de l'état actuellement publié :** `index.html` charge `calls.js`, et le wrapper `oldMatch` dans `calls.js` remplace sans condition les boutons d'appel désactivés de `matchBox()` par des boutons audio/vidéo actifs. En outre, la définition de `public.start_call_session(...)` relue directement en production le 26 novembre vérifie l'authentification, l'abonnement, le match réciproque, les blocages et les sessions existantes, mais ne contient aucun contrôle de fournisseur sécurisé (`call_provider_is_enabled`) ni contrôle de suspension. La migration qui ajoute ce coupe-circuit n'est pas appliquée. Le code actuel ne permet donc pas d'affirmer que les appels sont réellement désactivés côté client ou serveur. Aucun appel non autorisé n'a été observé dans cet audit, mais l'accès à la salle Jitsi n'est pas authentifié et sa confidentialité n'est pas garantie. Un commentaire de revue a été ajouté à la PR #158 pour exiger la fermeture de ce chemin. La PR #158 porte maintenant un candidat de correction : boutons d'appel désactivés, suppression de l'endpoint public `meet.jit.si`, RPC de transition participant-scopé, coupe-circuit SQL fail-closed, contrôle d'éligibilité et squelette Edge Function d'émission JWT JaaS. Le test PostgreSQL isolé `call-session-expiry` est passé sur le dernier checkpoint testé; la validation JavaScript/TypeScript complète est encore en cours sur la dernière révision. Rien de cette correction n'est déployé en production.
+
+Les appels doivent rester en NO-GO jusqu'à ce qu'une fermeture serveur fail-closed soit installée et testée, que l'interface ne contourne plus l'état désactivé, et qu'un fournisseur contrôlé émette des JWT distincts et limités pour chaque participant. Le trigger SQL seul ne rend pas une salle Jitsi privée.
 
 ## Migrations supplémentaires de la PR #158
 
@@ -91,3 +95,29 @@ Ne jamais stocker ces exports dans Git ou les envoyer dans le chat. Le connecteu
 6. Seulement après revue du diff, sauvegarde confirmée, CI verte et approbation explicite, planifier le déploiement production avec retour arrière documenté.
 
 **État GO/NO-GO : NO-GO pour l'application des migrations en production et pour l'activation des appels/paiements.** Les 20 migrations sont inventoriées, mais la sauvegarde restaurable n'est pas démontrée et les dépendances frontend des appels doivent être corrigées.
+
+
+## Mise à jour vérifiée — 27 novembre 2026, 19:xx UTC+2
+
+Contrôle direct en lecture seule du projet Supabase de production, via la connexion du projet :
+
+- Projet actif : PostgreSQL 17.12, état `ACTIVE_HEALTHY`.
+- Historique de production : **65 migrations**, dernière entrée `20261124122733 account_deletion_fk_cleanup`. Les 20 migrations listées ci-dessus, de `20261124150100` à `20261125150000`, ne sont toujours pas enregistrées comme appliquées.
+- Inventaire des Edge Functions de production : `malachite-jaas-token` est absent. Aucun jeton JaaS de salle privée n'est donc émis par une fonction déployée en production.
+- Security Advisor relancé : 12 alertes INFO « RLS activé sans policy »; 1 fonction SECURITY DEFINER exécutable par `anon` (`get_malachite_referrer_preview`); 9 fonctions SECURITY DEFINER exécutables par `authenticated`; protection des mots de passe compromis désactivée.
+- Performance Advisor : 18 index signalés inutilisés. Aucun index n'a été supprimé; l'absence d'usage enregistrée ne prouve pas qu'un index est superflu.
+- Aucun SQL, migration, secret, paramètre Auth, donnée ou fonction de production n'a été modifié.
+
+### État actuel de la PR #158 — correction des appels
+
+La révision actuellement testée est `897d177af54f99e4df28d5467f5a40c85c5a77aa`. Les quatre workflows GitHub associés sont terminés avec succès. La validation SQL/CI a **28/28 jobs réussis**, dont le contrôle du coupe-circuit de création d'appel, l'accès participant aux appels/rendez-vous, l'expiration, les ACL effectives et le verrou de paiements.
+
+Le code candidat de `calls.js` remplace les transitions directes par le RPC participant-scopé et garde le fournisseur désactivé par défaut. La PR contient aussi le chemin client JaaS et le code source du service de jetons. **Cette correction n'est pas fusionnée ni déployée en production.** Le service `malachite-jaas-token` n'est pas déployé en production, les clés JaaS ne sont pas configurées, et aucun appel privé réel entre deux appareils n'a été certifié. Les appels restent donc NO-GO.
+
+### Réconciliation des migrations antérieures à la liste des 20
+
+La comparaison brute par numéro de version trouve également plusieurs anciens fichiers dont les noms/horodatages ne correspondent pas exactement aux entrées de l'historique de production. Certains ont des migrations de remplacement plus récentes ou des noms historiques différents. **Ne pas les compter comme migrations à appliquer automatiquement.** Ils doivent être classés individuellement comme déjà représentés, remplacés ou réellement manquants sur une restauration isolée avant de préparer une séquence de production.
+
+### État de lancement
+
+**NO-GO maintenu** : sauvegarde complète PostgreSQL + Auth + Storage et restauration isolée non certifiées; migrations de sécurité non appliquées en production; protection HIBP indisponible sur le plan Free; fournisseur JaaS privé non configuré/testé; suppression complète de compte non implémentée. Aucun de ces contrôles ne doit être marqué « terminé » sur la seule base des tests CI.
