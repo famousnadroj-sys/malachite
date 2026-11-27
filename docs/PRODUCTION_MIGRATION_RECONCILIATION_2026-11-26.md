@@ -259,3 +259,8 @@ Revue des migrations candidates a trouvé que `20261127150000_secure_profile_sav
 
 
 Staging a maintenant aussi reçu la migration finale corrigée `secure_profile_save_rpc_after_acl_cutover_verified`. Vérification effective : SECURITY DEFINER + search_path vide; avatar strict et suppression de `imageUrl` signé; EXECUTE authenticated uniquement; aucun UPDATE direct sur `profiles` ou `prives`. Production non modifiée.
+
+
+### Confidentialité des profils — confirmation live supplémentaire
+
+Requête catalogue production du 27 novembre : la policy `voir profils` autorise actuellement `owner OR (not blocked AND not suspended)` et **ne teste pas `profile_private=false`**. La policy Storage `profile photos read` autorise également la lecture d'une photo de tout profil non bloqué, sans statut public ni liste de chemins publiés. Aucun trigger de projection privée n'est présent. C'est une exposition active de profils/photos privés; la migration candidate `secure_private_profile_access` + `allow_published_public_profile_avatar_reads` corrige ces deux surfaces. Commentaire bloquant ajouté à PR #158. Production inchangée, correction à appliquer après backup/restauration validés.
