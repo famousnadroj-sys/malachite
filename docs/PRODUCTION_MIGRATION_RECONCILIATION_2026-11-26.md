@@ -310,3 +310,8 @@ Production chat-media data count : 31 objects, 30 exact message-referenced, 1 un
 
 
 Staging test de redaction Jitsi exécuté dans transaction rollback : une ligne legacy `media_type=call` a été insérée avec triggers de validation temporairement suspendus, puis le nettoyage exact a supprimé seulement URL/type; le texte est resté. Une nouvelle insertion `meet.jit.si` a ensuite été rejetée par le trigger `legacy_public_call_links_disabled`. Vérification rollback : zéro Auth fixture, zéro message fixture, zéro notification fixture.
+
+
+### Production messaging — suspended recipient bypass
+
+The live `envoyer un message` RLS INSERT policy checks sender identity, sender suspension, blocks, and recipient profile existence, but not whether the recipient is suspended. The live recovered `limite_messages()` trigger likewise checks sender suspension only. A member can therefore still send to a suspended account; the candidate `20261126220000_harden_message_suspension_access.sql` closes this by rejecting suspended recipients. Current staging/production checks showed no suspended participant media rows; this is a latent moderation bypass, not evidence of a current incident. Production unchanged.
