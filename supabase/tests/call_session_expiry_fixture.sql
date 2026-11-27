@@ -10,7 +10,7 @@ create schema if not exists private;
 create table public.blocages(user_id uuid not null,cible uuid not null,primary key(user_id,cible));
 create table public.suspensions(user_id uuid primary key);
 
-create table public.paiements(offre text not null,statut text not null,entitlement_expires_at timestamptz,reviewed_at timestamptz,created_at timestamptz not null default now());
+create table public.paiements(offre text not null,code text,statut text not null,entitlement_expires_at timestamptz,reviewed_at timestamptz,created_at timestamptz not null default now());
 
 create table public.call_sessions(
  id uuid primary key,
