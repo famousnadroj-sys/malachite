@@ -65,7 +65,7 @@ update private.call_provider_config set enabled=false where singleton=true;
 do $payments$
 begin
  begin
-  insert into public.paiements(user_id,offre,code,statut) values ('60000000-0000-0000-0000-000000000001','Appels','call-test-disabled-'||gen_random_uuid()::text,'attente');
+  insert into public.paiements(offre,code,statut) values ('Appels','call-test-disabled-'||gen_random_uuid()::text,'attente');
   raise exception 'call_pass_submission_must_be_blocked';
  exception when sqlstate '55000' then
   if sqlerrm <> 'secure_call_provider_not_configured' then raise; end if;
@@ -73,7 +73,7 @@ begin
 end
 $payments$;
 update private.call_provider_config set enabled=true where singleton=true;
-insert into public.paiements(user_id,offre,code,statut) values ('60000000-0000-0000-0000-000000000001','Appels','call-test-enabled-'||gen_random_uuid()::text,'attente');
+insert into public.paiements(offre,code,statut) values ('Appels','call-test-enabled-'||gen_random_uuid()::text,'attente');
 update private.call_provider_config set enabled=false where singleton=true;
 do $validation$
 begin
