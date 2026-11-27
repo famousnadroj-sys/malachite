@@ -328,3 +328,8 @@ PR #158 now aligns `supabase/functions/username-login/index.ts` with the hardene
 
 
 Staging atomic login throttle exercised directly as `service_role` in rollback transaction: first and second attempts allowed, third blocked at max=2, separate hash receives independent quota; test hashes have zero rows after rollback. Staging function grant verified service-only; production still on COUNT/INSERT implementation until approved migration/function deployment.
+
+
+### Payment intake migration requires owner decision
+
+Candidate `20261124270000_pause_payment_intake_until_activation.sql` revokes INSERT on all `paiements`, drops the receipt-upload policy, hides `config` from clients, and disables call-session writes. It therefore pauses **Premium and Boost payments too**, not only Appels. This migration must not be merged/applied as an automatic part of security hardening until the owner confirms the receiving Airtel/Orange details and final prices. A blocking PR comment requests keeping the payment pause separate from profile/chat/auth fixes. No payment config or production payment data changed.
