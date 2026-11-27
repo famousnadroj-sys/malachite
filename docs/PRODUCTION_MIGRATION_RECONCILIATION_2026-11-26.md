@@ -278,3 +278,6 @@ Test transactionnel du staging exécuté directement : `profile_write_authorizat
 
 
 Test staging de médias de message exécuté avec fixtures Auth temporaires dans une transaction rollback : `message_media_type_reconciliation_checks.sql` passe, incluant le rejet `meet.jit.si`, le rejet de chemin de document forgé et le refus de media_type inconnu. Les deux comptes fixture sont absents après rollback; aucun message/notification de test conservé.
+
+
+Staging private-profile test executed directly : `private_profile_access_checks.sql` passes against live staging policies (private owner retains full data/photos; non-owner cannot read private/blocked/suspended profiles or unlisted photos; only listed public photos/avatar are visible). All six fixture Auth IDs, profiles and Storage objects verified absent after rollback.
