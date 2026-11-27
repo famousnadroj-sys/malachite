@@ -246,3 +246,8 @@ La suppression de compte ne doit pas être codée comme un simple `auth.admin.de
 ### Correction de l'audit âge/profil — chemin JSON vérifié
 
 Rectification : l'appendice antérieur comptait à tort `prefs->profile_age`; le champ réel est `prefs->profile_private->age`. Le contrôle corrigé ne trouve **aucun âge hors plage** : 5 profils existants, tous publics et avec âge public valide; 2 profils publics n'ont pas d'âge privé redondant dans leurs préférences, ce qui n'est pas un défaut d'éligibilité puisque leur âge public est valide. 5 comptes Auth confirmés n'ont pas encore de profil (3 créés depuis plus de 7 jours); ils semblent être des inscriptions inachevées, à vérifier côté onboarding, sans suppression automatique. La requête précédente `missing_private_age=10` était un faux signal dû au mauvais chemin JSON et ne doit pas être utilisée.
+
+
+### Production web client — public Jitsi path still present
+
+Inspection of the current `main` `calls.js` confirms it still references `meet.jit.si`, invokes `start_call_session` directly, and has no `malachite-jaas-token` integration. The production Edge Function inventory also lacks `malachite-jaas-token`. This means the live code path is not the secured JaaS candidate and public rooms can bypass the intended authenticated private-room flow. PR #158 replaces it with authenticated JaaS JWTs and a fail-closed provider status. A blocking review comment was added; no production deploy performed.
