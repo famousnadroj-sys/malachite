@@ -355,3 +355,6 @@ Production admin push live health : all three required Vault secret names exist 
 ### Effective client write grants — production vs candidate staging
 
 Production catalog sweep finds broad table-level authenticated `INSERT/UPDATE/DELETE` grants across 17 tables, including profiles/private profiles/login names, messages, payments, entitlements, call sessions, support, reports and campaigns. RLS currently blocks many unauthorized commands, but the grants are unnecessarily broad and leave future policy mistakes exploitable. Staging after the candidate ACL cutover retains only needed INSERT grants (likes/reviews/blocks/support/messages/receipts/appointments/reports) and removes direct profile/private/login/payment/status/call writes; presence remains a single `profiles.derniere_vue` column grant. The ACL normalization/revoke migrations are required before production launch.
+
+
+Production avatar URL audit found 1 profile with a persisted signed Storage `imageUrl`; the durable `imagePath` is present. Signed URLs are bearer tokens and expire, so this value is stale/broken and should not be retained. Candidate `20261127080300_strip_persisted_signed_avatar_urls.sql` removes only `avatar.imageUrl`, preserving the path. No production profile row modified.
