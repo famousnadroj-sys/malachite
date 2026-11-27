@@ -422,3 +422,10 @@ Les fonctions examinées sont SECURITY DEFINER et les contrôles antérieurs ind
 La PR #158 a été revalidée sur le commit `e6fa98912cb668ebe03868e0c5a6a1675d4a79fd` : **28/28 jobs terminés, aucun échec**; validation Malachite, runtime PostgreSQL isolé de Match, contrat release et vérification Pages en direct sont réussis. La PR reste en brouillon et n'a pas été fusionnée.
 
 **NO-GO production inchangé.** Aucun SQL, migration, donnée, secret, fonction Edge, paramètre Auth ou déploiement de production n'a été modifié lors de cette revalidation. Le ledger staging n'est pas une autorisation d'appliquer ses migrations en production.
+
+
+### Call provider gate — définition de production relue le 27 novembre 2026
+
+La définition live de `public.start_call_session(uuid,uuid,text,text,timestamptz)` a été relue directement dans PostgreSQL. Elle vérifie l'identité, l'entitlement, le match mutuel, le blocage et l'expiration, mais **ne vérifie pas l'activation d'un fournisseur JaaS authentifié** et ne délivre pas de JWT JaaS. La fonction insère la salle fournie par le client dans `call_sessions`. Le rôle `authenticated` conserve en outre INSERT/UPDATE/DELETE au niveau table sur `call_sessions`.
+
+Le projet de production ne liste actuellement aucune Edge Function `malachite-jaas-token`; les appels JaaS authentifiés ne sont donc pas prêts à être activés. La migration candidate `20261126140000_fail_closed_calls_until_jaas_auth.sql` et le code candidat doivent rester non déployés tant que l'intégration JaaS n'est pas configurée et testée entre deux comptes. Les appels de production doivent être considérés comme **NO-GO pour la confidentialité**; ne pas réactiver les boutons ni contourner le fail-closed.
