@@ -38,6 +38,11 @@ Ne pas fusionner ni appliquer une migration en production sur la seule base de C
 
 ## Porte 4 — appliquer les protections de base de données
 
+Après la restauration et le diff structurel, intégrer également les durcissements préparés dans les migrations candidates :
+- retirer EXECUTE aux rôles API sur toutes les fonctions d'implémentation du schéma `private`, puis réaccorder uniquement les helpers requis par les policies RLS de la base cible (4 en production actuelle; vérifier le diff au moment du déploiement);
+- fermer les EXECUTE par défaut des futures fonctions privées sans casser les grants de fonctions API dans `public` et `storage`;
+- durcir `get_malachite_referrer_preview` contre les profils suspendus et les blocages des visiteurs authentifiés.
+
 Uniquement après portes 1 et 2 et approbation de la séquence :
 1. Corriger la visibilité des profils privés et les chemins de photos.
 2. Imposer l'âge minimum côté serveur sur chaque chemin d'écriture.
