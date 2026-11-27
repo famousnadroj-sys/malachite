@@ -163,3 +163,16 @@ HEAD PR #158 : `6ea8e69cb10fea77241f164f5d7f5df792aa224d`.
 Un échec CI précédent du job `security-definer-search-path` provenait du miroir Microsoft APT (HTTP 403), pas du SQL. J'ai retiré le rafraîchissement global des index APT avant l'installation de `postgresql-client` dans les 25 étapes de la workflow validation; le job fautif repasse vert sur le dernier HEAD.
 
 La PR #158 reste **draft / non fusionnée**. Les contrôles CI isolés ne changent pas le statut NO-GO de production : aucun backup/restauration complète, aucune migration de sécurité appliquée, aucun secret JaaS déployé, aucun appel réel inter-appareils vérifié.
+
+
+### Classification des cinq migrations antérieures non enregistrées — vérification live
+
+Contrôle des effets réels en catalogues PostgreSQL/Storage, sans mutation :
+
+- `20261124130000_disable_public_campaign_storage.sql` : **effet déjà présent** — les deux buckets `malachite-campaigns` et `malachite-campaign-media` sont privés; aucune policy Storage de lecture campagne n'a été trouvée. Ne pas la compter comme un changement de sécurité restant, mais conserver la différence de ledger documentée.
+- `20261124130100_reject_expired_call_acceptance.sql` : le trigger nommé n'existe pas. L'ancienne fonction de transition candidate doit être remplacée par le RPC participant-scopé avec vérification de l'expiration; ne pas appliquer isolément l'ancien trigger sans tester la séquence complète.
+- `20261124140129_enforce_private_profile_public_projection.sql` : le trigger de projection privée n'existe pas en production. La chaîne candidate owner-only et les RPC de profil doivent être validés ensemble; ne pas appliquer cette projection séparément sans vérifier qu'elle ne réintroduit pas un profil privé découvrable avec une projection publique incompatible.
+- `20261124142000_restrict_private_profile_photo_reads.sql` : la policy `profile photos read published paths` n'existe pas; l'ancienne policy large est toujours active. La correction finale est portée par la séquence `secure_private_profile_access` + `allow_published_public_profile_avatar_reads` (les deux restent non appliquées).
+- `20261124143000_harden_call_session_immutable_fields.sql` : un trigger `guard_call_session_update` existe déjà, mais sa définition live est plus faible que le fichier : elle ne protège pas `id`, `expires_at` ou `ended_at`. La migration de transitions de la PR #158 remplace ce guard et ajoute le RPC de statut; ne pas considérer le trigger actuel comme suffisant.
+
+Cela explique pourquoi une comparaison de noms/version bruts surestime les migrations manquantes. Le déploiement doit se baser sur les effets live et une restauration de staging, pas sur un simple comptage de fichiers.
