@@ -40,3 +40,12 @@ Le contrôle de régression staging a réussi : aucune fonction privée n'est ex
 - `supabase/tests/private_function_execution_checks.sql`
 
 **Décision :** amélioration de sécurité validée en staging; ne pas appliquer à la production avant la sauvegarde restaurable, la migration forward-only réconciliée et l'approbation du propriétaire.
+
+
+## Risques spécifiques constatés en production
+
+- La version production de `public.start_call_session` est antérieure au verrou JaaS : elle n'exige pas le fournisseur privé activé et ne vérifie pas la suspension des deux participants. Elle reste exécutable par `authenticated`. La migration candidate de verrouillage des appels doit être appliquée dans une séquence cohérente avec la publication frontend; ne pas activer les appels avec la fonction actuelle.
+- Production conserve également les droits DML directs trop larges sur `public.call_sessions` et `public.profiles`, constatés dans l'audit ACL précédent. Les RPC SECURITY DEFINER ne compensent pas ces grants directs.
+- `founder_finance_summary`, présent en production mais absent du staging courant, vérifie `auth.uid()` et `private.is_admin()` avant de lire le ledger financier; son accès reste réservé aux administrateurs.
+
+Ces points sont distincts du décompte Advisor des fonctions SECURITY DEFINER et restent des portes de sécurité production non franchies.
