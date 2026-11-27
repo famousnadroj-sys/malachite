@@ -3,7 +3,7 @@ on:
   push:
     branches: [main, fix/security-hardening, website/public-launch-cleanup-2026-11-24]
   pull_request:
-    branches: [main]
+    branches: [main, 'preview/malachite-match-staging-clean']
 permissions:
   contents: read
 jobs:
