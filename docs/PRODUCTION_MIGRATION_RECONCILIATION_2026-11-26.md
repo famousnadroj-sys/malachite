@@ -364,3 +364,10 @@ Staging throttle concurrency probe : 20 parallel `service_role` RPCs with a 1-ho
 
 
 CI #158 latest after login-throttle migration/concurrency workflow update: HEAD `23f5d806f0cf19d5a8c9918e37f3f19629d4c604`, all four workflows green (validation, Match isolated PostgreSQL, release integration contract, live Pages verification). The username throttle job now applies the actual migration, not a duplicate test-only function, and runs 20 concurrent calls asserting exactly 5 allowed/15 blocked.
+
+
+### Correction — AI worker replay migration no longer needs URL/project-ref secrets
+
+The replay migration was redesigned after inspecting the actual production cron: it already signs `timestamp + exact body` with the HMAC secret and hardcodes the correct worker URL. The verifier now derives a deterministic nonce from `timestamp + signature`, rejects the exact replay, and preserves the existing cron command/schedule byte-for-byte. It requires only the existing HMAC secret and an active cron already carrying the timestamp/signature headers; optional URL/project-ref secrets are checked only if both are present. Thus the earlier blocker requiring `malachite_ai_worker_url` and `malachite_ai_worker_project_ref` is **superseded**. Production HMAC and signed cron are present, so after backup/restore approval this replay migration can be applied without new secrets or cron replacement.
+
+Revised migration applied to staging under a new candidate migration name; syntax and ACL verified: nonce table exists, function EXECUTE is service_role-only, and nonce table is not readable by service_role/client. Staging has no worker HMAC/cron, so no worker execution was attempted.
