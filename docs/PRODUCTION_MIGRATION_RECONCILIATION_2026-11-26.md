@@ -436,3 +436,15 @@ Le projet de production ne liste actuellement aucune Edge Function `malachite-ja
 Sur staging, la définition candidate de `start_call_session` appelle `public.call_provider_is_enabled()` avant toute création; la fonction exige aussi un identifiant de salle au format `Malachite-<32 hex>`, vérifie les deux participants, suspension/blocage, entitlement, match mutuel et limite d'expiration à 90 secondes. L'appel read-only de `call_provider_is_enabled()` a retourné **false** : le fournisseur reste désactivé et la création échoue fermé.
 
 Cela valide le verrouillage SQL candidate, pas la disponibilité de JaaS. La génération de JWT, la configuration secrète et les tests réels de deux utilisateurs restent requis avant activation.
+
+
+### Advisor staging après les migrations candidates — 27 novembre 2026
+
+Le contrôle Advisor staging a aussi été relancé :
+
+- 14 tables RLS sans policy (dont tables privées et tables de service). Cela n'indique pas automatiquement une fuite; vérifier les ACL, l'exposition PostgREST et l'accès service-role avant toute modification.
+- `pg_net` installé dans le schéma `public` (warning extension).
+- 1 RPC SECURITY DEFINER exécutable par `anon` : aperçu de parrainage, attendu comme endpoint public mais à tester sur profils privés, suspendus et bloqués.
+- 27 fonctions SECURITY DEFINER accessibles à `authenticated`. L'Advisor est une alerte de surface, pas une preuve d'exploit : les fonctions doivent être classées par intention et vérifiées avec les tests d'autorisation/allowlist. Ne pas révoquer en masse les RPC nécessaires au frontend.
+
+Les tests CI de PR #158 passent, mais les Advisor staging ne sont pas « zéro avertissement ». Le rapport conserve ces observations comme tâches de revue, sans modifier les privilèges ni extensions du staging pendant ce contrôle.
