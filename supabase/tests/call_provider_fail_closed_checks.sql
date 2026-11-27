@@ -60,7 +60,7 @@ update private.call_provider_config set enabled=false where singleton=true;
 do $payments$
 begin
  begin
-  insert into public.paiements(offre,statut) values ('Appels','attente');
+  insert into public.paiements(offre,code,statut) values ('Appels','call-test-disabled-'||gen_random_uuid()::text,'attente');
   raise exception 'call_pass_submission_must_be_blocked';
  exception when sqlstate '55000' then
   if sqlerrm <> 'secure_call_provider_not_configured' then raise; end if;
@@ -68,7 +68,7 @@ begin
 end
 $payments$;
 update private.call_provider_config set enabled=true where singleton=true;
-insert into public.paiements(offre,statut) values ('Appels','attente');
+insert into public.paiements(offre,code,statut) values ('Appels','call-test-enabled-'||gen_random_uuid()::text,'attente');
 update private.call_provider_config set enabled=false where singleton=true;
 do $validation$
 begin
@@ -119,8 +119,8 @@ begin
 end
 $$;
 -- A prepaid pass keeps its remaining time while the authenticated provider is unavailable.
-insert into public.paiements(offre,statut,entitlement_expires_at)
-values ('Appels','valide',now()+interval '2 days');
+insert into public.paiements(offre,code,statut,entitlement_expires_at)
+values ('Appels','call-test-pass-'||gen_random_uuid()::text,'valide',now()+interval '2 days');
 update private.call_provider_config set enabled=false where singleton=true;
 update private.call_provider_config set disabled_since=now()-interval '1 day' where singleton=true;
 update private.call_provider_config set enabled=true where singleton=true;
