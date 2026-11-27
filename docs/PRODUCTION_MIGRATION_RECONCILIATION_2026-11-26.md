@@ -347,3 +347,6 @@ Qualification : production currently has 0 suspended accounts and 0 messages inv
 
 
 AI worker replay migration prerequisite : production Vault currently has the HMAC secret, but **does not** have `malachite_ai_worker_url` or `malachite_ai_worker_project_ref`. The migration's preflight deliberately aborts if the existing cron job lacks either value, preserving the current worker. Owner must provision exact production URL and matching project ref before applying the replay migration; no Vault secret was read or changed.
+
+
+Production admin push live health : all three required Vault secret names exist (`malachite_push_hook`, VAPID public/private); one active admin device is registered; queue has 0 pending/0 total rows; fallback cron `malachite-admin-payment-push-batch` is active every minute. No test push was sent to avoid interrupting the owner.
