@@ -2,7 +2,7 @@
 
 ## Résultat exécutif
 
-Les alertes Supabase ne signifient pas que les 27 RPC authentifiés sont toutes exploitables sans contrôle. Chaque fonction a été examinée sur le staging : les fonctions publiques sont des RPC métier, des wrappers vers des implémentations privées ou des opérations administrateur. Elles utilisent `search_path = ''`. Les implémentations privées ne doivent pas rester directement exécutables par les rôles API.
+Les alertes Supabase ne signifient pas que les 27 RPC authentifiés sont toutes exploitables sans contrôle. Chaque fonction a été examinée sur le staging : les fonctions publiques sont des RPC métier, des wrappers vers des implémentations privées ou des opérations administrateur. Les RPC métier utilisent `search_path = ''`; le trigger d'événement `public.rls_auto_enable()` conserve volontairement `search_path = 'pg_catalog'`, limité au catalogue système et accepté par le contrôle CI. Les implémentations privées ne doivent pas rester directement exécutables par les rôles API.
 
 **Correctif préparé et appliqué au staging :** retrait de EXECUTE sur toutes les fonctions du schéma `private` pour `PUBLIC`, `anon` et `authenticated`, puis réattribution minimale aux prédicats utilisés par les politiques RLS. En staging, cinq helpers sont requis : `is_admin()`, `is_blocked_with(uuid)`, `is_suspended(uuid)`, `account_exists(uuid)`, `blocked_text(text)`. En production actuelle, seules les quatre premières politiques listées sans `account_exists` sont référencées; la migration utilise donc un grant conditionnel pour rester compatible avec les deux schémas.
 
@@ -25,7 +25,7 @@ Le contrôle de régression staging a réussi : aucune fonction privée n'est ex
 
 ## Différences staging / production et limites
 
-- Staging signale 27 RPC SECURITY DEFINER accessibles à `authenticated`; production en signale actuellement 9, dont une fonction de synthèse financière supplémentaire et une version ancienne de l'aperçu de parrainage.
+- Staging signale 27 RPC SECURITY DEFINER accessibles à `authenticated`; production en signale actuellement 9, dont `founder_finance_summary` et une version ancienne de l'aperçu de parrainage. Le catalogue compte davantage de fonctions SECURITY DEFINER que ces RPC, car il inclut aussi des triggers et des fonctions internes.
 - Les 27 alertes Advisor restantes ne doivent pas être traitées par un REVOKE global sur `public` : elles correspondent à des RPC exposées qui ont besoin d'un EXECUTE explicite et dont les contrôles doivent rester testés.
 - Les fonctions privées de déclencheurs (triggers) n'ont pas besoin d'être appelables directement par les rôles API; leur exécution par le mécanisme trigger continue malgré la révocation d'EXECUTE aux rôles API.
 - Les tests d'intégration d'appels existants n'ont pas pu être exécutés intégralement sur ce staging : le jeu de test utilise des identifiants Auth fixes absents de ce projet et l'insertion a été refusée par une FK. Le test PostgreSQL isolé CI reste requis; aucun contournement ni utilisateur de test n'a été créé en staging.
@@ -44,6 +44,8 @@ Le contrôle de régression staging a réussi : aucune fonction privée n'est ex
 
 ## Risques spécifiques constatés en production
 
+
+- La production a aussi `public.est_premium(uuid)` avec `search_path = public`; le staging a déjà la version durcie `search_path = ''`. La migration candidate existante `20261127080400_harden_est_premium_search_path.sql` qualifie `public.statuts` et ferme ce dernier écart de chemin de recherche.
 - La version production de `public.start_call_session` est antérieure au verrou JaaS : elle n'exige pas le fournisseur privé activé et ne vérifie pas la suspension des deux participants. Elle reste exécutable par `authenticated`. La migration candidate de verrouillage des appels doit être appliquée dans une séquence cohérente avec la publication frontend; ne pas activer les appels avec la fonction actuelle.
 - Production conserve également les droits DML directs trop larges sur `public.call_sessions` et `public.profiles`, constatés dans l'audit ACL précédent. Les RPC SECURITY DEFINER ne compensent pas ces grants directs.
 - `founder_finance_summary`, présent en production mais absent du staging courant, vérifie `auth.uid()` et `private.is_admin()` avant de lire le ledger financier; son accès reste réservé aux administrateurs.
