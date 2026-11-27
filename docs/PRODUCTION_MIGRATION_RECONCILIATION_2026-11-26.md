@@ -380,3 +380,6 @@ Replay nonce refinement: the request ID is now derived directly from the first 1
 
 
 AI worker live health recheck : 96 runs in the last 24 hours, all `success`; latest cron run succeeded in 658 ms. The replay migration redesign preserves this healthy existing schedule and HMAC destination, adding nonce rejection without changing worker cadence or requiring new URL/ref secrets.
+
+
+Production replay preflight rechecked against live catalog after redesign: active signed cron shape **true**, HMAC secret length valid **true**, optional URL/ref pair absent (accepted by new migration), nonce table absent (expected before migration). The new migration is therefore preflight-ready in production without secret provisioning; it remains unapplied until the full backup/restore gate is approved.
