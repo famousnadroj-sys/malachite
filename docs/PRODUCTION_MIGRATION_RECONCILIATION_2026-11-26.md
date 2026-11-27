@@ -205,3 +205,12 @@ Le balayage de sécurité du staging du 27 novembre a révélé que les deux buc
 ### Correction staging — ACL des tables de conversation
 
 Le contrôle effectif a aussi trouvé des grants historiques `anon` complets (INSERT/SELECT/UPDATE/DELETE/TRUNCATE/REFERENCES/TRIGGER) sur `conversation_threads`, `conversation_members` et `conversation_pair_index`, sans aucune policy RLS pour `anon`. Les tables ont RLS activé et les seuls accès applicatifs attendus sont SELECT authentifié par participant; les écritures passent par les RPC sécurisés. J'ai retiré tous les privilèges `anon` sur ces trois tables et les privilèges inutiles `TRUNCATE/REFERENCES/TRIGGER` d'`authenticated`, en conservant SELECT. Vérification post-correction : zéro grant `anon`, SELECT uniquement pour `authenticated`. Staging seulement; production inchangée.
+
+
+### Correction staging — blocage des liens Jitsi publics hérités
+
+Le staging n'avait pas encore le trigger `zz_reject_legacy_public_call_links`; l'inventaire des messages a confirmé zéro ancien lien `meet.jit.si` et zéro message `media_type='call'`. J'ai installé la fonction/trigger candidate `reject_legacy_public_call_links` sur staging seulement. Le test SQL du dépôt `message_media_type_reconciliation_checks.sql` vérifie déjà le rejet de ces liens et accepte les médias autorisés; la validation CI complète est verte.
+
+### CI de stabilisation — révision #158
+
+Révision `7074c04e0b32c3657b952fd846bb2104eb9d1c05`: les quatre workflows réussissent, y compris release integration contract après correction du checkout de l'application candidate. PR #159 également : release contract et Pages réussis; validation et Match isolated PostgreSQL réussis sur HEAD `016a4e888ac5d56780ae8a99955c04bc7d33b50a`.
