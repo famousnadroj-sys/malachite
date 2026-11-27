@@ -194,7 +194,7 @@ jobs:
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/call_session_state_transition_checks.sql
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261126150000_pause_call_pass_sales_until_jaas_activation.sql
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261126170000_preserve_call_pass_time_while_provider_disabled.sql
-          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261127220000_extend_accepted_call_window.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261127214023_extend_accepted_call_window.sql
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/call_provider_fail_closed_checks.sql
 
 
