@@ -63,7 +63,6 @@ const avatarUi = await get("malachite-avatar-ui.js", "function malPaymentPanel()
 const offerUi = await get("malachite-user-experience.js", "Paiements temporairement suspendus");
 for (const retiredValue of [
   "Premium — 2 USD / mois",
-  "Boost — 0,50 USD / 24 h",
   "+243 993 315 532",
   "+243 848 775 992",
 ]) {
