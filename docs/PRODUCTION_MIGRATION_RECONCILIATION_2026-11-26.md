@@ -338,3 +338,6 @@ Candidate `20261124270000_pause_payment_intake_until_activation.sql` revokes INS
 ### Production entitlement status visibility — exact timestamps exposed
 
 Live `public.statuts` SELECT policy `voir les statuts` has `qual=true` for all authenticated users. That exposes other members' exact `premium_until`, `verified_until`, and `boost_until` timestamps. Candidate `20261124200100_limit_entitlement_status_visibility.sql` restricts table reads to owner and adds a boolean-only public badge RPC filtered by profile privacy, suspension, and blocks. This migration is absent from production ledger; blocking privacy fix, no live change performed.
+
+
+Production message read policy also omits suspension checks: `lire ses messages` filters participants and blocks but not suspended accounts. Candidate `20261126220000_harden_message_suspension_access.sql` closes read and recipient-insert paths. This is a moderation/access-control gap; no suspended-message data was modified.
