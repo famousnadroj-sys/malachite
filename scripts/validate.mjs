@@ -223,6 +223,13 @@ if (!jaasIssuer.includes('npm:@supabase/supabase-js@2.45.4') ||
     jaasIssuer.includes('regex: true')) {
   throw new Error('JaaS JWT must authenticate the user and be limited to their accepted, unexpired exact room.');
 }
+const acceptedCallWindow = fs.readFileSync('supabase/migrations/20261127220000_extend_accepted_call_window.sql', 'utf8');
+const acceptedCallWindowTest = fs.readFileSync('supabase/tests/call_provider_fail_closed_checks.sql', 'utf8');
+if (!acceptedCallWindow.includes("interval '60 minutes'") ||
+    !acceptedCallWindow.includes('invalid_accepted_call_window') ||
+    !acceptedCallWindowTest.includes('accepted_call_must_receive_60_minute_window')) {
+  throw new Error('Accepted JaaS calls must receive a bounded active window and a regression test.');
+}
 if (calls.includes("Premium <span>3 $ / 30 jours</span>") ||
     calls.includes("Premium — 3 USD / 30 jours") ||
     calls.includes("sb.from('paiements').insert(payload)")) {
