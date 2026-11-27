@@ -344,3 +344,6 @@ Production message read policy also omits suspension checks: `lire ses messages`
 
 
 Qualification : production currently has 0 suspended accounts and 0 messages involving suspended users, so no current rows are affected by the missing suspension filter. The policy/trigger gap remains a launch-blocking control for future moderation actions.
+
+
+AI worker replay migration prerequisite : production Vault currently has the HMAC secret, but **does not** have `malachite_ai_worker_url` or `malachite_ai_worker_project_ref`. The migration's preflight deliberately aborts if the existing cron job lacks either value, preserving the current worker. Owner must provision exact production URL and matching project ref before applying the replay migration; no Vault secret was read or changed.
