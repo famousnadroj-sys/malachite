@@ -226,3 +226,6 @@ Warnings restants à traiter séparément : `pg_net` installé dans `public` (ex
 ### Recontrôle Security Advisor production — 27 novembre
 
 Advisor live production : 12 RLS-enabled/no-policy notices (tables privées/admin/AI/campagnes/referrals), 1 anon SECURITY DEFINER referrer-preview warning, 9 authenticated SECURITY DEFINER RPC warnings, et HIBP compromised-password protection désactivée. Catalogue SQL : aucun SECURITY DEFINER sans `search_path` fixé. Les tables sans policy sont inaccessibles via RLS, mais `public.campagnes` garde encore SELECT/INSERT/UPDATE/DELETE pour authenticated malgré l'absence de policy et le retrait des surfaces publicitaires; la migration `revoke_retired_campaign_table_access` doit être appliquée après backup/restauration validés. Les autres tables no-policy n'ont aucun grant anon/authenticated. Production non modifiée.
+
+
+Production storage recheck : les deux buckets campagne sont déjà `public=false`, aucune policy SELECT publique campagne n'existe, et zéro objet campagne est stocké. La migration correspondante a donc déjà son effet live; le risque restant côté campagne est le grant table-level sur `public.campagnes`, pas les fichiers Storage.
