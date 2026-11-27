@@ -320,3 +320,8 @@ The live `envoyer un message` RLS INSERT policy checks sender identity, sender s
 ### Production username-login throttle — concurrency race
 
 Live `username-login` Edge Function v7 uses a non-atomic COUNT-then-INSERT for the 15 attempts/15-minute IP threshold. Concurrent requests can all observe the count below the limit and pass before inserts complete. Candidate `20261126210000_atomic_username_login_throttle.sql` replaces it with an atomic consume RPC and service-only execution. Blocking hardening before launch; no live login attempts or Auth data were changed.
+
+
+### Username-login source cutover prepared
+
+PR #158 now aligns `supabase/functions/username-login/index.ts` with the hardened staging v1 implementation: atomic RPC for both login and availability checks, Cloudflare `cf-connecting-ip` only (no client-controlled forwarding fallback), cleanup failure does not weaken rate limiting, and CORS is restricted to the current GitHub Pages origin rather than wildcard. Production Edge Function v7 is still deployed and unchanged; code + migration require owner-approved deployment after backup/restore.
