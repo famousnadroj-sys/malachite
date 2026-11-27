@@ -377,3 +377,6 @@ Staging replay migration exercised transactionally with a temporary Vault HMAC a
 
 
 Replay nonce refinement: the request ID is now derived directly from the first 128 bits of the already-authenticated HMAC signature (rather than MD5), retaining 128-bit uniqueness while avoiding a separate hash. The revised migration was applied to staging under a new verification migration and the transactional legacy-cron test passed again; all temporary cron, Vault secret, and nonce rows rolled back to zero.
+
+
+AI worker live health recheck : 96 runs in the last 24 hours, all `success`; latest cron run succeeded in 658 ms. The replay migration redesign preserves this healthy existing schedule and HMAC destination, adding nonce rejection without changing worker cadence or requiring new URL/ref secrets.
