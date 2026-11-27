@@ -264,3 +264,6 @@ Staging a maintenant aussi reçu la migration finale corrigée `secure_profile_s
 ### Confidentialité des profils — confirmation live supplémentaire
 
 Requête catalogue production du 27 novembre : la policy `voir profils` autorise actuellement `owner OR (not blocked AND not suspended)` et **ne teste pas `profile_private=false`**. La policy Storage `profile photos read` autorise également la lecture d'une photo de tout profil non bloqué, sans statut public ni liste de chemins publiés. Aucun trigger de projection privée n'est présent. C'est une exposition active de profils/photos privés; la migration candidate `secure_private_profile_access` + `allow_published_public_profile_avatar_reads` corrige ces deux surfaces. Commentaire bloquant ajouté à PR #158. Production inchangée, correction à appliquer après backup/restauration validés.
+
+
+Qualification du risque privé : le comptage live actuel retourne 5 profils publics et **0 profil privé**, donc aucune ligne privée existante n'est exposée à cet instant. La policy reste néanmoins incorrecte pour toute activation future du mode privé et ne filtre pas les chemins photo publiés; il s'agit d'un défaut latent bloquant avant d'autoriser un membre à passer son profil en privé.
