@@ -2,13 +2,15 @@
 
 Ce document définit les contrôles humains obligatoires avant d'autoriser la publication publique. Les variables GitHub Actions suivantes doivent rester absentes ou à `false` tant que les preuves ci-dessous ne sont pas disponibles :
 
-- `MALACHITE_DB_SECURITY_READY=true` : uniquement après application et vérification des migrations de sécurité de profil, de pause des paiements et de verrouillage des mutations de sessions d'appel sur la base de production.
+- `MALACHITE_DB_SECURITY_READY=true` : uniquement après application et vérification des migrations de sécurité de profil, de pause des paiements, de verrouillage des mutations de sessions d'appel, de réduction des EXECUTE sur le schéma private et de protection de l'aperçu de parrainage sur la base de production.
 - `MALACHITE_LAUNCH_APPROVED=true` : uniquement après validation de tous les points produit, juridique, opérationnels et de récupération ci-dessous.
 
 ## 1. Base de données et sécurité
 
 - [ ] Migrations de profil appliquées : `save_my_profile` en SECURITY DEFINER, `search_path` vide, écritures directes retirées, RPC avatar/préférences vérifiées.
 - [ ] Paiements fermés tant que le numéro dédié et les tarifs ne sont pas confirmés ; la table `config` n'est pas lisible par les rôles clients.
+- [ ] EXECUTE privé minimal : seuls les helpers appelés par les policies RLS restent exécutables par authenticated; aucune fonction d'implémentation privée n'est directement exécutable par anon/authenticated; les grants par défaut sont testés.
+- [ ] Aperçu de parrainage public : profils privés et suspendus exclus; les utilisateurs connectés ne voient pas un profil avec lequel ils sont bloqués.
 - [ ] Tests RLS et tests de non-régression passés sur un environnement de test représentatif.
 - [ ] Sauvegarde de production vérifiée et restauration réelle testée avant changement.
 - [ ] Plan de suppression de compte finalisé, testé et cohérent avec la conservation des messages, reçus, médias et signalements.
