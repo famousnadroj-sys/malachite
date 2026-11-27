@@ -307,3 +307,6 @@ Live Storage policy `chat-media lire` permits SELECT when either of the first tw
 
 
 Production chat-media data count : 31 objects, 30 exact message-referenced, 1 unreferenced object under the legacy broad policy; 0 currently in blocked pairs and 0 involving suspended accounts. The single orphan is an actual object that the old folder-based policy can expose to either folder participant despite no message reference. The exact-message candidate policy prevents this class of read without deleting the object.
+
+
+Staging test de redaction Jitsi exécuté dans transaction rollback : une ligne legacy `media_type=call` a été insérée avec triggers de validation temporairement suspendus, puis le nettoyage exact a supprimé seulement URL/type; le texte est resté. Une nouvelle insertion `meet.jit.si` a ensuite été rejetée par le trigger `legacy_public_call_links_disabled`. Vérification rollback : zéro Auth fixture, zéro message fixture, zéro notification fixture.
