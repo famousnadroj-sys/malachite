@@ -358,3 +358,6 @@ Production catalog sweep finds broad table-level authenticated `INSERT/UPDATE/DE
 
 
 Production avatar URL audit found 1 profile with a persisted signed Storage `imageUrl`; the durable `imagePath` is present. Signed URLs are bearer tokens and expire, so this value is stale/broken and should not be retained. Candidate `20261127080300_strip_persisted_signed_avatar_urls.sql` removes only `avatar.imageUrl`, preserving the path. No production profile row modified.
+
+
+Staging throttle concurrency probe : 20 parallel `service_role` RPCs with a 1-hour window and limit 5 produced exactly 5 allowed / 15 denied and exactly 5 persisted attempt rows. The 5 temporary rows were deleted and verified zero remaining. A first 60-second probe was discarded because dispatch took longer than its window and correctly admitted a new request after expiration; no false race claim was recorded.
