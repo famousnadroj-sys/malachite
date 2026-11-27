@@ -76,6 +76,31 @@ $acl$;
 drop function private.__malachite_private_acl_probe();
 drop function public.__malachite_public_acl_probe();
 
+-- Verify the anonymous referral preview exposes only public, non-suspended profiles.
+insert into public.profiles(id,prenom,username,profile_private) values
+ ('00000000-0000-0000-0000-000000000001','Public','public_member',false),
+ ('00000000-0000-0000-0000-000000000002','Private','private_member',true),
+ ('00000000-0000-0000-0000-000000000003','Suspended','suspended_member',false),
+ ('00000000-0000-0000-0000-000000000004','Blocked','blocked_member',false);
+insert into public.suspensions(user_id) values ('00000000-0000-0000-0000-000000000003');
+insert into public.blocages(user_id,cible) values
+ ('00000000-0000-0000-0000-000000000009','00000000-0000-0000-0000-000000000004');
+
+set local role anon;
+select set_config('request.jwt.claim.sub','',true);
+select case when (select count(*) from public.get_malachite_referrer_preview('00000000-0000-0000-0000-000000000001'))=1 then 1 else 1/0 end;
+select case when (select count(*) from public.get_malachite_referrer_preview('00000000-0000-0000-0000-000000000002'))=0 then 1 else 1/0 end;
+select case when (select count(*) from public.get_malachite_referrer_preview('00000000-0000-0000-0000-000000000003'))=0 then 1 else 1/0 end;
+-- Anonymous visitors have no viewer-specific block relationship to enforce.
+select case when (select count(*) from public.get_malachite_referrer_preview('00000000-0000-0000-0000-000000000004'))=1 then 1 else 1/0 end;
+reset role;
+
+set local role authenticated;
+select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000009',true);
+select case when (select count(*) from public.get_malachite_referrer_preview('00000000-0000-0000-0000-000000000004'))=0 then 1 else 1/0 end;
+select case when (select count(*) from public.get_malachite_referrer_preview('00000000-0000-0000-0000-000000000001'))=1 then 1 else 1/0 end;
+reset role;
+
 -- Exercise live RLS expressions as a non-admin authenticated identity.
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
