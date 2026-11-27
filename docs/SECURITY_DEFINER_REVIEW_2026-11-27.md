@@ -56,3 +56,5 @@ Ces points sont distincts du décompte Advisor des fonctions SECURITY DEFINER et
 ## Couverture de non-régression
 
 Un job CI dédié `private-function-execution-acl` a été ajouté à `.github/workflows/validate.yml`. Il reconstruit un schéma PostgreSQL isolé, simule les anciens grants trop larges, applique les migrations candidates, puis vérifie les grants privés, les grants RPC publics, les helpers nécessaires aux policies et les ACL par défaut des futures fonctions. Le job a réussi sur le commit `e4b435c286f1cf60a7a3f0dc7cf966933a409215`. Le test SQL a également été exécuté avec succès sur le staging réel.
+
+- Le contrôle de surface a aussi été ajusté pour reconnaître séparément le RPC de production `founder_finance_summary`, absent du staging courant mais protégé par `auth.uid()` et `private.is_admin()`; la liste staging continue d'être vérifiée sans exiger ce RPC de l'environnement de test.
