@@ -289,3 +289,8 @@ Test transactionnel staging des transitions d'appel exécuté : `call_session_st
 ### Test complet participant calls/appointments — staging
 
 Le test `call_appointment_participant_checks.sql` a été corrigé pour refléter la sécurité actuelle : statut fournisseur exécutable par `service_role` seulement, création derrière le flag privé, acceptation via RPC participant-scopé et aucun UPDATE direct du statut. La workflow validation applique désormais `261210` + `261400` + `271400` avant ce test. Test exécuté contre staging : succès avec fournisseur activé seulement dans la transaction de test, puis vérification post-rollback : flag provider `false`, zéro Auth/profile/call fixture.
+
+
+### CI latest call-participant migration sequence
+
+PR #158 HEAD `b3de5b7bb2f1a5058aba9c1604ce7471e7859ba3` : all four workflows green. The participant test now runs against the current call state guard, private provider fail-closed migration and provider-gated creation migration; service-only provider-status ACL and participant status RPC are asserted.
