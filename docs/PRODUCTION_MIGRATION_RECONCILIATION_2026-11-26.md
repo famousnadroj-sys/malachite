@@ -281,3 +281,6 @@ Test staging de médias de message exécuté avec fixtures Auth temporaires dans
 
 
 Staging private-profile test executed directly : `private_profile_access_checks.sql` passes against live staging policies (private owner retains full data/photos; non-owner cannot read private/blocked/suspended profiles or unlisted photos; only listed public photos/avatar are visible). All six fixture Auth IDs, profiles and Storage objects verified absent after rollback.
+
+
+Test transactionnel staging des transitions d'appel exécuté : `call_session_state_transition_checks.sql` passe sur la configuration provider-off actuelle. Il rejette l'acceptation sans fournisseur, les modifications de room/callee/expiration/ended_at par le client, permet au caller de terminer et au callee de refuser, et bloque le callee de forcer `expired`. Les quatre Auth fixtures et deux call_sessions ont été vérifiés absents après rollback.
