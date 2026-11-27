@@ -272,3 +272,6 @@ Qualification du risque privé : le comptage live actuel retourne 5 profils publ
 ### Validation finale PR #158 — profile save migration-order test
 
 HEAD `46eeaf5c07ae0cd56b3009eb487dda41a57021b8` : **4 workflows verts** — Malachite validation, Match isolated PostgreSQL runtime, live Pages verification, release integration contract. Le job profile-age applique désormais la migration finale `secure_profile_save_rpc_after_acl_cutover` après le cutover précédent, puis exécute les assertions d'écriture; les tests supplémentaires avatar étranger et URL signée non persistée sont inclus.
+
+
+Test transactionnel du staging exécuté directement : `profile_write_authorization_checks.sql` complet réussi contre la base staging après application de la migration finale corrigée. Les deux IDs fixture ont été vérifiés absents après rollback; aucune donnée de membre staging n'a été conservée/modifiée par le test.
