@@ -284,3 +284,8 @@ Staging private-profile test executed directly : `private_profile_access_checks.
 
 
 Test transactionnel staging des transitions d'appel exécuté : `call_session_state_transition_checks.sql` passe sur la configuration provider-off actuelle. Il rejette l'acceptation sans fournisseur, les modifications de room/callee/expiration/ended_at par le client, permet au caller de terminer et au callee de refuser, et bloque le callee de forcer `expired`. Les quatre Auth fixtures et deux call_sessions ont été vérifiés absents après rollback.
+
+
+### Test complet participant calls/appointments — staging
+
+Le test `call_appointment_participant_checks.sql` a été corrigé pour refléter la sécurité actuelle : statut fournisseur exécutable par `service_role` seulement, création derrière le flag privé, acceptation via RPC participant-scopé et aucun UPDATE direct du statut. La workflow validation applique désormais `261210` + `261400` + `271400` avant ce test. Test exécuté contre staging : succès avec fournisseur activé seulement dans la transaction de test, puis vérification post-rollback : flag provider `false`, zéro Auth/profile/call fixture.
