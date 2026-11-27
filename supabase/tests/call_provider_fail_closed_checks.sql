@@ -75,6 +75,11 @@ update private.call_provider_config set enabled=true where singleton=true;
 set local role authenticated;
 select set_config('request.jwt.claim.sub','60000000-0000-0000-0000-000000000001',true);
 select public.update_my_call_session_status('90000000-0000-0000-0000-000000000001','accepted');
+do $accepted_window$ begin
+ if (select expires_at < now()+interval '59 minutes' from public.call_sessions where id='90000000-0000-0000-0000-000000000001') then
+  raise exception 'accepted_call_must_receive_60_minute_window';
+ end if;
+end $accepted_window$;
 reset role;
 do $check$ begin
  if not public.call_session_token_eligible('90000000-0000-0000-0000-000000000001','60000000-0000-0000-0000-000000000001') then raise exception 'eligible_participant_token_check_failed'; end if;
