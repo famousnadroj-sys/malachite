@@ -315,3 +315,8 @@ Staging test de redaction Jitsi exécuté dans transaction rollback : une ligne 
 ### Production messaging — suspended recipient bypass
 
 The live `envoyer un message` RLS INSERT policy checks sender identity, sender suspension, blocks, and recipient profile existence, but not whether the recipient is suspended. The live recovered `limite_messages()` trigger likewise checks sender suspension only. A member can therefore still send to a suspended account; the candidate `20261126220000_harden_message_suspension_access.sql` closes this by rejecting suspended recipients. Current staging/production checks showed no suspended participant media rows; this is a latent moderation bypass, not evidence of a current incident. Production unchanged.
+
+
+### Production username-login throttle — concurrency race
+
+Live `username-login` Edge Function v7 uses a non-atomic COUNT-then-INSERT for the 15 attempts/15-minute IP threshold. Concurrent requests can all observe the count below the limit and pass before inserts complete. Candidate `20261126210000_atomic_username_login_throttle.sql` replaces it with an atomic consume RPC and service-only execution. Blocking hardening before launch; no live login attempts or Auth data were changed.
