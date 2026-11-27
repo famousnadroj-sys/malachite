@@ -256,3 +256,6 @@ Inspection of the current `main` `calls.js` confirms it still references `meet.j
 ### PR #158 — regression de validation avatar corrigée
 
 Revue des migrations candidates a trouvé que `20261127150000_secure_profile_save_rpc_after_acl_cutover.sql` réécrivait `save_my_profile` avec une validation avatar moins stricte que la migration précédente. Correction sur la branche #158 : le dernier fichier réaffirme la fonction complète, et le test `profile_write_authorization_checks.sql` vérifie maintenant le rejet d'un `imagePath` d'un autre utilisateur et l'absence de persistance d'un `imageUrl` signé. CI en cours sur HEAD `5199f5fafb1a40da2742f0a160cc076fced324fa`; ne pas marquer la migration validée avant le résultat vert.
+
+
+Staging a maintenant aussi reçu la migration finale corrigée `secure_profile_save_rpc_after_acl_cutover_verified`. Vérification effective : SECURITY DEFINER + search_path vide; avatar strict et suppression de `imageUrl` signé; EXECUTE authenticated uniquement; aucun UPDATE direct sur `profiles` ou `prives`. Production non modifiée.
