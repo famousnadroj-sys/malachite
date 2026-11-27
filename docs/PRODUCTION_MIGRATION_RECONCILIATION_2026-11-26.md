@@ -341,3 +341,6 @@ Live `public.statuts` SELECT policy `voir les statuts` has `qual=true` for all a
 
 
 Production message read policy also omits suspension checks: `lire ses messages` filters participants and blocks but not suspended accounts. Candidate `20261126220000_harden_message_suspension_access.sql` closes read and recipient-insert paths. This is a moderation/access-control gap; no suspended-message data was modified.
+
+
+Qualification : production currently has 0 suspended accounts and 0 messages involving suspended users, so no current rows are affected by the missing suspension filter. The policy/trigger gap remains a launch-blocking control for future moderation actions.
