@@ -383,3 +383,42 @@ AI worker live health recheck : 96 runs in the last 24 hours, all `success`; lat
 
 
 Production replay preflight rechecked against live catalog after redesign: active signed cron shape **true**, HMAC secret length valid **true**, optional URL/ref pair absent (accepted by new migration), nonce table absent (expected before migration). The new migration is therefore preflight-ready in production without secret provisioning; it remains unapplied until the full backup/restore gate is approved.
+
+
+## Mise à jour de l'audit en lecture seule — 27 novembre 2026, 21:15 UTC
+
+Les historiques Supabase ont été relus directement après les derniers changements de la branche candidate :
+
+- Production `tscsmemsvgacqioncash` : **65 migrations enregistrées**, dernière `20261124122733 account_deletion_fk_cleanup`.
+- Staging `sbawknyxcjslvhknomkd` : **114 migrations enregistrées**, dernière `20261127193415 ai_worker_replay_signature_nonce_v2_verified`.
+- Ces deux historiques ne sont pas comparables par simple soustraction de leurs nombres : staging contient des migrations de baseline/schema snapshot, des essais et des migrations de vérification. La séquence de production doit être reconstruite et testée à partir d'une restauration représentative, pas copiée aveuglément depuis le ledger staging.
+
+### ACL effectives vérifiées directement en production
+
+Au contrôle SQL, rôle `authenticated` :
+
+| Table | SELECT | INSERT | UPDATE | DELETE |
+|---|---:|---:|---:|---:|
+| `profiles` | non | oui | oui | oui |
+| `call_sessions` | oui | oui | oui | oui |
+| `messages` | oui | oui | oui | oui |
+| `paiements` | oui | oui | oui | oui |
+
+Ce sont des grants effectifs au niveau table; ils confirment que le cutover ACL de la branche candidate n'est pas encore en production. Les politiques RLS ne rendent pas ces grants minimaux et les restrictions de colonnes doivent être conservées.
+
+### Advisor sécurité production — recheck
+
+Les Advisor rapportent actuellement :
+
+- 12 tables avec RLS activée mais sans policy. Ne pas ajouter de policies génériques : confirmer les ACL et les accès via fonctions contrôlées.
+- 1 SECURITY DEFINER exécutable par `anon` : `get_malachite_referrer_preview(uuid)`, RPC public attendu, mais son corps doit filtrer profils privés, suspensions et blocages avant autorisation.
+- 9 SECURITY DEFINER exécutables par `authenticated` (fonctions admin/referral, Match, finance et `start_call_session`). Leur présence n'est pas automatiquement une vulnérabilité; grants, identité, vérifications admin/participant et allowlist doivent être testés individuellement.
+- Protection Auth contre les mots de passe compromis désactivée sur le projet Free.
+
+Les fonctions examinées sont SECURITY DEFINER et les contrôles antérieurs indiquaient un `search_path` vide; cela ne remplace pas l'audit des grants ni des corps SQL.
+
+### Validation candidate la plus récente
+
+La PR #158 a été revalidée sur le commit `e6fa98912cb668ebe03868e0c5a6a1675d4a79fd` : **28/28 jobs terminés, aucun échec**; validation Malachite, runtime PostgreSQL isolé de Match, contrat release et vérification Pages en direct sont réussis. La PR reste en brouillon et n'a pas été fusionnée.
+
+**NO-GO production inchangé.** Aucun SQL, migration, donnée, secret, fonction Edge, paramètre Auth ou déploiement de production n'a été modifié lors de cette revalidation. Le ledger staging n'est pas une autorisation d'appliquer ses migrations en production.
