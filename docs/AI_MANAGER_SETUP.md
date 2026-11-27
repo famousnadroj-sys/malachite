@@ -56,3 +56,17 @@ Ne pas appeler manuellement l'endpoint worker avec un simple JWT ou un corps san
 7. Vérifier que `public.ai_manager_audit` ne contient que les métadonnées attendues.
 
 Ne jamais saisir de mots de passe, OTP, coordonnées privées, conversations ou justificatifs de paiement dans les prompts.
+
+
+## Recheck des prérequis anti-rejeu — 27 novembre 2026
+
+Correction de l'état d'extensions décrit dans les commentaires précédents : le contrôle actuel de Supabase staging (sbawknyxcjslvhknomkd) montre maintenant pg_cron 1.6.4 et pg_net 0.20.4 installés. L'ancien constat « extensions absentes » n'est donc plus actuel.
+
+Lecture des seuls noms Vault (aucune valeur de secret lue) :
+- Staging : aucun secret nommé malachite_ai_worker_url ou malachite_ai_worker_project_ref.
+- Production : le secret HMAC historique malachite_ai_worker_hmac existe; les deux secrets de liaison URL/project-ref requis par la migration anti-rejeu ne sont pas présents.
+- Production conserve encore un cron worker legacy sans nonce.
+
+Conséquence : la migration anti-rejeu doit rester fail-closed. Elle peut retirer le cron legacy puis ne pas en créer un nouveau tant que les deux secrets de liaison propres à l'environnement ne sont pas configurés. Ne pas appliquer en production sans planifier explicitement l'arrêt temporaire du worker, la configuration des secrets par le propriétaire, puis la vérification d'un cron nonce-aware et d'un rejeu rejeté.
+
+Aucun secret n'a été créé, lu en clair ou modifié; aucune migration ni cron n'a été changé.
