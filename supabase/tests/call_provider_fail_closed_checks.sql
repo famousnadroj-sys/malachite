@@ -1,4 +1,14 @@
 begin;
+-- Isolated test identities satisfy the Auth foreign keys; transaction rollback
+-- removes them after the test.
+insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_sso_user,is_anonymous)
+values
+ ('50000000-0000-0000-0000-000000000001','authenticated','authenticated','call-test-caller-a@example.invalid','',now(),'{}','{}',now(),now(),false,false),
+ ('50000000-0000-0000-0000-000000000002','authenticated','authenticated','call-test-caller-b@example.invalid','',now(),'{}','{}',now(),now(),false,false),
+ ('60000000-0000-0000-0000-000000000001','authenticated','authenticated','call-test-callee-a@example.invalid','',now(),'{}','{}',now(),now(),false,false),
+ ('60000000-0000-0000-0000-000000000002','authenticated','authenticated','call-test-callee-b@example.invalid','',now(),'{}','{}',now(),now(),false,false),
+ ('70000000-0000-0000-0000-000000000001','authenticated','authenticated','call-test-nonparticipant@example.invalid','',now(),'{}','{}',now(),now(),false,false)
+on conflict (id) do nothing;
 insert into public.call_sessions(id,caller_id,callee_id,room,mode,status,expires_at)
 values
  ('90000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000001','60000000-0000-0000-0000-000000000001','Malachite-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa','audio','pending',now()+interval '2 minutes'),
