@@ -304,3 +304,6 @@ Production read-only count found 2 historical `media_type='call'` messages with 
 ### Production chat-media read policy — exact-path privacy gap
 
 Live Storage policy `chat-media lire` permits SELECT when either of the first two folder segments equals `auth.uid()`; it does not require an exact `messages.media_url` reference and does not check blocking or suspension. Because user IDs are present in profile/path structures, this allows participants to attempt reading unreferenced objects in a shared folder namespace. The candidate migration `harden_chat_media_read_access` restricts reads to exact message media paths and participants, with block/suspension checks. Blocking privacy issue; no production policy change performed.
+
+
+Production chat-media data count : 31 objects, 30 exact message-referenced, 1 unreferenced object under the legacy broad policy; 0 currently in blocked pairs and 0 involving suspended accounts. The single orphan is an actual object that the old folder-based policy can expose to either folder participant despite no message reference. The exact-message candidate policy prevents this class of read without deleting the object.
