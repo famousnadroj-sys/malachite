@@ -55,12 +55,14 @@ jobs:
         uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      - name: Type-check production Edge Functions
+      - name: Type-check every production Edge Function
         working-directory: production-source
         run: |
-          deno check supabase/functions/admin-user-moderation/index.ts
-          deno check supabase/functions/malachite-ai-manager/index.ts
-          deno check supabase/functions/malachite-ai-worker/index.ts
+          set -euo pipefail
+          while IFS= read -r -d '' file; do
+            echo "Checking $file"
+            deno check "$file"
+          done < <(find supabase/functions -type f -name index.ts -print0 | sort -z)
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -69,9 +71,16 @@ jobs:
         run: |
           python -m pip install --disable-pip-version-check pglast
           python scripts/validate_sql.py
-      - name: Require verified production database security readiness
+      - name: Require verified production security, recovery and launch readiness
         env:
           DB_SECURITY_READY: ${{ vars.MALACHITE_DB_SECURITY_READY }}
+          BACKUP_RESTORE_VERIFIED: ${{ vars.MALACHITE_BACKUP_RESTORE_VERIFIED }}
+          AUTH_PASSWORD_PROTECTION_ENABLED: ${{ vars.MALACHITE_AUTH_PASSWORD_PROTECTION_ENABLED }}
+          PRIVATE_JAAS_CALLS_VERIFIED: ${{ vars.MALACHITE_PRIVATE_JAAS_CALLS_VERIFIED }}
+          PRIVACY_POLICIES_VERIFIED: ${{ vars.MALACHITE_PRIVACY_POLICIES_VERIFIED }}
+          ACCOUNT_DELETION_VERIFIED: ${{ vars.MALACHITE_ACCOUNT_DELETION_VERIFIED }}
+          MIGRATION_REPLAY_VERIFIED: ${{ vars.MALACHITE_MIGRATION_REPLAY_VERIFIED }}
+          PAYMENT_PUSH_VERIFIED: ${{ vars.MALACHITE_PAYMENT_PUSH_VERIFIED }}
           LAUNCH_APPROVED: ${{ vars.MALACHITE_LAUNCH_APPROVED }}
         run: |
           set -euo pipefail
@@ -79,8 +88,36 @@ jobs:
             echo "::error::Refusing production publish. Apply and verify the profile-write, payment-pause and call-session lockdown migrations first, then set MALACHITE_DB_SECURITY_READY=true."
             exit 1
           fi
+          if [ "$BACKUP_RESTORE_VERIFIED" != "true" ]; then
+            echo "::error::Refusing production publish. Complete and document an off-site database plus Storage backup and isolated restore before setting MALACHITE_BACKUP_RESTORE_VERIFIED=true."
+            exit 1
+          fi
+          if [ "$AUTH_PASSWORD_PROTECTION_ENABLED" != "true" ]; then
+            echo "::error::Refusing production publish. Enable and verify leaked-password protection in Supabase Auth before setting MALACHITE_AUTH_PASSWORD_PROTECTION_ENABLED=true."
+            exit 1
+          fi
+          if [ "$PRIVATE_JAAS_CALLS_VERIFIED" != "true" ]; then
+            echo "::error::Refusing production publish. Configure private JaaS JWTs and pass two-account negative-path tests before setting MALACHITE_PRIVATE_JAAS_CALLS_VERIFIED=true."
+            exit 1
+          fi
+          if [ "$PRIVACY_POLICIES_VERIFIED" != "true" ]; then
+            echo "::error::Refusing production publish. Verify private-profile/photo/chat-media/entitlement/call RLS policies and negative-path tests before setting MALACHITE_PRIVACY_POLICIES_VERIFIED=true."
+            exit 1
+          fi
+          if [ "$ACCOUNT_DELETION_VERIFIED" != "true" ]; then
+            echo "::error::Refusing production publish. Verify account deletion, retention/anonymization, Storage cleanup and Auth removal on an isolated restore before setting MALACHITE_ACCOUNT_DELETION_VERIFIED=true."
+            exit 1
+          fi
+          if [ "$MIGRATION_REPLAY_VERIFIED" != "true" ]; then
+            echo "::error::Refusing production publish. Reconcile missing historical migration sources and pass clean-database replay before setting MALACHITE_MIGRATION_REPLAY_VERIFIED=true."
+            exit 1
+          fi
+          if [ "$PAYMENT_PUSH_VERIFIED" != "true" ]; then
+            echo "::error::Refusing production publish. Verify payment creation, secure admin push dispatch, and no-subscription behavior before setting MALACHITE_PAYMENT_PUSH_VERIFIED=true."
+            exit 1
+          fi
           if [ "$LAUNCH_APPROVED" != "true" ]; then
-            echo "::error::Refusing production publish. Complete the auth, legal, domain, recovery and moderation checks, then set MALACHITE_LAUNCH_APPROVED=true."
+            echo "::error::Refusing production publish. Complete legal, domain, recovery and moderation checks, then set MALACHITE_LAUNCH_APPROVED=true."
             exit 1
           fi
       - name: Build production website and isolated Match preview

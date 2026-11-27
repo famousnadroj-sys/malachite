@@ -2,8 +2,9 @@
 /* Malachite: paid real-time audio/video calls and faster private profile photo loading. */
 (function(){
  'use strict';
- var photoCache=Object.create(null),callInbox=null,callInboxUserId=null,sessionChannel=null,callState=null,incoming=null,jitsiApi=null,callBusy=false,joiningCallId=null,callClockTimer=null,callStartedAt=0,audioOutputDevices=[],offerStatusFor=null,offerStatusPending=false;
- if(typeof PRIX==='object')PRIX.Appels='1 $ / 7 jours';
+ var CALL_PROVIDER_ENABLED=false,providerStatusPendingFor=null,providerStatusCheckedFor=null,providerStatusCheckedAt=0,photoCache=Object.create(null),callInbox=null,callInboxUserId=null,sessionChannel=null,callState=null,incoming=null,jitsiApi=null,callBusy=false,joiningCallId=null,callClockTimer=null,callStartedAt=0,audioOutputDevices=[],offerStatusFor=null,offerStatusPending=false;
+ if(typeof PRIX==='object')PRIX.Appels='Temporairement indisponible';
+ window.CALL_PROVIDER_ENABLED=CALL_PROVIDER_ENABLED;
 
  function readPhotoCache(key){
   // Signed Storage URLs expire on the server clock. Do not persist them in
@@ -67,7 +68,41 @@
   if(callInbox){try{sb.removeChannel(callInbox)}catch(e){}callInbox=null}
   callInboxUserId=null;incoming=null;
  }
+ async function refreshCallProviderStatus(force){
+  if(!me||!me.id){
+   CALL_PROVIDER_ENABLED=false;window.CALL_PROVIDER_ENABLED=false;
+   if(typeof PRIX==='object')PRIX.Appels='Temporairement indisponible';
+   stopCallInbox();return false;
+  }
+  var uid=me.id;
+  if(providerStatusPendingFor===uid)return false;
+  if(!force&&providerStatusCheckedFor===uid&&Date.now()-providerStatusCheckedAt<30000)return CALL_PROVIDER_ENABLED;
+  providerStatusPendingFor=uid;
+  try{
+   var response=await sb.functions.invoke('malachite-jaas-token',{body:{action:'status'}});
+   if(response.error||!response.data||typeof response.data.enabled!=='boolean')throw response.error||new Error('Provider status invalid');
+   if(!me||me.id!==uid)return false;
+   CALL_PROVIDER_ENABLED=response.data.enabled===true;
+   providerStatusCheckedFor=uid;providerStatusCheckedAt=Date.now();
+   window.CALL_PROVIDER_ENABLED=CALL_PROVIDER_ENABLED;
+   if(typeof PRIX==='object')PRIX.Appels=CALL_PROVIDER_ENABLED?'Appels audio/vidéo disponibles':'Temporairement indisponible';
+   if(CALL_PROVIDER_ENABLED)startInbox();else stopCallInbox();
+   return CALL_PROVIDER_ENABLED;
+  }catch(e){
+   if(me&&me.id===uid){
+    CALL_PROVIDER_ENABLED=false;window.CALL_PROVIDER_ENABLED=false;
+    providerStatusCheckedFor=uid;providerStatusCheckedAt=Date.now();
+    if(typeof PRIX==='object')PRIX.Appels='Temporairement indisponible';
+    stopCallInbox();
+   }
+   return false;
+  }finally{
+   if(providerStatusPendingFor===uid)providerStatusPendingFor=null;
+  }
+ }
  function startInbox(){
+  // Keep incoming-call subscriptions disabled until authenticated JaaS is deployed and verified.
+  if(!CALL_PROVIDER_ENABLED)return false;
   if(!me)return;var uid=me.id;
   if(callInbox&&callInboxUserId===uid)return;
   if(callInbox)stopCallInbox();
@@ -77,7 +112,7 @@
    if(!row||row.status!=='pending'||new Date(row.expires_at)<=new Date())return;
    if(!me||me.id!==uid)return;
    if(callState||callBusy||incoming){
-    if(!incoming||incoming.id!==row.id)sb.from('call_sessions').update({status:'rejected'}).eq('id',row.id).eq('callee_id',uid).eq('status','pending').then(function(){});
+    if(!incoming||incoming.id!==row.id)sb.rpc('update_my_call_session_status',{p_id:row.id,p_status:'rejected'}).then(function(){});
     return;
    }
    incoming=row;var p=prof(row.caller_id)||{},name=p.prenom||'Un membre';
@@ -87,14 +122,14 @@
  }
  async function acceptIncoming(){
   var row=incoming;if(!row||!me)return;
-  var r=await sb.from('call_sessions').update({status:'accepted'}).eq('id',row.id).eq('callee_id',me.id).eq('status','pending').select('id,caller_id,callee_id,mode,room,status,expires_at').maybeSingle();
-  if(r.error||!r.data||r.data.status!=='accepted'||new Date(r.data.expires_at).getTime()<=Date.now()){
+  var r=await sb.rpc('update_my_call_session_status',{p_id:row.id,p_status:'accepted'});var accepted=Array.isArray(r.data)?r.data[0]:r.data;
+  if(r.error||!accepted||accepted.status!=='accepted'||new Date(accepted.expires_at).getTime()<=Date.now()){
    alert('Impossible d’accepter : cet appel n’est plus en attente ou a expiré.');incoming=null;closeUI();return
   }
-  callState={id:r.data.id,caller:false,caller_id:r.data.caller_id,callee_id:r.data.callee_id,mode:r.data.mode,room:r.data.room,status:r.data.status};
+  callState={id:accepted.id,caller:false,caller_id:accepted.caller_id,callee_id:accepted.callee_id,mode:accepted.mode,room:accepted.room,status:accepted.status};
   incoming=null;await joinJitsi(callState);
  }
- async function rejectIncoming(){var row=incoming;if(row&&me)await sb.from('call_sessions').update({status:'rejected'}).eq('id',row.id).eq('callee_id',me.id).eq('status','pending');incoming=null;closeUI()}
+ async function rejectIncoming(){var row=incoming;if(row&&me)await sb.rpc('update_my_call_session_status',{p_id:row.id,p_status:'rejected'});incoming=null;closeUI()}
  window.malAcceptCall=acceptIncoming;window.malRejectCall=rejectIncoming;
  async function hasPass(){
   var s=await sb.from('statuts').select('premium_until').eq('user_id',me.id).maybeSingle();
@@ -105,6 +140,9 @@
  }
  function subscribeReady(ch){return new Promise(function(resolve,reject){var done=false,t=setTimeout(function(){if(!done){done=true;reject(new Error('Le service temps réel ne répond pas.'))}},12000);ch.subscribe(function(status,error){if(done)return;if(status==='SUBSCRIBED'){done=true;clearTimeout(t);resolve()}else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED'){done=true;clearTimeout(t);reject(error||new Error('Connexion Realtime impossible'))}})})}
  async function startCall(mode){
+  // Recheck the authenticated provider before attempting a call. The database
+  // remains the final authority and rejects creation/acceptance while disabled.
+  if(!CALL_PROVIDER_ENABLED&&!(await refreshCallProviderStatus(true))){alert('Les appels audio et vidéo sont temporairement suspendus pour protéger la confidentialité. Ils seront réactivés après la configuration et la vérification des salles privées sécurisées.');return}
   if(!me||!open){alert('Ouvre une conversation avant d’appeler.');return}
   if(mode!=='audio'&&mode!=='video')mode='audio';
   if(!mutual){alert('Appel impossible : un match réciproque est nécessaire.');return}
@@ -132,21 +170,28 @@
    if(!created||!created.id)throw new Error('La base n’a pas confirmé la création de l’appel.');
    callState={id:created.id,caller:true,caller_id:created.caller_id,callee_id:created.callee_id,mode:created.mode,room:created.room,status:created.status};
    overlay(mode==='video'?'Appel vidéo en cours':'Appel audio en cours','<p>Appel envoyé à '+esc((prof(target)||{}).prenom||'ton match')+'. En attente de réponse…</p>','<button class="hangup" onclick="malHangup()">Annuler l’appel</button>',false);
-   callState.timeout=setTimeout(async function(){if(callState&&callState.id===id&&callState.status==='pending'){await sb.from('call_sessions').update({status:'expired'}).eq('id',id);finishCall(false);alert('Aucune réponse. Réessaie plus tard.')}},90000);
+   callState.timeout=setTimeout(async function(){if(callState&&callState.id===id&&callState.status==='pending'){await sb.rpc('update_my_call_session_status',{p_id:id,p_status:'expired'});finishCall(false);alert('Aucune réponse. Réessaie plus tard.')}},90000);
   }catch(e){console.error('Appel Malachite',e);var em=e&&e.message?e.message:'erreur inconnue';if(em.indexOf('call_entitlement_required')>=0)em='Les appels nécessitent Premium actif ou un Pass Appels validé.';else if(em.indexOf('mutual_match_required')>=0)em='Appel impossible : ce membre ne figure pas comme match réciproque dans la base. Ouvre un match confirmé.';else if(em.indexOf('call_already_active')>=0)em='Un appel est déjà en cours pour toi ou ce membre. Termine-le avant de recommencer.';else if(em.indexOf('row-level security')>=0||em.indexOf('42501')>=0)em='La base a refusé la création de l’appel. Réessaie après reconnexion.';alert('Appel impossible : '+em);if(sessionChannel){sb.removeChannel(sessionChannel);sessionChannel=null}callState=null}
   finally{callBusy=false}
  }
- async function loadJitsi(){
+ async function loadJitsi(appId){
   if(window.JitsiMeetExternalAPI)return;
-  await new Promise(function(resolve,reject){var s=document.querySelector('script[data-mal-jitsi]');if(s){s.addEventListener('load',resolve,{once:true});s.addEventListener('error',function(){reject(new Error('Jitsi ne se charge pas.'))},{once:true});setTimeout(function(){window.JitsiMeetExternalAPI?resolve():reject(new Error('Délai Jitsi dépassé.'))},15000);return}
-   s=document.createElement('script');s.src='https://meet.jit.si/external_api.js';s.async=true;s.dataset.malJitsi='1';s.onload=resolve;s.onerror=function(){reject(new Error('Impossible de charger Jitsi.'))};document.head.appendChild(s);
+  if(!appId||!/^vpaas-magic-cookie-[a-f0-9]+$/i.test(appId))throw new Error('Identifiant JaaS invalide.');
+  await new Promise(function(resolve,reject){var s=document.querySelector('script[data-mal-jaas]');if(s){if(window.JitsiMeetExternalAPI){resolve();return}s.addEventListener('load',resolve,{once:true});s.addEventListener('error',function(){reject(new Error('JaaS ne se charge pas.'))},{once:true});setTimeout(function(){window.JitsiMeetExternalAPI?resolve():reject(new Error('Délai JaaS dépassé.'))},15000);return}
+   s=document.createElement('script');s.src='https://8x8.vc/'+encodeURIComponent(appId)+'/external_api.js';s.async=true;s.dataset.malJaas='1';s.onload=resolve;s.onerror=function(){reject(new Error('Impossible de charger JaaS.'))};document.head.appendChild(s);
   });
  }
  async function joinJitsi(state){
   if(!state||!callState||callState.id!==state.id||joiningCallId===state.id||jitsiApi)return;
   joiningCallId=state.id;
   try{
-   await loadJitsi();
+   var tokenResponse=await sb.functions.invoke('malachite-jaas-token',{body:{session_id:state.id}});
+   if(tokenResponse.error)throw tokenResponse.error;
+   var tokenData=tokenResponse.data;
+   if(!tokenData||tokenData.domain!=='8x8.vc'||typeof tokenData.jwt!=='string'||typeof tokenData.roomName!=='string')throw new Error('Jeton JaaS invalide.');
+   var appId=tokenData.roomName.split('/')[0];
+   if(!tokenData.roomName.startsWith(appId+'/')||!/^vpaas-magic-cookie-[a-f0-9]+$/i.test(appId))throw new Error('Salle JaaS invalide.');
+   await loadJitsi(appId);
    if(!callState||callState.id!==state.id)return;
    var p=prof(state.caller?state.callee_id:state.caller_id)||{},name=(mine&&mine.prenom)||'Membre Malachite';
    overlay(state.mode==='video'?'Appel vidéo avec '+(p.prenom||'ton match'):'Appel audio avec '+(p.prenom||'ton match'),
@@ -154,9 +199,9 @@
     '<button class="hangup" onclick="malHangup()">Raccrocher</button>',true);
    var mount=document.getElementById('malJitsiMount');
    if(!mount)throw new Error('Interface de l’appel introuvable.');
-   jitsiApi=new JitsiMeetExternalAPI('meet.jit.si',{
-    roomName:state.room,parentNode:mount,width:'100%',height:'100%',userInfo:{displayName:name},
-    configOverwrite:{prejoinPageEnabled:false,enableWelcomePage:false,startWithAudioMuted:false,startWithVideoMuted:state.mode==='audio',disableDeepLinking:true,p2p:{enabled:true}},
+   jitsiApi=new JitsiMeetExternalAPI('8x8.vc',{
+    roomName:tokenData.roomName,jwt:tokenData.jwt,parentNode:mount,width:'100%',height:'100%',userInfo:{displayName:name},
+    configOverwrite:{prejoinConfig:{enabled:false},enableWelcomePage:false,startWithAudioMuted:false,startWithVideoMuted:state.mode==='audio',disableDeepLinking:true,p2p:{enabled:true}},
     interfaceConfigOverwrite:{TOOLBAR_BUTTONS:['microphone','camera','hangup','chat','tileview','fullscreen','settings','participants-pane','desktop']}
    });
    callStartedAt=0;
@@ -204,25 +249,27 @@
   var s=callState;if(s&&s.timeout)clearTimeout(s.timeout);
   clearInterval(callClockTimer);callClockTimer=null;callStartedAt=0;joiningCallId=null;audioOutputDevices=[];
   if(jitsiApi){var api=jitsiApi;jitsiApi=null;try{api.dispose()}catch(e){}}
-  if(updateServer&&s&&me&&s.status!=='ended'&&s.status!=='rejected'&&s.status!=='expired')await sb.from('call_sessions').update({status:'ended'}).eq('id',s.id);
+  if(updateServer&&s&&me&&s.status!=='ended'&&s.status!=='rejected'&&s.status!=='expired')await sb.rpc('update_my_call_session_status',{p_id:s.id,p_status:'ended'});
   closeUI();callState=null;callBusy=false;if(sessionChannel){sb.removeChannel(sessionChannel);sessionChannel=null}
  }
  window.malHangup=function(){finishCall(true)};
  window.call=function(mode){return startCall(mode||'audio')};
  if(typeof call==='function')call=function(mode){return startCall(mode||'audio')};
 
+ // Calls stay unavailable until JaaS JWT issuance and server-side authorization
+ // are configured and verified. Never replace disabled UI controls here.
  var oldMatch=window.matchBox;
- if(typeof oldMatch==='function')window.matchBox=function(){
-  var h=oldMatch();
-  h=h.replace('<button disabled title="Les appels sécurisés seront réactivés après leur mise en place">📹 Appel indisponible</button>','<button onclick="call(&quot;audio&quot;)">📞 Appel audio</button><button onclick="call(&quot;video&quot;)">🎥 Appel vidéo</button>');
-  h=h.replace('<button disabled>📹 Appels sécurisés indisponibles</button>','<button onclick="call(&quot;audio&quot;)">📞 Appel audio</button><button onclick="call(&quot;video&quot;)">🎥 Appel vidéo</button>');
-  return h.replace('Appels sécurisés indisponibles','Appels audio et vidéo inclus dans Premium ; sinon Pass Appels à 1 USD / 7 jours.');
- };
+ if(typeof oldMatch==='function')window.matchBox=oldMatch;
  var oldThread=window.thread;
- if(typeof oldThread==='function')window.thread=function(){return oldThread().replace('Voir le profil ›</i></button>','Voir le profil ›</i></button><button class="mal-call-head" onclick="call(&quot;audio&quot;)" aria-label="Appel audio">📞</button><button class="mal-call-head" onclick="call(&quot;video&quot;)" aria-label="Appel vidéo">🎥</button>')};
+ if(typeof oldThread==='function')window.thread=oldThread;
  var oldSub=window.sub;
- if(typeof oldSub==='function')window.sub=function(){oldSub();startInbox()};
- window.startCallInbox=startInbox;
+ if(typeof oldSub==='function')window.sub=function(){oldSub()};
+ // Keep the public entry point connected to the guarded implementation. The
+ // provider status RPC and database checks keep this fail-closed until JaaS is
+ // configured; do not permanently shadow the call handler after configuration.
+ window.call=function(mode){return startCall(mode||'audio')};
+ if(typeof call==='function')call=function(mode){return startCall(mode||'audio')};
+ window.startCallInbox=function(){return refreshCallProviderStatus(true).then(function(enabled){if(enabled)startInbox();return enabled})};
 
  function refreshOfferPremiumStatus(){
   if(!me||offerStatusFor===me.id||offerStatusPending)return;
@@ -237,10 +284,11 @@
  window.offres=function(){
   refreshOfferPremiumStatus();
   var premiumActive=!!(me&&st[me.id]&&st[me.id].premium_until&&new Date(st[me.id].premium_until).getTime()>Date.now());
-  var callsCard=premiumActive?'<div class="plan" style="border:2px solid var(--pink)"><h3>📞 Appels audio + vidéo</h3><p>Inclus dans ton Premium actif : aucun paiement supplémentaire pour les appels.</p></div>':'<div class="plan"><h3>📞 Pass Appels audio + vidéo <span>1 $ / 7 jours</span></h3><p>Appels audio et vidéo avec tes matchs pendant 7 jours après validation. Si tu passes à Premium, ce pass n’est plus nécessaire : les appels sont inclus.</p></div>';
-  var callOption=premiumActive?'':'<option value="Appels">Pass Appels audio + vidéo — 1 USD / 7 jours</option>';
-  var airtelNumber=NUM?'<div class="card"><b>Numéro Airtel Money destinataire</b><div style="font-size:20px;font-weight:800;letter-spacing:1px">'+esc(NUM)+'</div></div>':'<p class="note">Numéro Airtel Money non configuré.</p>';var orangeNumber=ORANGE?'<div class="card"><b>Numéro Orange Money destinataire</b><div style="font-size:20px;font-weight:800;letter-spacing:1px">'+esc(ORANGE)+'</div></div>':'<p class="note">Numéro Orange Money non configuré.</p>';
-  return '<h2>⭐ Nos offres</h2><div class="list"><div class="plan"><h3>Gratuit <span>0 $</span></h3><p>Profil, découverte, likes, messages illimités dans les conversations existantes, jusqu’à 15 nouvelles conversations initiées par jour et 1 rendez-vous par semaine.</p></div><div class="plan" style="border:2px solid var(--pink)"><h3>👑 Premium <span>2 $ / 30 jours</span></h3><p>Tout le confort Premium pendant 30 jours : appels audio et vidéo inclus, nouvelles conversations sans quota, rendez-vous illimités et accès aux coordonnées de tes matchs sans payer le déblocage contact séparément. À l’expiration, les avantages Premium s’arrêtent automatiquement ; renouvelle pour les retrouver.</p></div>'+callsCard+'<div class="plan"><h3>🔥 Boost <span>0,50 $ / 24 h</span></h3><p>Ton profil passe en priorité en haut de Découvrir pendant 24 heures pour augmenter sa visibilité. Le Boost n’ajoute pas de fonctionnalités de messagerie ou d’appel.</p></div></div><h2>💳 Payer et soumettre le code de transaction</h2><div class="box list"><p>1. Choisis l’offre et le moyen de paiement configuré. 2. Envoie exactement le montant affiché au numéro destinataire ci-dessous. 3. Copie la référence de transaction reçue d’Airtel Money. 4. Soumets cette référence. L’accès est activé seulement après vérification par l’administrateur, après vérification manuelle.</p>'+airtelNumber+orangeNumber+'<label>Offre<select id="of"><option value="Premium">Premium — 2 USD / 30 jours (appels inclus)</option>'+callOption+'<option value="Boost">Boost — 0,50 USD / 24 heures</option></select></label><label>Moyen de paiement<select id="malOperator"><option value="airtel">Airtel Money</option><option value="orange">Orange Money</option></select></label><label>Code de transaction<input id="cd" maxlength="100" autocomplete="off" placeholder="Référence exacte reçue après transfert"></label><p class="note">Ne communique jamais ton PIN ni ton code OTP. Choisis le réseau correspondant au transfert : la référence est vérifiée avec ce réseau.</p><label>Justificatif de paiement (JPEG, PNG ou WebP · 5 Mo maximum)<input id="malReceipt" type="file" accept="image/jpeg,image/png,image/webp"></label><button class="b1" id="malSubmitPayment" onclick="pay()">Soumettre le paiement avec justificatif</button><div class="note" id="pm" aria-live="polite"></div></div><section id="malPaymentHistory"><h3>Suivi de mes demandes</h3><p class="note">Chargement…</p></section>';
+  var callsCard=CALL_PROVIDER_ENABLED?'<div class="plan"><h3>📞 Appels audio + vidéo</h3><p>'+(premiumActive?'Inclus dans ton abonnement Premium actif.':'Pass Appels : 1 USD / 7 jours avec tes matchs.')+'</p></div>':'<div class="plan"><h3>📞 Appels audio + vidéo</h3><p>Service temporairement indisponible pendant la sécurisation des appels. Aucun Pass Appels ne peut être acheté ni validé avant l’activation du fournisseur authentifié. Les appels seront inclus dans Premium ou proposés en Pass Appels après validation complète.</p></div>';
+  var callOption=CALL_PROVIDER_ENABLED&&!premiumActive?'<option value="Appels">Pass Appels — 1 USD / 7 jours</option>':'';
+  var paymentMethods=(NUM?'<option value="airtel">Airtel Money</option>':'')+(ORANGE?'<option value="orange">Orange Money</option>':'');
+  var paymentSection=(NUM||ORANGE)?'<h2>💳 Payer et soumettre le code de transaction</h2><div class="box list"><p>1. Choisis une offre et un moyen de paiement affiché. 2. Envoie exactement le montant indiqué au numéro correspondant. 3. Copie la référence reçue de ton opérateur. 4. Soumets-la avec le justificatif. L’accès est activé seulement après vérification manuelle par l’administrateur.</p>'+(NUM?'<div class="card"><b>Numéro Airtel Money destinataire</b><div style="font-size:20px;font-weight:800;letter-spacing:1px">'+esc(NUM)+'</div></div>':'')+(ORANGE?'<div class="card"><b>Numéro Orange Money destinataire</b><div style="font-size:20px;font-weight:800;letter-spacing:1px">'+esc(ORANGE)+'</div></div>':'')+'<label>Offre<select id="of"><option value="Premium">Premium — 2 USD / 30 jours (appels dès réactivation du service sécurisé)</option><option value="Boost">Boost — 0,50 USD / 24 heures</option></select></label><label>Moyen de paiement<select id="malOperator">'+paymentMethods+'</select></label><label>Code de transaction<input id="cd" maxlength="100" autocomplete="off" placeholder="Référence exacte reçue après transfert"></label><p class="note">Ne communique jamais ton PIN ni ton code OTP. Le réseau doit correspondre au transfert.</p><label>Justificatif de paiement (JPEG, PNG ou WebP · 5 Mo maximum)<input id="malReceipt" type="file" accept="image/jpeg,image/png,image/webp"></label><button class="b1" id="malSubmitPayment" onclick="pay()">Soumettre le paiement avec justificatif</button><div class="note" id="pm" aria-live="polite"></div></div>':'<section class="card"><h3>💳 Paiements temporairement suspendus</h3><p class="note">Les moyens de paiement sont en cours de confirmation. N’effectue aucun transfert et ne communique aucun code avant la réactivation officielle des paiements.</p></section>';
+  return '<h2>⭐ Nos offres</h2><div class="list"><div class="plan"><h3>Gratuit <span>0 $</span></h3><p>Profil, découverte, likes, messages illimités dans les conversations existantes, jusqu’à 15 nouvelles conversations initiées par jour et 1 rendez-vous par semaine.</p></div><div class="plan" style="border:2px solid var(--pink)"><h3>👑 Premium <span>2 $ / 30 jours</span></h3><p>Tout le confort Premium pendant 30 jours : appels audio et vidéo inclus dès la réactivation du service sécurisé, nouvelles conversations sans quota, rendez-vous illimités et accès aux coordonnées de tes matchs sans payer le déblocage contact séparément. À l’expiration, les avantages Premium s’arrêtent automatiquement ; renouvelle pour les retrouver.</p></div>'+callsCard+'<div class="plan"><h3>🔥 Boost <span>0,50 $ / 24 h</span></h3><p>Ton profil passe en priorité en haut de Découvrir pendant 24 heures pour augmenter sa visibilité. Le Boost n’ajoute pas de fonctionnalités de messagerie ou d’appel.</p></div></div>'+paymentSection+'<section id="malPaymentHistory"><h3>Suivi de mes demandes</h3><p class="note">Chargement…</p></section>';
  };
  async function loadMyPayments(){
   var node=document.getElementById('malPaymentHistory');if(!node||!me)return;
@@ -252,9 +300,13 @@
  window.pay=async function(){
   var input=document.getElementById('cd'),offer=document.getElementById('of'),operator=document.getElementById('malOperator'),proof=document.getElementById('malReceipt'),msgEl=document.getElementById('pm'),button=document.getElementById('malSubmitPayment');
   if(!me){if(msgEl)msgEl.textContent='Connecte-toi avant de soumettre un paiement.';return}
+  var network=operator?operator.value:(NUM?'airtel':'orange');
+  if(!NUM&&!ORANGE){if(msgEl)msgEl.textContent='Les paiements sont temporairement suspendus. N’effectue aucun transfert.';return}
+  if((network==='airtel'&&!NUM)||(network==='orange'&&!ORANGE)){if(msgEl)msgEl.textContent='Ce moyen de paiement n’est pas disponible actuellement.';return}
   var code=input?input.value.trim():'';
   if(code.length<4||code.length>100){if(msgEl)msgEl.textContent='Code invalide : saisis entre 4 et 100 caractères.';return}
   if(!offer||!['Premium','Appels','Boost'].includes(offer.value)){if(msgEl)msgEl.textContent='Choisis une offre valide.';return}
+  if(offer.value==='Appels'&&!CALL_PROVIDER_ENABLED){if(msgEl)msgEl.textContent='Le Pass Appels est temporairement indisponible. Aucun paiement ne sera accepté avant l’activation sécurisée du service.';return}
   if(!proof||!proof.files||!proof.files[0]){if(msgEl)msgEl.textContent='Ajoute le justificatif du transfert pour continuer.';return}
   if(button){button.disabled=true;button.textContent='Envoi sécurisé…'}
   if(msgEl)msgEl.textContent='Téléversement privé du justificatif puis enregistrement de la demande…';
@@ -264,7 +316,6 @@
     if(premiumCheck.error)throw premiumCheck.error;
     if(premiumCheck.data&&premiumCheck.data.premium_until&&new Date(premiumCheck.data.premium_until).getTime()>Date.now())throw new Error('Les appels audio et vidéo sont déjà inclus dans ton abonnement Premium actif. Tu ne dois pas payer le pass à 1 $.');
    }
-   var network=operator?operator.value:'airtel';
    var duplicate=await sb.from('paiements').select('id,offre,statut,user_id,operateur').eq('code',code).eq('operateur',network).maybeSingle();
    if(duplicate.error)throw duplicate.error;
    if(duplicate.data){if(duplicate.data.user_id!==me.id)throw new Error('Cette référence de transaction a déjà été utilisée. Vérifie le nouveau code reçu de ton opérateur.');throw new Error('Cette référence a déjà été soumise (demande #'+duplicate.data.id+', statut : '+duplicate.data.statut+'). Consulte le suivi de tes demandes ; ne la soumets pas une deuxième fois.');}
@@ -333,7 +384,7 @@
   finally{if(adminPaymentPendingFor===uid)adminPaymentPendingFor=null}
  }
  var originalSub=window.sub;
- if(typeof originalSub==='function')window.sub=function(){originalSub();startInbox();startPaymentRealtime();startUserNotifications()};
+ if(typeof originalSub==='function')window.sub=function(){originalSub();startInbox();startPaymentRealtime();startUserNotifications();setTimeout(function(){refreshCallProviderStatus(true)},0)};
  var originalGo=window.go;
  if(typeof originalGo==='function')window.go=function(t){originalGo(t);if(t==='offres')setTimeout(loadMyPayments,0)};
 
@@ -343,10 +394,12 @@
   if(callInboxUserId&&(!next||next.id!==callInboxUserId))stopCallInbox();
   if(adminPaymentUserId&&(!next||next.id!==adminPaymentUserId))stopPaymentRealtime();
   if(!next&&callState)finishCall(true);
+  if(!next){CALL_PROVIDER_ENABLED=false;window.CALL_PROVIDER_ENABLED=false;providerStatusCheckedFor=null;providerStatusCheckedAt=0;stopCallInbox()}
   if(next&&callInboxUserId!==next.id)startInbox();
   if(next)startPaymentRealtime();
+  setTimeout(function(){refreshCallProviderStatus(true)},0);
  });
- window.addEventListener('online',function(){if(me){startInbox();startPaymentRealtime()}});
- document.addEventListener('visibilitychange',function(){if(!document.hidden&&me){startInbox();startPaymentRealtime()}});
- if(me){startInbox();startPaymentRealtime()};
+ window.addEventListener('online',function(){if(me){refreshCallProviderStatus(true);startInbox();startPaymentRealtime()}});
+ document.addEventListener('visibilitychange',function(){if(!document.hidden&&me){refreshCallProviderStatus(false);startInbox();startPaymentRealtime()}});
+ if(me){refreshCallProviderStatus(true);startInbox();startPaymentRealtime()};
 })();

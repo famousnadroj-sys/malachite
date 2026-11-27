@@ -5,19 +5,31 @@ on:
     branches: [website/public-launch-cleanup-2026-11-24]
   pull_request:
     branches: [main]
+    paths:
+      - 'index.html'
+      - '*.js'
+      - '*.html'
+      - 'manifest.webmanifest'
+      - 'sw.js'
+      - 'supabase/**'
+      - 'scripts/**'
   workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.head.ref || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   release-integration:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout secured application candidate
+      - name: Checkout application candidate under test
         uses: actions/checkout@v4
         with:
-          ref: security/rebased-private-profile-access-v4
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           path: app-source
 
       - name: Checkout public launch pages

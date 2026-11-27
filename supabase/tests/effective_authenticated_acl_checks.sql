@@ -7,7 +7,7 @@ declare
   v_priv text;
 begin
   foreach t in array array[
-    'call_sessions','config','login_names','paiements','statuts','prives'
+    'call_sessions','config','paiements','statuts','prives'
   ] loop
     if t='config' then
       if has_table_privilege('authenticated',format('public.%I',t),'SELECT') then
@@ -44,14 +44,48 @@ begin
     end loop;
   end loop;
 
-  if has_function_privilege('authenticated','public.update_my_call_session_status(uuid,text)','EXECUTE')
-     or has_function_privilege('anon','public.update_my_call_session_status(uuid,text)','EXECUTE')
-     or has_function_privilege('authenticated','public.start_call_session(uuid,uuid,text,text,timestamptz)','EXECUTE')
+  if has_table_privilege('authenticated','public.login_names','SELECT')
+     or has_table_privilege('authenticated','public.login_names','INSERT')
+     or has_table_privilege('authenticated','public.login_names','UPDATE')
+     or has_table_privilege('authenticated','public.login_names','DELETE')
+     or has_table_privilege('anon','public.login_names','SELECT') then
+    raise exception 'username_mapping_must_remain_hidden_from_browser_roles';
+  end if;
+
+  if has_function_privilege('authenticated','public.start_call_session(uuid,uuid,text,text,timestamptz)','EXECUTE')
      or has_function_privilege('anon','public.start_call_session(uuid,uuid,text,text,timestamptz)','EXECUTE') then
     raise exception 'paused_call_rpc_must_not_be_executable_by_client_roles';
   end if;
 end
 $$;
+
+
+-- SECURITY DEFINER entrypoints must not be anonymously callable,
+-- except the deliberately public-profile-only referral preview.
+do $definer_rpc_acl$
+declare
+  v record;
+begin
+  for v in
+    select p.oid, p.proname
+    from pg_proc p
+    join pg_namespace n on n.oid=p.pronamespace
+    where n.nspname='public' and p.prosecdef
+  loop
+    if has_function_privilege('anon',v.oid,'EXECUTE')
+       and v.proname <> 'get_malachite_referrer_preview' then
+      raise exception 'unexpected_anon_security_definer_execute:%',v.proname;
+    end if;
+  end loop;
+
+  if has_function_privilege('authenticated',
+       'public.start_call_session(uuid,uuid,text,text,timestamptz)','EXECUTE')
+     or has_function_privilege('anon',
+       'public.start_call_session(uuid,uuid,text,text,timestamptz)','EXECUTE') then
+    raise exception 'paused_call_rpc_must_not_be_executable_by_client_roles';
+  end if;
+end
+$definer_rpc_acl$;
 
 begin;
 set local role authenticated;

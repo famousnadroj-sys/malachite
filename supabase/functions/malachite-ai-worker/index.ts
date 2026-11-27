@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
+import { readLimitedUtf8Body } from "./body.ts";
 
 const CONFIGURED_MODEL = Deno.env.get("MALACHITE_AI_MODEL") || "";
 const MODEL = CONFIGURED_MODEL.startsWith("gemini-2.5-") ? "gemini-3.5-flash-lite" : (CONFIGURED_MODEL || "gemini-3.5-flash-lite");
@@ -119,6 +120,55 @@ async function synchronizeReviewQueue(admin: any) {
 }
 
 
+async function reconcileResolvedReviewTasks(admin: any) {
+  const { data: tasks, error } = await admin.from("malachite_ai_review_queue")
+    .select("id,task_type,record_id,details")
+    .eq("status", "awaiting_human").limit(100);
+  if (error) throw new Error("review_queue_reconcile_read_failed");
+  let reconciled = 0;
+  for (const task of tasks || []) {
+    const tableByType: Record<string, string> = {
+      payment_review: "paiements",
+      report_review: "signalements",
+      support_review: "demandes_support",
+    };
+    const table = tableByType[String(task.task_type)];
+    if (!table) continue;
+    const recordId = Number(task.record_id);
+    if (!Number.isSafeInteger(recordId) || recordId <= 0) continue;
+    const { data: source, error: sourceError } = await admin.from(table)
+      .select("statut").eq("id", recordId).maybeSingle();
+    if (sourceError) throw new Error("review_queue_reconcile_source_failed:" + table);
+    const sourceStatus = String(source?.statut || "");
+    const stillNeedsReview =
+      task.task_type === "payment_review" ? sourceStatus === "attente" :
+      task.task_type === "report_review" ? sourceStatus === "nouveau" :
+      ["nouveau", "en_cours"].includes(sourceStatus);
+    if (stillNeedsReview) continue;
+    const current = task.details && typeof task.details === "object" ? task.details : {};
+    const currentAutomation = current.automation && typeof current.automation === "object" ? current.automation : {};
+    const { error: updateError } = await admin.from("malachite_ai_review_queue")
+      .update({
+        status: "completed",
+        updated_at: new Date().toISOString(),
+        details: {
+          ...current,
+          automation: {
+            ...currentAutomation,
+            reconciled_at: new Date().toISOString(),
+            execution: "source_already_resolved",
+            note: "Le dossier source a déjà été résolu par un humain. Aucun paiement, signalement ou ticket n’a été traité automatiquement.",
+          },
+        },
+      })
+      .eq("id", task.id).eq("status", "awaiting_human");
+    if (updateError) throw new Error("review_queue_reconcile_write_failed");
+    reconciled++;
+  }
+  return reconciled;
+}
+
+
 async function prepareReviewTasks(admin: any) {
   const { data: tasks, error } = await admin.from("malachite_ai_review_queue")
     .select("id,task_type,record_id,title,risk_level,status,details")
@@ -191,7 +241,12 @@ Deno.serve(async (req: Request) => {
   // function or placed in pg_net's request queue.
   const timestamp = req.headers.get("x-mal-timestamp") || "";
   const signature = req.headers.get("x-mal-signature") || "";
-  const bodyText = await req.text();
+  const bodyRead = await readLimitedUtf8Body(req);
+  if (!bodyRead.ok) {
+    const status = bodyRead.reason === "too_large" ? 413 : 400;
+    return json(status, { error: bodyRead.reason === "too_large" ? "body_too_large" : "invalid_body" });
+  }
+  const bodyText = bodyRead.text;
   const admin = createClient(url, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
@@ -224,9 +279,10 @@ Deno.serve(async (req: Request) => {
     const metrics = await collectMetrics(admin);
     await synchronizeAlerts(admin, metrics);
     await synchronizeReviewQueue(admin);
+    const reconciledTasks = await reconcileResolvedReviewTasks(admin);
     const executedSupportDrafts = await executeApprovedSupportDrafts(admin);
     const preparedTasks = await prepareReviewTasks(admin);
-    const metricsWithQueue = { ...metrics, review_tasks_prepared: preparedTasks, support_drafts_executed: executedSupportDrafts };
+    const metricsWithQueue = { ...metrics, review_tasks_reconciled: reconciledTasks, review_tasks_prepared: preparedTasks, support_drafts_executed: executedSupportDrafts };
     let summary: string | null = null;
     let model: string | null = null;
     let status: "success" | "partial" = "success";
