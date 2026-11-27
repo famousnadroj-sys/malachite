@@ -41,7 +41,7 @@ function pemToDer(pem: string): ArrayBuffer {
   return bytes.buffer;
 }
 
-async function signJaasJwt(appId: string, keyId: string, pem: string, roomName: string, userId: string, displayName: string): Promise<string> {
+async function signJaasJwt(appId: string, keyId: string, pem: string, roomName: string, userId: string, displayName: string, expiresAt: number): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
   const header = { alg: "RS256", kid: appId + "/" + keyId, typ: "JWT" };
   const payload = {
@@ -49,7 +49,7 @@ async function signJaasJwt(appId: string, keyId: string, pem: string, roomName: 
     iss: "chat",
     sub: appId,
     nbf: now - 5,
-    exp: now + 120,
+    exp: expiresAt,
     room: roomName,
     context: {
       user: { id: userId, name: displayName, moderator: "false" },
@@ -178,9 +178,16 @@ Deno.serve(async (req: Request) => {
     : "Membre Malachite";
   const roomName = appId + "/" + session.room;
 
+  const now = Math.floor(Date.now() / 1000);
+  const sessionExpiry = Math.floor(new Date(session.expires_at).getTime() / 1000);
+  const tokenExpiry = Math.min(now + 120, sessionExpiry);
+  if (!Number.isFinite(sessionExpiry) || tokenExpiry <= now + 5) {
+    return json({ error: "call_session_expiring" }, 403);
+  }
+
   try {
-    const jwt = await signJaasJwt(appId, keyId, privateKey, session.room, user.id, displayName);
-    return json({ jwt, domain: "8x8.vc", roomName, expires_in: 120 });
+    const jwt = await signJaasJwt(appId, keyId, privateKey, session.room, user.id, displayName, tokenExpiry);
+    return json({ jwt, domain: "8x8.vc", roomName, expires_in: tokenExpiry - now });
   } catch (error) {
     console.error("JaaS JWT signing failed", error);
     return json({ error: "secure_call_provider_unavailable" }, 503);
