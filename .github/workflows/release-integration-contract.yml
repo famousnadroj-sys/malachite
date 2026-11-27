@@ -17,7 +17,7 @@ jobs:
       - name: Checkout secured application candidate
         uses: actions/checkout@v4
         with:
-          ref: security/rebased-private-profile-access-v4
+          ref: fix/profile-rpc-cutover-main-sync-20261126
           path: app-source
 
       - name: Checkout public launch pages
