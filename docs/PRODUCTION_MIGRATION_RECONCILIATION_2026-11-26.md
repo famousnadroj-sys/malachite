@@ -214,3 +214,10 @@ Le staging n'avait pas encore le trigger `zz_reject_legacy_public_call_links`; l
 ### CI de stabilisation — révision #158
 
 Révision `7074c04e0b32c3657b952fd846bb2104eb9d1c05`: les quatre workflows réussissent, y compris release integration contract après correction du checkout de l'application candidate. PR #159 également : release contract et Pages réussis; validation et Match isolated PostgreSQL réussis sur HEAD `016a4e888ac5d56780ae8a99955c04bc7d33b50a`.
+
+
+### Security Advisor + grant reconciliation du staging après corrections
+
+Advisor relancé après les changements : 14 tables avec RLS sans policy sont signalées (tables privées/administration/AI/config/login/referrals). Vérification des grants effectifs : **aucun privilège `anon` ou `authenticated` sur ces 14 tables**. Aucun SECURITY DEFINER dans `public/private` n'a de `search_path` non fixé.
+
+Warnings restants à traiter séparément : `pg_net` installé dans `public` (extension gérée par Supabase; ne pas déplacer sans plan de compatibilité); `get_malachite_referrer_preview(uuid)` callable par `anon`/authenticated, mais la fonction ne renvoie que prénom/username d'un profil public non suspendu et applique les blocages; 27 RPC SECURITY DEFINER exécutables par authenticated sont des chemins applicatifs/admin à revoir un par un, pas à révoquer en bloc sans casser les fonctionnalités. Advisor performance signale 24 index inutilisés; aucune suppression automatique, faute de preuve suffisante.
