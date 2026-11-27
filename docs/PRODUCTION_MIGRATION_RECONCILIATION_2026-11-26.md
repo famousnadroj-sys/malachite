@@ -234,3 +234,10 @@ Production storage recheck : les deux buckets campagne sont déjà `public=false
 ### AI worker replay protection — production vs staging
 
 Contrôle live des fonctions HMAC : la production valide le timestamp à ±300 secondes et le HMAC, mais n'exige aucun `request_id` unique et n'a pas de table nonce; un payload signé capturé peut donc être rejoué pendant la fenêtre de cinq minutes. Le staging a la migration candidate `prevent_malachite_ai_worker_replay` : taille du body plafonnée à 8 KiB, `request_id` UUID obligatoire, insertion atomique dans `private.malachite_ai_worker_nonces` avec contrainte unique, nettoyage des nonces > 1 jour, aucun grant client. **Production à corriger après backup/restauration**, migration déjà présente dans le candidat; aucune invocation worker ni mutation production effectuée.
+
+
+### Suppression de compte — cartographie live des références non-FK
+
+Catalogues production : plusieurs références UUID utilisateur ne disposent toujours pas de FK vers Auth/Profile et ne seront donc pas supprimées automatiquement. Les colonnes live concernées incluent `avis_match.user_id/autre`, `avis_site.user_id`, `deblocages.user_id/cible`, `messages.de/a`, `paiements.user_id`, `rendez_vous.de/a`, `signalements.de/profil`; `admin_actions.cible` est nullable, tandis que `ai_manager_audit.admin_id` est NOT NULL.
+
+La suppression de compte ne doit pas être codée comme un simple `auth.admin.deleteUser`: il faut une séquence transactionnelle de nettoyage/anonymisation, purge des objets Storage par dossiers/participants, et traitement explicite des paiements/audits qui peuvent nécessiter une conservation comptable. Les colonnes `paiements.user_id` et plusieurs références sont NOT NULL; leur stratégie de conservation/anonymisation doit être décidée et testée sur une restauration avant d'activer un bouton de suppression. Production n'a pas de fonction `delete_my_account`/équivalent actuellement.
