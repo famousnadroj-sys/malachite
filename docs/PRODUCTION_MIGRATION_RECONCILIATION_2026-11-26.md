@@ -138,3 +138,14 @@ Après le commentaire de revue, la branche #158 a reçu deux commits candidats :
 HEAD PR #158 : `7cba3f6115844b5ed78077cdd529e641c3aaaa63`. La fonction de statut ne renvoie désormais `enabled=true` que si le coupe-circuit SQL est activé **et** que les trois paramètres JaaS requis sont présents et que l'AppID a un format acceptable. Le client ignore les réponses tardives après un changement de session Auth et reste fermé en cas d'erreur.
 
 Au dernier contrôle GitHub : `MALACHITE live Pages verification` et `Malachite release integration contract` réussis; `Malachite validation` et `Match isolated PostgreSQL runtime` encore en cours. La révision n'est pas fusionnée. Les clés JaaS réelles et le test d'appel entre deux appareils restent à faire par le propriétaire après configuration.
+
+
+### Contrôle direct des définitions SQL de production — 27 novembre
+
+Une requête catalogue read-only sur les fonctions actuellement déployées confirme :
+
+- `public.start_call_session(uuid,uuid,text,text,timestamptz)` est `SECURITY DEFINER`, exécutable par `authenticated`, et vérifie l'abonnement, le match réciproque et le blocage. Sa définition live ne vérifie ni le coupe-circuit fournisseur, ni la suspension des participants; elle accepte une salle dont le format est seulement borné par longueur. La migration fail-closed candidate remplace cette définition.
+- `public.save_my_profile(jsonb,jsonb)` est actuellement `SECURITY INVOKER` et exécutable par `authenticated`. Le corps vérifie un âge privé minimal, mais pas la limite supérieure 100 ans ni la cohérence des âges public/privé; les grants directs de production sur `profiles`, `prives` et `login_names` permettent aussi de contourner une validation applicative. La chaîne candidate remplace le RPC et révoque les écritures directes.
+- La policy Storage live `profile photos read` autorise la lecture des objets `profile-photos` dès que le lecteur n'est pas bloqué par le propriétaire; elle ne contrôle pas le profil public, la publication du chemin ni la suspension. Les buckets de médias observés sont privés, mais cette policy authentifiée reste une surface de lecture trop large.
+
+Ces résultats sont des défauts de configuration/code présents en production au moment du contrôle. Ils n'ont pas été corrigés sur la base live pendant cette session; les migrations candidate restent non appliquées.
