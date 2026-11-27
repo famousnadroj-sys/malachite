@@ -267,3 +267,8 @@ Requête catalogue production du 27 novembre : la policy `voir profils` autorise
 
 
 Qualification du risque privé : le comptage live actuel retourne 5 profils publics et **0 profil privé**, donc aucune ligne privée existante n'est exposée à cet instant. La policy reste néanmoins incorrecte pour toute activation future du mode privé et ne filtre pas les chemins photo publiés; il s'agit d'un défaut latent bloquant avant d'autoriser un membre à passer son profil en privé.
+
+
+### Validation finale PR #158 — profile save migration-order test
+
+HEAD `46eeaf5c07ae0cd56b3009eb487dda41a57021b8` : **4 workflows verts** — Malachite validation, Match isolated PostgreSQL runtime, live Pages verification, release integration contract. Le job profile-age applique désormais la migration finale `secure_profile_save_rpc_after_acl_cutover` après le cutover précédent, puis exécute les assertions d'écriture; les tests supplémentaires avatar étranger et URL signée non persistée sont inclus.
