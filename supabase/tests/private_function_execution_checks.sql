@@ -60,7 +60,7 @@ $$;
 create function private.__malachite_private_acl_probe() returns integer language sql as 'select 1';
 create function public.__malachite_public_acl_probe() returns integer language sql as 'select 1';
 
-do $
+do $acl$
 begin
   if has_function_privilege('anon', 'private.__malachite_private_acl_probe()', 'EXECUTE')
      or has_function_privilege('authenticated', 'private.__malachite_private_acl_probe()', 'EXECUTE') then
@@ -71,7 +71,7 @@ begin
     raise exception 'future_public_rpc_default_grants_must_be_preserved';
   end if;
 end
-$;
+$acl$;
 
 drop function private.__malachite_private_acl_probe();
 drop function public.__malachite_public_acl_probe();
