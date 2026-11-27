@@ -325,3 +325,6 @@ Live `username-login` Edge Function v7 uses a non-atomic COUNT-then-INSERT for t
 ### Username-login source cutover prepared
 
 PR #158 now aligns `supabase/functions/username-login/index.ts` with the hardened staging v1 implementation: atomic RPC for both login and availability checks, Cloudflare `cf-connecting-ip` only (no client-controlled forwarding fallback), cleanup failure does not weaken rate limiting, and CORS is restricted to the current GitHub Pages origin rather than wildcard. Production Edge Function v7 is still deployed and unchanged; code + migration require owner-approved deployment after backup/restore.
+
+
+Staging atomic login throttle exercised directly as `service_role` in rollback transaction: first and second attempts allowed, third blocked at max=2, separate hash receives independent quota; test hashes have zero rows after rollback. Staging function grant verified service-only; production still on COUNT/INSERT implementation until approved migration/function deployment.
