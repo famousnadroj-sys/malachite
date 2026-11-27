@@ -56,6 +56,26 @@ begin
 end
 $$;
 
+-- Prove future functions inherit the intended schema-specific defaults.
+create function private.__malachite_private_acl_probe() returns integer language sql as 'select 1';
+create function public.__malachite_public_acl_probe() returns integer language sql as 'select 1';
+
+do $
+begin
+  if has_function_privilege('anon', 'private.__malachite_private_acl_probe()', 'EXECUTE')
+     or has_function_privilege('authenticated', 'private.__malachite_private_acl_probe()', 'EXECUTE') then
+    raise exception 'future_private_function_must_default_to_closed';
+  end if;
+  if not has_function_privilege('anon', 'public.__malachite_public_acl_probe()', 'EXECUTE')
+     or not has_function_privilege('authenticated', 'public.__malachite_public_acl_probe()', 'EXECUTE') then
+    raise exception 'future_public_rpc_default_grants_must_be_preserved';
+  end if;
+end
+$;
+
+drop function private.__malachite_private_acl_probe();
+drop function public.__malachite_public_acl_probe();
+
 -- Exercise live RLS expressions as a non-admin authenticated identity.
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
