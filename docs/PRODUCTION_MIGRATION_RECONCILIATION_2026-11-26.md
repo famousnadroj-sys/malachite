@@ -195,3 +195,8 @@ Après les migrations candidate déjà enregistrées sur le staging, j'ai interr
 - La policy Storage `profile photos read published paths` est présente et filtre les profils publics, chemins photos/avatars 3D publiés, blocages et suspensions.
 
 Cela confirme les ACL/policies effectives du staging, pas la production. La production conserve encore les grants et la policy Storage large décrits plus haut.
+
+
+### Correction staging — stockage campagne rendu privé
+
+Le balayage de sécurité du staging du 27 novembre a révélé que les deux buckets campagne étaient redevenus `public=true` et que les policies SELECT publiques étaient encore actives, malgré zéro objet présent. J'ai appliqué uniquement au staging la migration équivalente à `20261124130000_disable_public_campaign_storage.sql` : buckets passés à `public=false`, policies de lecture publique retirées. Vérification post-migration : les deux buckets sont privés, aucune policy de lecture publique restante, zéro objet conservé/supprimé. Production inchangée.
