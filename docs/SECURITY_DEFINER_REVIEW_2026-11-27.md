@@ -49,3 +49,8 @@ Le contrôle de régression staging a réussi : aucune fonction privée n'est ex
 - `founder_finance_summary`, présent en production mais absent du staging courant, vérifie `auth.uid()` et `private.is_admin()` avant de lire le ledger financier; son accès reste réservé aux administrateurs.
 
 Ces points sont distincts du décompte Advisor des fonctions SECURITY DEFINER et restent des portes de sécurité production non franchies.
+
+
+## Couverture de non-régression
+
+Un job CI dédié `private-function-execution-acl` a été ajouté à `.github/workflows/validate.yml`. Il reconstruit un schéma PostgreSQL isolé, simule les anciens grants trop larges, applique les migrations candidates, puis vérifie les grants privés, les grants RPC publics, les helpers nécessaires aux policies et les ACL par défaut des futures fonctions. Le job a réussi sur le commit `e4b435c286f1cf60a7a3f0dc7cf966933a409215`. Le test SQL a également été exécuté avec succès sur le staging réel.
