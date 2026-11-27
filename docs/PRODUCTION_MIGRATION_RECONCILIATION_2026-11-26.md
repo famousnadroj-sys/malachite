@@ -121,3 +121,8 @@ La comparaison brute par numéro de version trouve également plusieurs anciens 
 ### État de lancement
 
 **NO-GO maintenu** : sauvegarde complète PostgreSQL + Auth + Storage et restauration isolée non certifiées; migrations de sécurité non appliquées en production; protection HIBP indisponible sur le plan Free; fournisseur JaaS privé non configuré/testé; suppression complète de compte non implémentée. Aucun de ces contrôles ne doit être marqué « terminé » sur la seule base des tests CI.
+
+
+### Dernier point de blocage relevé sur le client d'appels — 27 novembre
+
+Revue du code HEAD de la PR #158 : `calls.js` fixe `CALL_PROVIDER_ENABLED=false` au chargement et exporte immédiatement cette valeur sur `window.CALL_PROVIDER_ENABLED`. Aucun chemin ne rafraîchit cet état depuis le serveur. Par conséquent, même après activation de la configuration privée JaaS et déploiement des secrets, le client restera bloqué : `startCall()`, `startInbox()` et les offres n'activeront jamais les appels. Un commentaire de revue bloquant a été ajouté à la PR #158 (commentaire GitHub 7224685242) pour exiger un statut serveur authentifié, limité à un booléen non secret, avec tests fournisseur désactivé/activé. Le coupe-circuit serveur doit rester fermé tant que cette correction et le test réel entre appareils ne sont pas terminés.
