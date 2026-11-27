@@ -31,6 +31,10 @@ declare
     'update_my_call_session_status(p_id uuid, p_status text)',
     'update_my_preferences(p_preferences jsonb)'
   ];
+  -- Production-only RPC: absent from the current staging schema but reviewed separately.
+  v_allowed_production_only text[] := array[
+    'founder_finance_summary(p_from timestamp with time zone, p_to timestamp with time zone)'
+  ];
   v_unexpected text;
   v_missing text;
 begin
@@ -55,7 +59,7 @@ begin
   where n.nspname='public'
     and p.prosecdef
     and has_function_privilege('authenticated',p.oid,'execute')
-    and (p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')') <> all(v_allowed_authenticated)
+    and (p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')') <> all(v_allowed_authenticated || v_allowed_production_only)
   limit 1;
   if v_unexpected is not null then
     raise exception 'unreviewed_authenticated_security_definer_rpc: %',v_unexpected;
