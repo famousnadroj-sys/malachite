@@ -69,7 +69,7 @@ grant execute on function public.moderate_user(uuid,text,text) to authenticated;
 grant execute on function public.traiter_paiement(bigint,boolean,text) to authenticated;
 grant execute on function public.match_like_quota() to authenticated;
 
-create table public.profiles(id uuid primary key);
+create table public.profiles(id uuid primary key, prenom text, username text, profile_private boolean default false);
 create table public.messages(id bigint generated always as identity primary key);
 create table public.avis_match(id bigint generated always as identity primary key);
 alter table public.profiles enable row level security;
