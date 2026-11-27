@@ -58,7 +58,7 @@ const appCore = await get("app-core.js", "rpc('update_my_preferences'");
 if (appCore.includes("from('config').select('cle,valeur')")) {
   throw new Error("Payment destination numbers must not be loaded into the public browser.");
 }
-const calls = await get("calls.js", "var CALL_PROVIDER_ENABLED=false;");
+const calls = await get("calls.js", "var CALL_PROVIDER_ENABLED=false,");
 const avatarUi = await get("malachite-avatar-ui.js", "function malPaymentPanel()");
 const offerUi = await get("malachite-user-experience.js", "Paiements temporairement suspendus");
 for (const retiredValue of [
