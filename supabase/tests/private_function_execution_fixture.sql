@@ -20,12 +20,19 @@ grant usage on schema private to authenticated;
 create or replace function private.is_admin() returns boolean
 language sql stable security definer set search_path=''
 as $fn$ select false $fn$;
+create table public.suspensions(user_id uuid primary key);
+create table public.blocages(user_id uuid not null,cible uuid not null,primary key(user_id,cible));
+
 create or replace function private.is_blocked_with(uuid) returns boolean
 language sql stable security definer set search_path=''
-as $fn$ select false $fn$;
+as $fn$ select exists (
+  select 1 from public.blocages b
+  where (b.user_id=(select auth.uid()) and b.cible=$1)
+     or (b.user_id=$1 and b.cible=(select auth.uid()))
+) $fn$;
 create or replace function private.is_suspended(uuid) returns boolean
 language sql stable security definer set search_path=''
-as $fn$ select false $fn$;
+as $fn$ select exists (select 1 from public.suspensions s where s.user_id=$1) $fn$;
 create or replace function private.account_exists(uuid) returns boolean
 language sql stable security definer set search_path=''
 as $fn$ select false $fn$;
