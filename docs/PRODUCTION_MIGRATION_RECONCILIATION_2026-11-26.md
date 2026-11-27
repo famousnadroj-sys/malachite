@@ -294,3 +294,8 @@ Le test `call_appointment_participant_checks.sql` a été corrigé pour refléte
 ### CI latest call-participant migration sequence
 
 PR #158 HEAD `b3de5b7bb2f1a5058aba9c1604ce7471e7859ba3` : all four workflows green. The participant test now runs against the current call state guard, private provider fail-closed migration and provider-gated creation migration; service-only provider-status ACL and participant status RPC are asserted.
+
+
+### Existing public Jitsi message links — safe redaction candidate
+
+Production read-only count found 2 historical `media_type='call'` messages with `meet.jit.si` URLs (both dated 17 Nov 2026), zero active call sessions, and zero such URLs embedded in message text. The candidate migration `reject_legacy_public_call_links` now clears only `media_url` and `media_type` on existing legacy public-room messages before installing the reject trigger, preserving their text/history. Its fixture and assertions verify redaction and preservation. This cleanup is prepared in PR #158, not applied to production.
