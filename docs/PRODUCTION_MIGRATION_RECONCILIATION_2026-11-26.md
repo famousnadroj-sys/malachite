@@ -374,3 +374,6 @@ Revised migration applied to staging under a new candidate migration name; synta
 
 
 Staging replay migration exercised transactionally with a temporary Vault HMAC and temporary cron job (created via `cron.schedule`): preflight accepted the existing signed/no-request_id cron, migration installed nonce verifier, first valid signed legacy body accepted, exact replay rejected, and cron command/schedule remained unchanged. Transaction rollback verified zero worker cron rows, zero temporary Vault secret, and zero nonce rows. No worker or cron persisted in staging.
+
+
+Replay nonce refinement: the request ID is now derived directly from the first 128 bits of the already-authenticated HMAC signature (rather than MD5), retaining 128-bit uniqueness while avoiding a separate hash. The revised migration was applied to staging under a new verification migration and the transactional legacy-cron test passed again; all temporary cron, Vault secret, and nonce rows rolled back to zero.
