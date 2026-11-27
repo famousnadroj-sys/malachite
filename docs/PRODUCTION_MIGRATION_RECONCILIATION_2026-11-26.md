@@ -361,3 +361,6 @@ Production avatar URL audit found 1 profile with a persisted signed Storage `ima
 
 
 Staging throttle concurrency probe : 20 parallel `service_role` RPCs with a 1-hour window and limit 5 produced exactly 5 allowed / 15 denied and exactly 5 persisted attempt rows. The 5 temporary rows were deleted and verified zero remaining. A first 60-second probe was discarded because dispatch took longer than its window and correctly admitted a new request after expiration; no false race claim was recorded.
+
+
+CI #158 latest after login-throttle migration/concurrency workflow update: HEAD `23f5d806f0cf19d5a8c9918e37f3f19629d4c604`, all four workflows green (validation, Match isolated PostgreSQL, release integration contract, live Pages verification). The username throttle job now applies the actual migration, not a duplicate test-only function, and runs 20 concurrent calls asserting exactly 5 allowed/15 blocked.
