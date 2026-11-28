@@ -823,7 +823,7 @@ for (const tag of ['<script src="malachite-ai.js" defer>','<script src="malachit
 }
 if (!appCore.includes('function malLoadAdminModules()') ||
     !appCore.includes("var sources=['./malachite-ai.js','./malachite-copilots.js','./admin-push.js','./malachite-founder-finance.js?v=1']") ||
-    !appCore.includes("malAdminModulesPromise.then")) {
+    !appCore.includes("malLoadAdminModules().then")) {
   throw new Error('Admin modules must load sequentially on demand after admin authorization.');
 }
 const headMarkup = html.slice(0, html.indexOf('</head>'));
