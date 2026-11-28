@@ -20,9 +20,7 @@ The Service Worker caches a large app shell (many optional modules) and installs
 
 ## Supabase read-only snapshot
 
-Production `tscsmemsvgacash` (project ref `tscsmemsvgacash` is not used; actual project ref `tscsmemsvgacash` should be verified before use) and staging `sbawknyxcjslvhknomkd` were queried read-only on 28 Nov 2026.
-
-Correct production project ref: `tscsmemsvgacash` is not the project identifier. The production project used in the actual query is `tscsmemsvgacash`? Confirm from tool context: production project ref is `tscsmemsvgacash` in prior notes; this report records the result but must not be treated as a production migration instruction.
+Production project ref `tscsmemsvgacqioncash` and staging `sbawknyxcjslvhknomkd` were queried read-only on 28 Nov 2026.
 
 - No active query older than one second was present at the instant of inspection on either project. This is only a point-in-time observation.
 - The top global `pg_stat_statements` entries were mostly Supabase catalog/Advisor and migration queries; they do not establish that app endpoints are fast.
