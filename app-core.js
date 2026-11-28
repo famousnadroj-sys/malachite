@@ -270,7 +270,15 @@ async function ensureSignupProfile(user,metadata){
   return null;
  }
 }
-var malLoadInFlight=null,malLoadInFlightUid=null;\nfunction load(){\n var uid=me&&me.id;if(!uid)return Promise.resolve();\n if(malLoadInFlight&&malLoadInFlightUid===uid)return malLoadInFlight;\n var task=loadCore();malLoadInFlight=task;malLoadInFlightUid=uid;\n function clear(){if(malLoadInFlight===task){malLoadInFlight=null;malLoadInFlightUid=null}}\n task.then(clear,clear);return task;\n}\nasync function loadCore(){
+var malLoadInFlight=null,malLoadInFlightUid=null;
+function load(){
+ var uid=me&&me.id;if(!uid)return Promise.resolve();
+ if(malLoadInFlight&&malLoadInFlightUid===uid)return malLoadInFlight;
+ var task=loadCore();malLoadInFlight=task;malLoadInFlightUid=uid;
+ function clear(){if(malLoadInFlight===task){malLoadInFlight=null;malLoadInFlightUid=null}}
+ task.then(clear,clear);return task;
+}
+async function loadCore(){
  var uid=me&&me.id;if(!uid)return;var seq=++loadSeq;
  var keepWarmCache=loadedUid===uid&&profs.length>0&&Date.now()-profilesLoadedAt<300000;
  if(keepWarmCache){sub();return;}
