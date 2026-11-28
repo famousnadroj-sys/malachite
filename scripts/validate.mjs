@@ -843,9 +843,13 @@ const supabaseLinkTags = headMarkup.match(/<link\\b[^>]*>/g) || [];
 const performanceSource = fs.readFileSync('malachite-performance.js', 'utf8');
 if (!html.includes('<script src="malachite-performance.js" defer>') ||
     !performanceSource.includes('img.decoding = "async"') ||
-    !performanceSource.includes('img.loading = rect.top > window.innerHeight * 1.25 ? "lazy" : "eager"') ||
+    !performanceSource.includes('img.loading = img.getAttribute("fetchpriority") === "high" ? "eager" : "lazy"') ||
+    !performanceSource.includes('var pending = new Set()') ||
+    !performanceSource.includes('requestAnimationFrame(flush)') ||
+    !performanceSource.includes('rootsSet.has(parent)') ||
+    performanceSource.includes('img.getBoundingClientRect()') ||
     !performanceSource.includes('new MutationObserver')) {
-  throw new Error('Mobile performance guard must remain deferred and apply async decoding/lazy loading to dynamic images.');
+  throw new Error('Mobile performance guard must batch image mutations, avoid forced layout, and lazy-load dynamic images.');
 }
 const supabasePreload = headMarkup.split('<link').filter((tag) =>
   tag.includes('rel="preload"') &&
