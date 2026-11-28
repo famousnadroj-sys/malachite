@@ -260,6 +260,9 @@ if (frontend.includes("if(t==='me'&&mine&&me){var uid=me.id,target=mine;resolveP
 }
 const appCore = frontendScripts[0];
 if (!appCore.includes("if(keepWarmCache){sub();return;}")) throw new Error('Warm profile cache must avoid repeat full profile reloads.');
+if (!appCore.includes('var malLoadInFlight=null,malLoadInFlightUid=null;') || !appCore.includes('if(malLoadInFlight&&malLoadInFlightUid===uid)return malLoadInFlight;')) throw new Error('Profile reloads must be deduplicated while a tab switch is in flight.');
+if (appCore.includes("load().then(draw)")) throw new Error('Tab navigation must not trigger an extra full render after the initial draw.');
+if (!appCore.includes('var needsLoad=!me||loadedUid!==me.id||!profs.length||Date.now()-profilesLoadedAt>=300000;')) throw new Error('Tab navigation must reuse the current profile cache until it expires.');
 if (!appCore.includes("if(tab!=='chat'&&!msgRealtimeReady)")) throw new Error('Message polling must be fallback-only when realtime is unavailable.');
 if (!appCore.includes('setInterval(poll,120000)') || !appCore.includes('setInterval(beat,120000)')) throw new Error('Background polling must use reduced intervals.');
 if (!performanceGuard.includes('html.mal-low-power *{animation:none!important')) throw new Error('Low-power devices must disable costly visual effects.');
@@ -627,7 +630,7 @@ const installHandler = installHandlerStart >= 0 && installHandlerEnd > installHa
 if (!installHandler || installHandler.includes('skipWaiting') || !updateServiceWorker.includes('event.data.type === "SKIP_WAITING"')) {
   throw new Error('Service worker updates must wait for an explicit user action.');
 }
-if (!updateServiceWorker.includes('malachite-static-v108')) {
+if (!updateServiceWorker.includes('malachite-static-v109')) {
   throw new Error('Static cache version must change when a new release is prepared.');
 }
 const updateClient = fs.readFileSync('app-core.js', 'utf8');
@@ -656,7 +659,7 @@ if (!headMarkup.includes('rel="stylesheet" href="https://fonts.googleapis.com/cs
     headMarkup.includes('rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces')) {
   throw new Error('Optional Google Fonts must remain non-render-blocking with the system-font fallback.');
 }
-if (!serviceWorker.includes('malachite-static-v108')) {
+if (!serviceWorker.includes('malachite-static-v109')) {
   throw new Error('App-shell cache version must advance when its contents change.');
 }
 
