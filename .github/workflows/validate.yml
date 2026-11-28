@@ -1,7 +1,7 @@
 name: Malachite validation
 on:
   push:
-    branches: [main, fix/security-hardening, website/public-launch-cleanup-2026-11-24]
+    branches: [main, fix/security-hardening, website/public-launch-cleanup-2026-11-24, perf/reduce-tab-render-and-background-work-2026-11-28]
   pull_request:
     branches: [main]
 permissions:
