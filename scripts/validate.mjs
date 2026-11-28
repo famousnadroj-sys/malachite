@@ -336,7 +336,7 @@ if (swCheck.status !== 0) {
   process.stderr.write(swCheck.stderr || swCheck.stdout);
   process.exit(swCheck.status || 1);
 }
-if (!sw.includes('./malachite-ai.js') || !sw.includes('malachite-static-v62')) throw new Error('AI Manager module must be cached and static cache version bumped.');
+if (!sw.includes('malachite-static-v62')) throw new Error('Static cache version must remain versioned.');
 if (!sw.includes('Serve the cached app shell immediately') || !sw.includes('networkPage.then')) throw new Error('Navigation must serve cached app shell immediately and refresh it in the background.');
 for (const asset of ['app-core.js','malachite-avatar-ui.js','malachite-chat-ui.js','malachite-avatar-helper.js','malachite-living-engine.js','malachite-premium-profiles.js']) if (!sw.includes(asset)) throw new Error('Deferred application asset missing from service-worker cache: '+asset);
 if (!sw.includes('storage') || !sw.includes('Authorization')) throw new Error('Service worker must bypass Supabase private APIs.');
@@ -771,7 +771,7 @@ if (!livePagesSmoke.includes('EXPECTED_LIVE_CACHE') ||
     !livePagesSmoke.includes("localStorage.getItem('mal_photo_cache:'") ||
     !livePagesSmoke.includes("localStorage.setItem('mal_photo_cache:'") ||
     !livePagesWorkflow.includes('malachite-static-v108') ||
-    !livePagesWorkflow.includes('malachite-static-v112') ||
+    !livePagesWorkflow.includes('malachite-static-v113') ||
     !livePagesWorkflow.includes('20261126-photo-cache-v3') ||
     !livePagesWorkflow.includes('20261126-photo-cache-v3')) {
   throw new Error('Live Pages smoke test must verify the signed-photo cache and use the correct live asset version for PR versus production.');
@@ -792,7 +792,7 @@ const installHandler = installHandlerStart >= 0 && installHandlerEnd > installHa
 if (!installHandler || installHandler.includes('skipWaiting') || !updateServiceWorker.includes('event.data.type === "SKIP_WAITING"')) {
   throw new Error('Service worker updates must wait for an explicit user action.');
 }
-if (!updateServiceWorker.includes('malachite-static-v112')) {
+if (!updateServiceWorker.includes('malachite-static-v113')) {
   throw new Error('Static cache version must change when a new release is prepared.');
 }
 const updateClient = fs.readFileSync('app-core.js', 'utf8');
@@ -811,9 +811,20 @@ for (const selector of ['body:not(.mal-chat-mode)>header',' #malUserMenuTrigger'
 const appShellStart = serviceWorker.indexOf('const APP_SHELL = [');
 const appShellEnd = serviceWorker.indexOf('];', appShellStart);
 const appShellSource = appShellStart >= 0 && appShellEnd > appShellStart ? serviceWorker.slice(appShellStart, appShellEnd) : '';
-if (!appShellSource.includes('"./malachite-share.js"') ||
-    !appShellSource.includes('"./malachite-founder-finance.js?v=1"')) {
-  throw new Error('First-party share and founder finance entry scripts must be included in the versioned app shell cache.');
+if (!appShellSource.includes('"./malachite-share.js"')) {
+  throw new Error('First-party share entry script must be included in the versioned app shell cache.');
+}
+const adminOnlyAssets = ['"./malachite-ai.js"','"./malachite-copilots.js"','"./admin-push.js"','"./malachite-founder-finance.js?v=1"'];
+if (adminOnlyAssets.some(asset => appShellSource.includes(asset))) {
+  throw new Error('Admin-only scripts must not be fetched during initial app-shell installation.');
+}
+for (const tag of ['<script src="malachite-ai.js" defer>','<script src="malachite-copilots.js" defer>','<script src="admin-push.js" defer>','<script src="./malachite-founder-finance.js?v=1" defer>']) {
+  if (html.includes(tag)) throw new Error('Admin-only script remains eagerly loaded: '+tag);
+}
+if (!appCore.includes('function malLoadAdminModules()') ||
+    !appCore.includes("var sources=['./malachite-ai.js','./malachite-copilots.js','./admin-push.js','./malachite-founder-finance.js?v=1']") ||
+    !appCore.includes("malAdminModulesPromise.then")) {
+  throw new Error('Admin modules must load sequentially on demand after admin authorization.');
 }
 const headMarkup = html.slice(0, html.indexOf('</head>'));
 if (!headMarkup.includes('rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces') ||
@@ -821,7 +832,7 @@ if (!headMarkup.includes('rel="stylesheet" href="https://fonts.googleapis.com/cs
     headMarkup.includes('rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces')) {
   throw new Error('Optional Google Fonts must remain non-render-blocking with the system-font fallback.');
 }
-if (!serviceWorker.includes('malachite-static-v112')) {
+if (!serviceWorker.includes('malachite-static-v113')) {
   throw new Error('App-shell cache version must advance when its contents change.');
 }
 
