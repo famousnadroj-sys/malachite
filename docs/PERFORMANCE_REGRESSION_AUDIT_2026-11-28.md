@@ -2,7 +2,7 @@
 
 ## Scope and limits
 
-Read-only source inspection of `main` plus a targeted navigation optimization in draft PR #162. No production deployment, database changes, or device profiling was performed. This report distinguishes code-level causes from measured device performance.
+Read-only source inspection of `main` plus a targeted navigation optimization included in draft PR #158 (`fix/profile-rpc-cutover-main-sync-20261126`). A search of open repository PRs did not find PR #162; the earlier reference to #162 was incorrect. No production deployment, database changes, or device profiling was performed. This report distinguishes code-level causes from measured device performance.
 
 ## Confirmed source-level pressure
 
@@ -27,12 +27,12 @@ Production project ref `tscsmemsvgacqioncash` and staging `sbawknyxcjslvhknomkd`
 - Production has column-level SELECT on `public.profiles` for authenticated despite table-level SELECT being false; therefore table-level privilege alone must not be misread as a profile read outage.
 - Production still has direct authenticated SELECT/INSERT/UPDATE/DELETE on `public.call_sessions`; staging denies direct INSERT/UPDATE/DELETE. This is a confirmed security drift, not a performance cause.
 
-## PR #162 targeted correction
+## PR #158 targeted correction (included in the security/stabilization candidate)
 
 - Deduplicates profile loading in flight for the same authenticated account.
 - Reuses the five-minute profile cache instead of calling `load()` for every tab when it is already valid.
 - Removes the redundant `load().then(draw)` render while preserving immediate tab render and targeted data refreshes.
-- Advances app-shell cache v108 → v109 and adds validation assertions.
+- Advances the app-shell cache v108 → v115 in the candidate branch and adds validation assertions.
 
 ## Next performance work — not yet claimed as fixed
 
@@ -57,3 +57,7 @@ A read-only size inventory of the 14 deferred scripts in the current `main` HTML
 The 14 deferred files are all declared with `defer`, so they are downloaded and then executed during startup rather than only when their tab/feature is opened. Actual wire bytes may be lower due to HTTP compression; this is source size, not a network measurement.
 
 The targeted `pg_stat_statements` query for app tables (`profiles`, `messages`, `call_sessions`, `statuts`, `prives`, `rendez_vous`) returned no matching entries in either project. There is therefore no query-level app latency evidence from that view; production needs real member traffic/profiling to determine whether Supabase contributes to the reported slowness.
+
+## Edge request timing sample — production, last six hours (read-only)
+
+A separate Supabase edge-log sample returned successful HTTP 200s for sampled member-facing endpoints: profiles p95 about 180 ms (48 requests), statuses about 183 ms (24), support about 177 ms (48), payments about 157 ms (48), and reports about 165 ms (48). This sample does not include Android render/JS execution, image decoding, CDN transfer or the full member navigation path; it does not prove that the reported phone slowness is fixed. Background admin-push secret RPCs had p95 around 446 ms and were called 360 times in six hours. A comment with this sample was added to PR #158 for follow-up on its scheduler.
