@@ -72,3 +72,14 @@ A second read-only catalog query checked all RLS-enabled tables in `public` and 
 The PR's prior campaign-policy reconciliation would have restored active campaign SELECT and admin CRUD, conflicting with the retired sponsored-campaign launch scope. The candidate migration `20261128011000_reconcile_campaigns_rls_policies.sql` was corrected to keep RLS enabled, drop legacy campaign policies, and revoke all browser-role table privileges. Its SQL check now asserts that campaign access remains closed. A staging transaction/rollback probe of that exact intended state passed; staging itself was not changed.
 
 Performance Advisor reports unused-index INFO findings (18 production, 21 staging). No indexes were dropped: these are low-traffic/new environments and unused counters alone do not prove an index is safe to remove.
+
+
+## Full table-level authenticated grant inventory
+
+A second read-only query grouped all table-level grants to `authenticated` across `public`. This is the current production/staging comparison (column-level grants and function EXECUTE are separate):
+
+- Production has 20 tables with table-level grants. Broad mutation sets remain on `avis_match`, `avis_site`, `call_sessions`, `campagnes`, `config`, `deblocages`, `demandes_support`, `login_names`, `messages`, `paiements`, `prives`, `profiles`, `rendez_vous`, `signalements`, `statuts`, and `user_notifications`.
+- Staging has 20 tables with grants; most use SELECT-only or contract-limited INSERT/SELECT. Exceptions currently include `campagnes` (stale broad grants; the corrected candidate migration closes them) and `blocages` (INSERT/SELECT/DELETE as intended by the block/unblock contract).
+- Production-only table grant surfaces absent from staging include `config` (full CRUD), `deblocages` (full CRUD), and `login_names` (full CRUD); production also has broader mutation privileges than staging on the profile, private profile, messages, payments, statuses, support, reviews, reports, appointments, notifications, and calls tables.
+
+The candidate security cutover must reconcile this complete inventory with actual UI/RPC contracts, including the owner-approved payment intake decision. Do not blindly revoke all grants: retain only required column-level presence updates and narrowly authorized member inserts/updates; route sensitive profile, payment, call, and admin mutations through validated RPCs. Verify the final grant inventory after applying to a production-equivalent restore.
