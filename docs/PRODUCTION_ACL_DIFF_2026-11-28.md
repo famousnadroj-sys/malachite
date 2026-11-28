@@ -83,3 +83,13 @@ A second read-only query grouped all table-level grants to `authenticated` acros
 - Production-only table grant surfaces absent from staging include `config` (full CRUD), `deblocages` (full CRUD), and `login_names` (full CRUD); production also has broader mutation privileges than staging on the profile, private profile, messages, payments, statuses, support, reviews, reports, appointments, notifications, and calls tables.
 
 The candidate security cutover must reconcile this complete inventory with actual UI/RPC contracts, including the owner-approved payment intake decision. Do not blindly revoke all grants: retain only required column-level presence updates and narrowly authorized member inserts/updates; route sensitive profile, payment, call, and admin mutations through validated RPCs. Verify the final grant inventory after applying to a production-equivalent restore.
+
+
+## Call provider and retired advertising function inventory
+
+Read-only Edge Function inventory on 28 Nov 2026:
+- Production has no `malachite-jaas-token` function deployed.
+- Staging has `malachite-jaas-token` ACTIVE version 3 with platform JWT verification enabled. Provider remains disabled and no JaaS credentials/real two-account join were proven.
+- Production `malachite-ad-creative` is ACTIVE version 6 with JWT verification enabled, but its current handler returns HTTP 410 `advertising_generation_disabled` for POST requests. This is disabled behavior, not evidence of live ad generation; retain the no-ad launch gate and remove/decommission only through a separately reviewed deployment change.
+
+The public call surface remains a production blocker: do not publish the candidate client or enable calls until the JaaS issuer, provider config, participant tokens, and two-account tests are all complete.
