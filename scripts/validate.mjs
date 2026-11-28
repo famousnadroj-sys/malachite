@@ -438,7 +438,7 @@ if (!migrations.includes('avatar=case when p_profile ?') || !migrations.includes
 if (frontend.includes('Ajoute une photo de profil avant d’enregistrer.')) throw new Error('Profile creation must allow a saved avatar instead of requiring a photo.');
 if (!frontend.includes('cache.expiresAt=now+3500000')) throw new Error('Signed media URL cache must refresh its expiry after renewal.');
 if (!frontend.includes("Signature des médias de la conversation ('+bucket+')")) throw new Error('Media URL resolution must isolate failures by storage bucket.');
-if (!sw.match(/malachite-static-v[0-9]+/) || !sw.includes('./calls.js') || !sw.includes('./malachite-ad-studio.js')) throw new Error('Service worker must cache a versioned app shell including the call client.');
+if (!sw.match(/malachite-static-v[0-9]+/) || !sw.includes('./calls.js') || sw.includes('./malachite-ad-studio.js')) throw new Error('Service worker must cache a versioned app shell including the call client and exclude retired ad-studio assets.');
 if (!frontend.includes("status==='SUBSCRIBED'")) throw new Error('Realtime recovery must immediately resync the active conversation after reconnect.');
 if (!frontend.includes("timer=setInterval(function(){if(tab==='chat'&&!document.hidden&&!msgRealtimeReady)loadChat()},20000)")) throw new Error('Fallback chat sync must pause while hidden and run only when Realtime is unavailable.');
 if (!frontend.includes("sb.channel('malachite-online-v1'")) throw new Error('Realtime online presence channel is missing.');
@@ -583,8 +583,8 @@ if (performanceCheck.status !== 0) { process.stderr.write(performanceCheck.stder
 for (const item of ['malachite-performance.js', 'img.loading', 'img.decoding']) {
   if (!performanceModule.includes(item) && !frontend.includes(item)) throw new Error('Mobile performance requirement missing: ' + item);
 }
-if (!sw.includes('./malachite-campaigns.js') || !sw.includes('./malachite-performance.js') || !sw.includes('malachite-static-v88')) {
-  throw new Error('Campaign, performance and payment AI modules must be included in the updated PWA cache.');
+if (sw.includes('./malachite-campaigns.js') || !sw.includes('./malachite-performance.js') || !sw.includes('malachite-static-v88')) {
+  throw new Error('Retired campaign assets must stay out of the PWA shell while the performance guard remains cached.');
 }
 
 const aiManagerModule = fs.readFileSync('malachite-ai.js', 'utf8');
