@@ -776,7 +776,7 @@ if (!livePagesSmoke.includes('EXPECTED_LIVE_CACHE') ||
     !livePagesWorkflow.includes('malachite-static-v108') ||
     !livePagesWorkflow.includes('malachite-static-v115') ||
     !livePagesWorkflow.includes('20261126-photo-cache-v3') ||
-    !livePagesWorkflow.includes('20261126-photo-cache-v3')) {
+    !livePagesWorkflow.includes('20261127-jaas-dynamic-gate-v1')) {
   throw new Error('Live Pages smoke test must verify the signed-photo cache and use the correct live asset version for PR versus production.');
 }
 const previewDeployWorkflow = fs.readFileSync('.github/workflows/deploy-public-test.yml', 'utf8');
