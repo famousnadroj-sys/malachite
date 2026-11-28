@@ -630,7 +630,7 @@ const installHandler = installHandlerStart >= 0 && installHandlerEnd > installHa
 if (!installHandler || installHandler.includes('skipWaiting') || !updateServiceWorker.includes('event.data.type === "SKIP_WAITING"')) {
   throw new Error('Service worker updates must wait for an explicit user action.');
 }
-if (!updateServiceWorker.includes('malachite-static-v109')) {
+if (!updateServiceWorker.includes('malachite-static-v110')) {
   throw new Error('Static cache version must change when a new release is prepared.');
 }
 const updateClient = fs.readFileSync('app-core.js', 'utf8');
@@ -667,7 +667,11 @@ const supabaseLinkTags = headMarkup.match(/<link\\b[^>]*>/g) || [];
 const performanceSource = fs.readFileSync('malachite-performance.js', 'utf8');
 if (!html.includes('<script src="malachite-performance.js" defer>') ||
     !performanceSource.includes('img.decoding = "async"') ||
-    !performanceSource.includes('img.loading = rect.top > window.innerHeight * 1.25 ? "lazy" : "eager"') ||
+    !performanceSource.includes('img.loading = img.getAttribute("fetchpriority") === "high" ? "eager" : "lazy"') ||
+    !performanceSource.includes('var pending = new Set()') ||
+    !performanceSource.includes('requestAnimationFrame(flush)') ||
+    !performanceSource.includes('rootsSet.has(parent)') ||
+    performanceSource.includes('img.getBoundingClientRect()') ||
     !performanceSource.includes('new MutationObserver')) {
   throw new Error('Mobile performance guard must remain deferred and apply async decoding/lazy loading to dynamic images.');
 }
