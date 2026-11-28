@@ -52,6 +52,6 @@ jobs:
       - name: Verify the actual public site over HTTPS
         env:
           SITE_URL: https://famousnadroj-sys.github.io/malachite/
-          EXPECTED_LIVE_CACHE: ${{ github.event_name == 'pull_request' && 'malachite-static-v108' || 'malachite-static-v113' }}
+          EXPECTED_LIVE_CACHE: ${{ github.event_name == 'pull_request' && 'malachite-static-v108' || 'malachite-static-v114' }}
           EXPECTED_LIVE_CALLS_ASSET: ${{ github.event_name == 'pull_request' && 'calls.js?v=20261126-photo-cache-v3' || 'calls.js?v=20261127-jaas-dynamic-gate-v1' }}
         run: node scripts/smoke-live-pages.mjs
