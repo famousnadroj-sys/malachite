@@ -659,7 +659,7 @@ if (!headMarkup.includes('rel="stylesheet" href="https://fonts.googleapis.com/cs
     headMarkup.includes('rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces')) {
   throw new Error('Optional Google Fonts must remain non-render-blocking with the system-font fallback.');
 }
-if (!serviceWorker.includes('malachite-static-v109')) {
+if (!serviceWorker.includes('malachite-static-v110')) {
   throw new Error('App-shell cache version must advance when its contents change.');
 }
 
