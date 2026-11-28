@@ -400,7 +400,7 @@ for (const item of [
 }
 if (moderationFunction.includes('ADMIN_EMAIL')) throw new Error('Admin identity must come from the private database allow-list.');
 if (!frontend.includes('function openConv(id){if(!id||!me)return;')) throw new Error('Conversation entry handler missing.');
-if (!frontend.includes("persistMalView();draw(true);loadChat();timer=setInterval(function(){if(tab==='chat'&&open&&!document.hidden&&!msgRealtimeReady)loadChat()},15000)")) throw new Error('Conversation must render immediately and use a 15-second fallback only when Realtime is unavailable.');
+if (!frontend.includes("persistMalView();draw(true);loadChat();timer=setInterval(function(){if(tab==='chat'&&open&&!document.hidden&&!msgRealtimeReady)loadChat()},30000)")) throw new Error('Conversation must render immediately and use a 30-second fallback only when Realtime is unavailable.');
 if (!frontend.includes('if(firstLoad){\n    msgs=msgs.concat(fresh)')) throw new Error('Initial messages must render in the conversation.');
 if (!frontend.includes('resolveMessagesMedia(priorityMedia).then(function()') || !frontend.includes('var deferredMedia=firstLoad?mediaRows.slice(0,-12):[]')) throw new Error('Recent chat media must be prioritized and older media resolved in the background.');
 if (!frontend.includes("Promise.all([sb.from('avis_match').select('ok')")) throw new Error('Conversation match checks must run concurrently.');
@@ -415,7 +415,7 @@ if (!frontend.includes("chatLoadBusyKeys[key]")) throw new Error('Opening anothe
 if (!frontend.includes("appendChatRows([temp])") || !frontend.includes("pendingNode.replaceWith(holder.firstElementChild)")) throw new Error('Sending text must not redraw and interrupt media playback.');
 if (!frontend.includes("String(m.display_url).indexOf('blob:')===0")) throw new Error('Uploaded local media previews must still be replaced with private signed URLs.');
 if (frontend.includes("sb.channel('msgs').on('postgres_changes'")) throw new Error('Unfiltered global message realtime subscriptions are forbidden.');
-if (!frontend.includes("if(t=='chat'){loadChat();timer=setInterval(function(){if(tab==='chat'&&!document.hidden&&!msgRealtimeReady)loadChat()},20000);if(open)return}")) throw new Error('Chat navigation must load messages and use a conditional fallback sync.');
+if (!frontend.includes("if(t=='chat'){loadChat();timer=setInterval(function(){if(tab==='chat'&&!document.hidden&&!msgRealtimeReady)loadChat()},30000);if(open)return}")) throw new Error('Chat navigation must load messages and use a conditional fallback sync.');
 if (!frontend.includes("id=\"chatSendError\"")) throw new Error('Message errors must update without rebuilding the conversation.');
 const insertChatStart = frontend.indexOf('async function insertChatMessage');
 const insertChatEnd = frontend.indexOf('async function snd()', insertChatStart);
@@ -440,7 +440,7 @@ if (!frontend.includes('cache.expiresAt=now+3500000')) throw new Error('Signed m
 if (!frontend.includes("Signature des médias de la conversation ('+bucket+')")) throw new Error('Media URL resolution must isolate failures by storage bucket.');
 if (!sw.match(/malachite-static-v[0-9]+/) || !sw.includes('./calls.js') || sw.includes('./malachite-ad-studio.js')) throw new Error('Service worker must cache a versioned app shell including the call client and exclude retired ad-studio assets.');
 if (!frontend.includes("status==='SUBSCRIBED'")) throw new Error('Realtime recovery must immediately resync the active conversation after reconnect.');
-if (!frontend.includes("timer=setInterval(function(){if(tab==='chat'&&!document.hidden&&!msgRealtimeReady)loadChat()},20000)")) throw new Error('Fallback chat sync must pause while hidden and run only when Realtime is unavailable.');
+if (!frontend.includes("timer=setInterval(function(){if(tab==='chat'&&!document.hidden&&!msgRealtimeReady)loadChat()},30000)")) throw new Error('Fallback chat sync must pause while hidden and run only when Realtime is unavailable.');
 if (!frontend.includes("sb.channel('malachite-online-v1'")) throw new Error('Realtime online presence channel is missing.');
 if (!frontend.includes('function refreshPresenceUI()') || !frontend.includes('function trackPresence()')) throw new Error('Online presence synchronization is missing.');
 if (!frontend.includes("on('broadcast',{event:'typing'}")) throw new Error('Realtime typing indicators are missing.');
