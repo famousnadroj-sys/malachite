@@ -43,3 +43,13 @@ Production security advisor reported:
 Performance advisor reports 18 unused indexes. Do not drop them based on this snapshot alone: the usage window may be short and some indexes support infrequent security/admin flows.
 
 These advisor results are additional release gates. No advisor finding was auto-fixed in production.
+
+
+## Function-body review
+
+A read-only `pg_get_functiondef` review confirmed:
+
+- `founder_business_overview`, `founder_finance_summary`, and `admin_malachite_referrals` explicitly require a signed-in user and `private.is_admin()`; their SECURITY DEFINER advisor warnings are not, by themselves, evidence that non-admin data can be read.
+- `get_malachite_referrer_preview(uuid)` in production filters out private profiles but does not currently filter suspended profiles or a block relationship. The candidate migration `20261127230000_harden_public_referrer_preview.sql` adds suspension and authenticated-viewer block checks and returns only first name/username.
+- `start_call_session` requires authentication, entitlement, reciprocal match and block checks, but production still has permissive room/expiry validation and no secure provider gate. Candidate migrations address this by gating creation on private provider configuration and revoking direct client DML.
+- The match RPC wrappers delegate to `private.*` functions; their internal authorization/data projection must be validated in the migration test suite rather than inferred from their public wrapper alone.
