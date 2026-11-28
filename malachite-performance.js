@@ -4,42 +4,71 @@
   if (window.__malPerformanceLoaded) return;
   window.__malPerformanceLoaded = true;
 
-  // Reduce decorative work on low-memory devices and when data saving is enabled.
   var connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
   var lowMemory = typeof navigator.deviceMemory === "number" && navigator.deviceMemory <= 4;
   var fewCores = typeof navigator.hardwareConcurrency === "number" && navigator.hardwareConcurrency <= 4;
   var saveData = !!(connection && connection.saveData);
-  if (lowMemory || fewCores || saveData) {
-    document.documentElement.classList.add("mal-low-power");
-  }
+  if (lowMemory || fewCores || saveData) document.documentElement.classList.add("mal-low-power");
 
+  // Avoid forced layout reads (getBoundingClientRect) for every image during tab
+  // rendering. Images are lazy by default; explicit high-priority images stay eager.
   function optimizeImage(img) {
     if (!(img instanceof HTMLImageElement)) return;
     if (!img.hasAttribute("decoding")) img.decoding = "async";
     if (!img.hasAttribute("loading")) {
-      var rect = img.getBoundingClientRect();
-      img.loading = rect.top > window.innerHeight * 1.25 ? "lazy" : "eager";
+      img.loading = img.getAttribute("fetchpriority") === "high" ? "eager" : "lazy";
     }
   }
 
   function scan(root) {
-    if (!root) return;
+    if (!root || root.nodeType !== 1) return;
     if (root instanceof HTMLImageElement) optimizeImage(root);
-    if (root.querySelectorAll) root.querySelectorAll("img").forEach(optimizeImage);
+    if (root.querySelectorAll) {
+      var images = root.querySelectorAll("img");
+      for (var i = 0; i < images.length; i++) optimizeImage(images[i]);
+    }
   }
 
   function start() {
-    scan(document);
     if (window.MutationObserver && document.body) {
-      var observer = new MutationObserver(function (records) {
-        records.forEach(function (record) {
-          record.addedNodes.forEach(function (node) {
-            if (node.nodeType === 1) scan(node);
-          });
+      // Batch renderer mutations into one frame and avoid rescanning a descendant
+      // when an ancestor was added in the same batch.
+      var pending = new Set();
+      var scheduled = false;
+      function flush() {
+        scheduled = false;
+        var roots = Array.from(pending);
+        pending.clear();
+        roots = roots.filter(function (node) {
+          if (!node || !node.isConnected) return false;
+          for (var parent = node.parentElement; parent && parent !== document.body; parent = parent.parentElement) {
+            if (pending.has(parent) || roots.indexOf(parent) !== -1) return false;
+          }
+          return true;
         });
+        for (var i = 0; i < roots.length; i++) scan(roots[i]);
+      }
+      var observer = new MutationObserver(function (records) {
+        for (var i = 0; i < records.length; i++) {
+          var nodes = records[i].addedNodes;
+          for (var j = 0; j < nodes.length; j++) {
+            var node = nodes[j];
+            if (node.nodeType === 1) pending.add(node);
+          }
+        }
+        if (pending.size && !scheduled) {
+          scheduled = true;
+          if (window.requestAnimationFrame) requestAnimationFrame(flush);
+          else setTimeout(flush, 16);
+        }
       });
       observer.observe(document.body, { childList: true, subtree: true });
     }
+
+    // Initial document scan is deferred and performed once, after first paint.
+    if (window.requestAnimationFrame) requestAnimationFrame(function () { scan(document.body); });
+    else setTimeout(function () { scan(document.body); }, 16);
+
     if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       document.documentElement.classList.add("mal-reduced-motion");
     }
