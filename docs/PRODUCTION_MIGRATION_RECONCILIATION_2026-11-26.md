@@ -439,3 +439,15 @@ Fresh read-only catalog snapshot:
 - No production migration was applied. The production baseline remains unreconciled against a disposable production-derived restore; this update does not create a pending-migration count.
 
 Before production deployment, prepare a single forward-only release package against the actual production schema, record each exact migration's effect and dependencies, test the complete ordered package on a production-derived disposable database, and compare the post-migration catalog to the expected final ACL/policy/function state. Do not replay staging's 106-row ledger or use timestamp subtraction to infer pending files.
+
+
+## Fresh migration ledger comparison — 28 November 2026, 12:58 UTC
+
+Read-only `list_migrations` snapshot:
+
+- Production `tscsmemsvgacqioncash`: **65 ledger rows**, latest `20261124122733 account_deletion_fk_cleanup`.
+- Staging `sbawknyxcjslvhknomkd`: **126 ledger rows**, latest `20261127225838 harden_public_referrer_preview`.
+- The ledgers are not directly replay-compatible: staging includes a schema-only baseline/snapshot series and candidate migrations with versions that do not exist in production's applied ledger. A raw staging-minus-production list would incorrectly classify baseline and test migrations as deployable production changes.
+- Production's migration ledger has not advanced during this read-only check. No migration was applied and no schema/data mutation was made.
+
+**Next safe step:** produce a production-equivalent isolated restore from verified DB/Auth/Storage backup, then reconcile each candidate migration by schema effect and final ACL/policy state. Do not merge staging's 126 ledger rows into production or bulk-apply the 61-row count difference.
