@@ -715,7 +715,7 @@ body.mal-chat-mode .recbar{position:fixed!important;left:0!important;right:0!imp
     var nav=document.getElementById("nav");if(nav)nav.replaceChildren();
   }
   window.malShowStartupRecovery=showRecovery;
-  timer=window.setTimeout(function(){if(startupIsStuck())showRecovery("Le démarrage prend trop de temps. Vérifie Internet puis appuie sur Réessayer.");},22000);
+  timer=window.setTimeout(function(){if(startupIsStuck())showRecovery("Le démarrage prend trop de temps. Vérifie Internet puis appuie sur Réessayer.");},18000);
   window.addEventListener("pageshow",function(){if(!startupIsStuck()&&timer)clearTimeout(timer)});
 })();
 </script>
@@ -747,7 +747,7 @@ body.mal-chat-mode .recbar{position:fixed!important;left:0!important;right:0!imp
     script.onload=function(){if(finished)return;if(window.supabase&&typeof window.supabase.createClient==="function"){finished=true;startCore();}else fallback();};
     script.onerror=fallback;
     document.head.appendChild(script);
-    window.setTimeout(fallback,8500);
+    window.setTimeout(fallback,6000);
   }
   loadLibrary(0);
 })();
