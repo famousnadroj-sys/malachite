@@ -35,3 +35,12 @@ Toute suppression exigerait :
 ## Décision
 
 Aucune optimisation destructive n'est justifiée par ces seuls Advisor findings. Garder les index, collecter du trafic représentatif, puis réexaminer avec des plans de requête réels. Le projet reste sans finding Advisor santé au snapshot du 27 novembre 2026.
+
+
+## Recontrôle production en lecture seule — 28 novembre 2026, 13:01 UTC
+
+- Advisor performance : toujours 18 index non utilisés signalés. Le constat est cohérent avec le snapshot précédent; aucune suppression n'a été faite, car le site n'a pas encore un trafic représentatif et ces index peuvent servir aux parcours admin, paiement, support et Match.
+- Advisor santé : aucun finding santé signalé lors du contrôle.
+- Les index de campagnes restent à traiter avec prudence : les campagnes sont retirées du périmètre de lancement, mais aucune suppression d'index n'est nécessaire pour sécuriser le lancement.
+- Action retenue : conserver les index, mesurer les requêtes après lancement contrôlé et n'envisager une suppression qu'après analyse de plans `EXPLAIN (ANALYZE, BUFFERS)` et sauvegarde restaurable.
+- Contrôle strictement en lecture seule; aucune modification de production.
