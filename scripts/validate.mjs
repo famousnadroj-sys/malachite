@@ -869,6 +869,9 @@ if (!supabaseLoader.includes('script.crossOrigin="anonymous"') ||
     !supabaseLoader.includes('https://unpkg.com/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js')) {
   throw new Error('Supabase SDK loader must reuse the preload request and preserve its CDN fallback.');
 }
+if (!supabaseLoader.includes('window.setTimeout(fallback,6000)') || !html.includes('},18000);')) {
+  throw new Error('Startup CDN failover and recovery must remain bounded to avoid long mobile stalls.');
+}
 
 
 const profileSource = fs.readFileSync('app-core.js', 'utf8');
