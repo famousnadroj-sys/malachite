@@ -60,3 +60,15 @@ No blanket revocation of SECURITY DEFINER EXECUTE is recommended: each RPC must 
 ## Decision
 
 Production remains unchanged. These live findings reinforce the existing **NO-GO** launch gate; this document is evidence, not a production remediation.
+
+
+## Retired campaigns — additional live finding and candidate correction
+
+A second read-only catalog query checked all RLS-enabled tables in `public` and `private` with no policies but API-role grants:
+- Production returned one row: `public.campagnes`, RLS enabled, zero policies, authenticated has SELECT/INSERT/UPDATE/DELETE.
+- Staging returned no such rows.
+- Supabase Health Advisor returned no findings on either project.
+
+The PR's prior campaign-policy reconciliation would have restored active campaign SELECT and admin CRUD, conflicting with the retired sponsored-campaign launch scope. The candidate migration `20261128011000_reconcile_campaigns_rls_policies.sql` was corrected to keep RLS enabled, drop legacy campaign policies, and revoke all browser-role table privileges. Its SQL check now asserts that campaign access remains closed. A staging transaction/rollback probe of that exact intended state passed; staging itself was not changed.
+
+Performance Advisor reports unused-index INFO findings (18 production, 21 staging). No indexes were dropped: these are low-traffic/new environments and unused counters alone do not prove an index is safe to remove.
