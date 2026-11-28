@@ -43,3 +43,17 @@ Production project ref `tscsmemsvgacqioncash` and staging `sbawknyxcjslvhknomkd`
 5. Split/lazy-load optional first-party modules only after dependency map and regression tests.
 
 No performance score or speed multiplier is claimed without a device measurement.
+
+
+## First-party JavaScript payload inventory
+
+A read-only size inventory of the 14 deferred scripts in the current `main` HTML plus `app-core.js` totals **426,058 bytes of source** before transfer compression. Largest files:
+- `app-core.js`: 181,391 bytes
+- `malachite-user-experience.js`: 58,204 bytes
+- `malachite-avatar-ui.js`: 58,070 bytes
+- `calls.js`: 32,872 bytes
+- `malachite-ai.js`: 21,745 bytes
+
+The 14 deferred files are all declared with `defer`, so they are downloaded and then executed during startup rather than only when their tab/feature is opened. Actual wire bytes may be lower due to HTTP compression; this is source size, not a network measurement.
+
+The targeted `pg_stat_statements` query for app tables (`profiles`, `messages`, `call_sessions`, `statuts`, `prives`, `rendez_vous`) returned no matching entries in either project. There is therefore no query-level app latency evidence from that view; production needs real member traffic/profiling to determine whether Supabase contributes to the reported slowness.
