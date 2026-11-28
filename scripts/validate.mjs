@@ -269,8 +269,11 @@ for (const item of ['malachite-copilots.js', 'Malachite Pulse', 'AutoCare', 'Mal
   if (!frontend.includes(item) && !copilots.includes(item)) throw new Error('Copilot module requirement missing: ' + item);
 }
 const serviceWorkerEarly = fs.readFileSync('sw.js', 'utf8');
-if (!serviceWorkerEarly.includes('./malachite-copilots.js') || !serviceWorkerEarly.includes('malachite-static-v88')) {
-  throw new Error('Copilot module must be included in the versioned PWA cache.');
+if (!frontend.includes('function malLoadAdminModules()') ||
+    !frontend.includes('./malachite-copilots.js') ||
+    serviceWorkerEarly.includes('./malachite-copilots.js') ||
+    !serviceWorkerEarly.includes('malachite-static-v88')) {
+  throw new Error('Copilot module must be loaded on demand and excluded from the initial PWA shell.');
 }
 
 if (!copilots.includes('mode simulation') || !copilots.includes('Finance, Guardian, Support, Intelligence et Creative')) {
