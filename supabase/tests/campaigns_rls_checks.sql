@@ -17,7 +17,7 @@ begin
     raise exception 'anon_campaign_access_must_be_revoked';
   end if;
 
-  if has_table_privilege('authenticated','public.campagnes','SELECT') or
+  if has_any_column_privilege('anon','public.campagnes','SELECT') or has_any_column_privilege('anon','public.campagnes','INSERT') or has_any_column_privilege('anon','public.campagnes','UPDATE') or has_any_column_privilege('anon','public.campagnes','REFERENCES') then raise exception 'anon_campaign_column_access_must_be_revoked'; end if;\n  if has_any_column_privilege('authenticated','public.campagnes','SELECT') or has_any_column_privilege('authenticated','public.campagnes','INSERT') or has_any_column_privilege('authenticated','public.campagnes','UPDATE') or has_any_column_privilege('authenticated','public.campagnes','REFERENCES') then raise exception 'authenticated_campaign_column_access_must_be_revoked'; end if;\n\n  if has_table_privilege('authenticated','public.campagnes','SELECT') or
      has_table_privilege('authenticated','public.campagnes','INSERT') or
      has_table_privilege('authenticated','public.campagnes','UPDATE') or
      has_table_privilege('authenticated','public.campagnes','DELETE') then
