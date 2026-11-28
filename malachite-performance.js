@@ -39,10 +39,11 @@
         scheduled = false;
         var roots = Array.from(pending);
         pending.clear();
+        var rootsSet = new Set(roots);
         roots = roots.filter(function (node) {
           if (!node || !node.isConnected) return false;
           for (var parent = node.parentElement; parent && parent !== document.body; parent = parent.parentElement) {
-            if (pending.has(parent) || roots.indexOf(parent) !== -1) return false;
+            if (rootsSet.has(parent)) return false;
           }
           return true;
         });
