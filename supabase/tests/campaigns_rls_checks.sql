@@ -1,3 +1,4 @@
+-- Sponsored campaigns are retired; this regression test proves browser roles stay closed.
 begin;
 do $$
 begin
