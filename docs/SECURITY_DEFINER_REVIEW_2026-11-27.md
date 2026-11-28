@@ -58,3 +58,12 @@ Ces points sont distincts du décompte Advisor des fonctions SECURITY DEFINER et
 Un job CI dédié `private-function-execution-acl` a été ajouté à `.github/workflows/validate.yml`. Il reconstruit un schéma PostgreSQL isolé, simule les anciens grants trop larges, applique les migrations candidates, puis vérifie les grants privés, les grants RPC publics, les helpers nécessaires aux policies et les ACL par défaut des futures fonctions. Le job a réussi sur le commit `e4b435c286f1cf60a7a3f0dc7cf966933a409215`. Le test SQL a également été exécuté avec succès sur le staging réel.
 
 - Le contrôle de surface a aussi été ajusté pour reconnaître séparément le RPC de production `founder_finance_summary`, absent du staging courant mais protégé par `auth.uid()` et `private.is_admin()`; la liste staging continue d'être vérifiée sans exiger ce RPC de l'environnement de test.
+
+
+## Recontrôle Advisor production en lecture seule — 28 novembre 2026, 13:01 UTC
+
+- Advisor sécurité : 1 RPC `SECURITY DEFINER` callable par `anon` (`get_malachite_referrer_preview`) et 9 RPC callable par `authenticated` signalés. Les fonctions admin/finance et le RPC d'appels doivent rester protégés par leurs contrôles internes et l'ACL de migration candidate; le signal Advisor seul ne prouve pas une vulnérabilité, mais ne remplace pas les tests négatifs.
+- Le client production utilise encore l'ancien fournisseur public d'appels et la configuration JaaS production n'est pas prête. Ne pas activer ou publier le client candidat avant configuration et test réel à deux comptes.
+- Le leaked-password protection Auth est signalé désactivé et indisponible sur le plan courant; le noter comme risque résiduel de lancement, sans prétendre qu'il est activé.
+- Les 12 tables RLS sans policies signalées incluent des tables privées/admin; vérifier les grants effectifs, pas ajouter de policies publiques par réflexe. `public.campagnes` reste fermée côté API dans le candidat.
+- Contrôle Advisor strictement en lecture seule. Aucun grant, RPC, secret ou paramètre Auth production modifié.
