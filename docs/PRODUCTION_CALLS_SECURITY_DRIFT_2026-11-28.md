@@ -29,3 +29,17 @@ The candidate includes a fail-closed call provider migration, a guarded call-ses
 7. Run negative tests as non-owner users and confirm service-role behavior separately.
 
 This document records catalog observations only. No production schema, data, secrets, payment configuration, or deployment was changed during the audit.
+
+
+## Additional Supabase advisor snapshot (2026-11-28 17:59 UTC)
+
+Production security advisor reported:
+
+- One externally callable `SECURITY DEFINER`: `public.get_malachite_referrer_preview(uuid)` callable by `anon`.
+- Nine `SECURITY DEFINER` functions callable by `authenticated`, including admin referral and founder-finance RPCs, match RPCs, referrer preview, and `start_call_session`. Some functions may perform internal authorization, but effective EXECUTE grants and authorization predicates must be reviewed individually; do not treat the advisor warning as proof of data exposure.
+- Leaked-password protection is reported disabled/unavailable in the current Auth configuration.
+- Twelve RLS-enabled tables have no policies. This can be intentional for private/internal tables only if API grants are also absent; verify effective grants and service-role-only access.
+
+Performance advisor reports 18 unused indexes. Do not drop them based on this snapshot alone: the usage window may be short and some indexes support infrequent security/admin flows.
+
+These advisor results are additional release gates. No advisor finding was auto-fixed in production.
