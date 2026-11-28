@@ -6,6 +6,10 @@ on:
     branches: [main]
 permissions:
   contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.head.ref || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   validate:
     runs-on: ubuntu-latest
@@ -22,14 +26,15 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      - name: Type-check Edge Functions
+      - name: Type-check every Edge Function
         run: |
-          deno check supabase/functions/admin-user-moderation/index.ts
-          deno check supabase/functions/malachite-ai-manager/index.ts
-          deno check supabase/functions/malachite-ai-worker/index.ts
-          deno check supabase/functions/username-login/index.ts
-          deno check supabase/functions/malachite-admin-push/index.ts
-          deno check supabase/functions/malachite-ad-creative/index.ts
+          set -euo pipefail
+          while IFS= read -r -d '' file; do
+            echo "Checking $file"
+            deno check "$file"
+          done < <(find supabase/functions -type f -name index.ts -print0 | sort -z)
+      - name: Test bounded AI worker body reader
+        run: deno test supabase/functions/malachite-ai-worker/body_test.ts
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -56,7 +61,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install PostgreSQL client
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+        run: sudo apt-get install -y postgresql-client
       - name: Apply disposable account-deletion fixture, migration and assertions
         env:
           PGPASSWORD: postgres
@@ -84,7 +89,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install PostgreSQL client
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+        run: sudo apt-get install -y postgresql-client
       - name: Apply private-profile fixture, migration and assertions
         env:
           PGPASSWORD: postgres
@@ -112,7 +117,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install PostgreSQL client
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+        run: sudo apt-get install -y postgresql-client
       - name: Apply isolated photo visibility fixture, migration and assertions
         env:
           PGPASSWORD: postgres
@@ -121,6 +126,37 @@ jobs:
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/profile_photo_visibility_fixture.sql
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261124142000_restrict_private_profile_photo_reads.sql
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/profile_photo_visibility_checks.sql
+
+  chat-media-access:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: malachite_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d malachite_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: sudo apt-get install -y postgresql-client
+      - name: Apply isolated chat-media access fixture, migration and assertions
+        env:
+          PGPASSWORD: postgres
+        run: |
+          set -euo pipefail
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/chat_media_access_fixture.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261126160000_harden_chat_media_read_access.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261126220000_harden_message_suspension_access.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/chat_media_access_checks.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261127080100_revoke_unused_message_mutations.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/message_write_acl_checks.sql
 
   call-session-expiry:
     runs-on: ubuntu-latest
@@ -140,7 +176,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install PostgreSQL client
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+        run: |
+          sudo rm -f /etc/apt/sources.list.d/*microsoft*
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
       - name: Apply isolated call fixture, migration and assertions
         env:
           PGPASSWORD: postgres
@@ -150,7 +189,77 @@ jobs:
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261124130100_reject_expired_call_acceptance.sql
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261124143000_harden_call_session_immutable_fields.sql
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/call_session_expiry_checks.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261126121000_harden_call_session_state_transitions.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261126140000_fail_closed_calls_until_jaas_auth.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/call_session_state_transition_checks.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261126150000_pause_call_pass_sales_until_jaas_activation.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261126170000_preserve_call_pass_time_while_provider_disabled.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261127214023_extend_accepted_call_window.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261127214441_reassert_call_provider_config_rls.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/call_provider_fail_closed_checks.sql
 
+
+  call-creation-provider-gate:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: malachite_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d malachite_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: sudo apt-get install -y postgresql-client
+      - name: Verify provider-gated call creation
+        env:
+          PGPASSWORD: postgres
+        run: |
+          set -euo pipefail
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/call_appointment_participant_fixture.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/202611200030_secure_call_session_rpc_entrypoint.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261126140000_fail_closed_calls_until_jaas_auth.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261127140000_enable_call_creation_when_provider_configured.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/call_creation_provider_gate_checks.sql
+
+  private-function-execution-acl:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: malachite_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d malachite_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: sudo apt-get install -y postgresql-client
+      - name: Verify private function execution grants
+        env:
+          PGPASSWORD: postgres
+        run: |
+          set -euo pipefail
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/private_function_execution_fixture.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261127223000_restrict_private_function_execution.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261127224000_private_function_default_privileges.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261127225000_restrict_postgres_function_defaults.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261128012000_grant_storage_rls_blocked_text_helper.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261127230000_harden_public_referrer_preview.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/private_function_execution_checks.sql
 
   profile-age-enforcement:
     runs-on: ubuntu-latest
@@ -170,7 +279,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install PostgreSQL client
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+        run: sudo apt-get install -y postgresql-client
       - name: Apply isolated profile-age fixture, migration and assertions
         env:
           PGPASSWORD: postgres
@@ -179,6 +288,8 @@ jobs:
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/profile_age_enforcement_fixture.sql
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261124250000_enforce_profile_age_server_side.sql
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261124260000_restrict_profile_writes_to_trusted_rpc.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261126130000_reapply_profile_rpc_cutover.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261127150000_secure_profile_save_rpc_after_acl_cutover.sql
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/profile_age_enforcement_checks.sql
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/profile_write_authorization_checks.sql
 
@@ -200,7 +311,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install PostgreSQL client
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+        run: sudo apt-get install -y postgresql-client
       - name: Seed broad ACLs, apply correction and assert effective privileges
         env:
           PGPASSWORD: postgres
@@ -208,7 +319,19 @@ jobs:
           set -euo pipefail
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/effective_authenticated_acl_fixture.sql
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261125141500_normalize_authenticated_table_acl.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261126205000_reconcile_username_login_tables_from_live.sql
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/effective_authenticated_acl_checks.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261127070000_revoke_legacy_conversation_writes.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/legacy_conversation_acl_checks.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261127080000_scope_support_admin_updates.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/support_admin_update_acl_checks.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261127080100_revoke_unused_message_mutations.sql
+
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261127080200_revoke_unused_client_mutations.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261127080500_restore_required_column_update_grants.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261127080600_restore_profile_presence_update_grant.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/profile_presence_update_acl_checks.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/unused_client_mutation_acl_checks.sql
 
   entitlement-status-visibility:
     runs-on: ubuntu-latest
@@ -228,7 +351,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install PostgreSQL client
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+        run: sudo apt-get install -y postgresql-client
       - name: Apply entitlement fixture, migrations and assertions
         env:
           PGPASSWORD: postgres
@@ -239,6 +362,7 @@ jobs:
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261124181403_limit_public_config_reads_to_payment_operators.sql
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/config_status_mutation_security_checks.sql
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261124200100_limit_entitlement_status_visibility.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261126190000_reassert_entitlement_status_visibility.sql
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261124200500_lock_legacy_contact_unlock_table.sql
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261124240000_revoke_retired_campaign_table_access.sql
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/entitlement_status_runtime_checks.sql
@@ -263,7 +387,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install PostgreSQL client
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+        run: sudo apt-get install -y postgresql-client
       - name: Apply disposable payment fixture, pause migrations and assertions
         env:
           PGPASSWORD: postgres
@@ -295,7 +419,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install PostgreSQL client
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+        run: sudo apt-get install -y postgresql-client
       - name: Apply entitlement expiry fixture, migrations and assertions
         env:
           PGPASSWORD: postgres
@@ -325,7 +449,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install PostgreSQL client
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+        run: sudo apt-get install -y postgresql-client
       - name: Apply owner-only profile and photo access migration and assertions
         env:
           PGPASSWORD: postgres
@@ -335,7 +459,10 @@ jobs:
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261124150100_secure_private_profile_access.sql
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261124210000_restore_authenticated_profile_reads.sql
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261125150000_allow_published_public_profile_avatar_reads.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261126195000_reassert_private_profile_access.sql
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/private_profile_access_checks.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261126180000_harden_referrer_preview_visibility.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/referrer_preview_visibility_checks.sql
 
   call-access-suspension:
     runs-on: ubuntu-latest
@@ -355,7 +482,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install PostgreSQL client
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+        run: sudo apt-get install -y postgresql-client
       - name: Apply call-access fixture, migration and assertions
         env:
           PGPASSWORD: postgres
@@ -383,7 +510,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install PostgreSQL client
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+        run: sudo apt-get install -y postgresql-client
       - name: Apply isolated call and appointment fixture, migration and assertions
         env:
           PGPASSWORD: postgres
@@ -395,4 +522,437 @@ jobs:
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261124190000_harden_call_and_appointment_participant_access.sql
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261124235000_restrict_call_session_updates.sql
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261124241000_restrict_direct_call_session_writes.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261126121000_harden_call_session_state_transitions.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261126140000_fail_closed_calls_until_jaas_auth.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261127140000_enable_call_creation_when_provider_configured.sql
           psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/call_appointment_participant_checks.sql
+
+  username-login-throttle:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: malachite_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d malachite_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: sudo apt-get install -y postgresql-client
+      - name: Apply real login throttle migration and verify service-only execution
+        env:
+          PGPASSWORD: postgres
+        run: |
+          set -euo pipefail
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/username_login_throttle_fixture.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261126210000_atomic_username_login_throttle.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/username_login_throttle_checks.sql
+      - name: Verify concurrent requests cannot race past the limit
+        env:
+          PGPASSWORD: postgres
+        run: |
+          set -euo pipefail
+          results="$(mktemp)"
+          pids=()
+          for i in $(seq 1 20); do
+            psql -h localhost -U postgres -d malachite_test -At -v ON_ERROR_STOP=1 \
+              -c "select public.consume_username_login_attempt(repeat('c',64),60,5)" >> "$results" &
+            pids+=("$!")
+          done
+          for pid in "${pids[@]}"; do wait "$pid"; done
+          allowed="$(grep -xc 't' "$results" || true)"
+          denied="$(grep -xc 'f' "$results" || true)"
+          rows="$(psql -h localhost -U postgres -d malachite_test -At -v ON_ERROR_STOP=1 \
+            -c "select count(*) from public.username_login_attempts where ip_hash=repeat('c',64)")"
+          test "$allowed" -eq 5
+          test "$denied" -eq 15
+          test "$rows" -eq 5
+
+  founder-finance-acl:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: malachite_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d malachite_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: sudo apt-get install -y postgresql-client
+      - name: Restrict legacy founder finance RPC to service role
+        env:
+          PGPASSWORD: postgres
+        run: |
+          set -euo pipefail
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/founder_finance_acl_fixture.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261126221000_restrict_founder_finance_summary.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/founder_finance_acl_checks.sql
+
+  legacy-avatar-url-cleanup:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: malachite_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d malachite_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: sudo apt-get install -y postgresql-client
+      - name: Remove persisted signed avatar URLs while preserving object paths
+        env:
+          PGPASSWORD: postgres
+        run: |
+          set -euo pipefail
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/legacy_avatar_url_cleanup_fixture.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261127080300_strip_persisted_signed_avatar_urls.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/legacy_avatar_url_cleanup_checks.sql
+
+  security-definer-search-path:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: malachite_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d malachite_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: sudo apt-get install -y postgresql-client
+      - name: Harden SECURITY DEFINER search path and assert unchanged grants
+        env:
+          PGPASSWORD: postgres
+        run: |
+          set -euo pipefail
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/est_premium_search_path_fixture.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261127080400_harden_est_premium_search_path.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/est_premium_search_path_checks.sql
+
+  retired-campaign-acl:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: malachite_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d malachite_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: sudo apt-get install -y postgresql-client
+      - name: Revoke stale browser access to retired campaigns
+        env:
+          PGPASSWORD: postgres
+        run: |
+          set -euo pipefail
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/retired_campaign_acl_fixture.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261126230000_revoke_retired_campaign_table_access.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/retired_campaign_acl_checks.sql
+
+  message-media-type-reconciliation:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: malachite_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d malachite_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: sudo apt-get install -y postgresql-client
+      - name: Reconcile recovered production message guard and test document media
+        env:
+          PGPASSWORD: postgres
+        run: |
+          set -euo pipefail
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/message_media_type_reconciliation_fixture.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261126240000_reconcile_message_media_types_from_live.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261127160000_reject_legacy_public_jitsi_message_links.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/message_media_type_reconciliation_checks.sql
+
+  admin-payment-push-reconciliation:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: malachite_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d malachite_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: sudo apt-get install -y postgresql-client
+      - name: Reconcile verified payment push schema, trigger, Vault and cron
+        env:
+          PGPASSWORD: postgres
+        run: |
+          set -euo pipefail
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/admin_payment_push_reconciliation_fixture.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261126250000_reconcile_admin_payment_push_dispatch.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261127020000_reduce_idle_payment_push_dispatch.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/admin_payment_push_reconciliation_checks.sql
+
+  ai-alert-review-reconciliation:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: malachite_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d malachite_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: sudo apt-get install -y postgresql-client
+      - name: Reconcile recovered AI alerts and human review queue
+        env:
+          PGPASSWORD: postgres
+        run: |
+          set -euo pipefail
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/ai_alert_review_reconciliation_fixture.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261126260000_reconcile_ai_alerts_and_review_queue_from_live.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/ai_alert_review_reconciliation_checks.sql
+
+  admin-audit-reconciliation:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: malachite_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d malachite_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: sudo apt-get install -y postgresql-client
+      - name: Reconcile admin allowlist and audit record deletion behavior
+        env:
+          PGPASSWORD: postgres
+        run: |
+          set -euo pipefail
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/admin_audit_reconciliation_fixture.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261126270000_reconcile_admin_audit_and_allowlist_from_live.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/admin_audit_reconciliation_checks.sql
+
+  username-login-reconciliation:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: malachite_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d malachite_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: sudo apt-get install -y postgresql-client
+      - name: Reconcile username mapping and service-only atomic throttle
+        env:
+          PGPASSWORD: postgres
+        run: |
+          set -euo pipefail
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/username_login_reconciliation_fixture.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261126205000_reconcile_username_login_tables_from_live.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261126210000_atomic_username_login_throttle.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261127010000_maintain_username_login_attempt_retention.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/username_login_reconciliation_checks.sql
+
+  admin-allowlist-prerequisite:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: malachite_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d malachite_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: sudo apt-get install -y postgresql-client
+      - name: Verify admin allowlist prerequisite is available before moderation RLS
+        env:
+          PGPASSWORD: postgres
+        run: |
+          set -euo pipefail
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/admin_allowlist_prerequisite_fixture.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261118000150_admin_allowlist_prerequisite.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/admin_allowlist_prerequisite_checks.sql
+
+  username-login-staging-runtime:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Exercise the deployed staging username-check endpoint
+        env:
+          STAGING_SUPABASE_URL: https://sbawknyxcjslvhknomkd.supabase.co
+          STAGING_PUBLISHABLE_KEY: sb_publishable_rXT4ztk4NLX-PeK2spwzqg_UcKMnRD5
+        run: |
+          set -euo pipefail
+          response=$(curl --fail-with-body --silent --show-error --retry 2 --retry-delay 2 --max-time 25 \
+            -X POST "$STAGING_SUPABASE_URL/functions/v1/username-login" \
+            -H "apikey: $STAGING_PUBLISHABLE_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{"action":"check","username":"mal_ci_probe_20261127"}')
+          printf '%s' "$response" | jq -e 'has("available") and (.available | type == "boolean")'
+          login_status=$(curl --silent --show-error --max-time 25 -o /tmp/malachite-login-response.json -w '%{http_code}' \
+            -X POST "$STAGING_SUPABASE_URL/functions/v1/username-login" \
+            -H "apikey: $STAGING_PUBLISHABLE_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{"username":"mal_ci_probe_20261127","password":"invalid-ci-password"}')
+          test "$login_status" = "400"
+          jq -e 'has("error") and (.error | type == "string")' /tmp/malachite-login-response.json
+
+  ai-worker-replay-protection:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: malachite_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d malachite_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: sudo apt-get install -y postgresql-client
+      - name: Apply replay verifier without rewriting the existing cron
+        env:
+          PGPASSWORD: postgres
+        run: |
+          set -euo pipefail
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/ai_worker_replay_fixture.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261125170000_prevent_malachite_ai_worker_replay.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/ai_worker_replay_checks.sql
+          # URL/project-ref Vault values are optional when preserving the existing signed cron.
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -c "delete from vault.decrypted_secrets where name in ('malachite_ai_worker_url','malachite_ai_worker_project_ref')"
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261125170000_prevent_malachite_ai_worker_replay.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/ai_worker_replay_missing_config_checks.sql
+          # If optional URL/ref values are supplied but disagree, abort and preserve the cron.
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -c "insert into vault.decrypted_secrets(name,decrypted_secret) values('malachite_ai_worker_url','https://isolatedtest.supabase.co/functions/v1/malachite-ai-worker'),('malachite_ai_worker_project_ref','anotherproject') on conflict(name) do update set decrypted_secret=excluded.decrypted_secret"
+          if psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261125170000_prevent_malachite_ai_worker_replay.sql >/tmp/worker-project-mismatch.log 2>&1; then cat /tmp/worker-project-mismatch.log; echo "migration unexpectedly succeeded with mismatched optional project ref"; exit 1; fi
+          grep -q "worker URL/project-ref mismatch; migration aborted" /tmp/worker-project-mismatch.log
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/ai_worker_replay_project_mismatch_checks.sql
+          # Missing HMAC must fail closed before replacing the active verifier or cron.
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -c "update vault.decrypted_secrets set decrypted_secret='isolatedtest' where name='malachite_ai_worker_project_ref'; delete from vault.decrypted_secrets where name='malachite_ai_worker_hmac'"
+          if psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261125170000_prevent_malachite_ai_worker_replay.sql >/tmp/worker-missing-hmac.log 2>&1; then cat /tmp/worker-missing-hmac.log; echo "migration unexpectedly succeeded without worker HMAC"; exit 1; fi
+          grep -q "active worker cron is not HMAC configured" /tmp/worker-missing-hmac.log
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/ai_worker_replay_legacy_missing_config_checks.sql
+          # Verify the nonce verifier also installs when pg_cron/pg_net are absent.
+          createdb -h localhost -U postgres malachite_no_scheduler
+          psql -h localhost -U postgres -d malachite_no_scheduler -v ON_ERROR_STOP=1 -f supabase/tests/ai_worker_no_scheduler_fixture.sql
+          psql -h localhost -U postgres -d malachite_no_scheduler -v ON_ERROR_STOP=1 -f supabase/migrations/20261125170000_prevent_malachite_ai_worker_replay.sql
+          psql -h localhost -U postgres -d malachite_no_scheduler -v ON_ERROR_STOP=1 -f supabase/tests/ai_worker_no_scheduler_checks.sql
+
+  campaigns-rls:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: malachite_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d malachite_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: sudo apt-get install -y postgresql-client
+      - name: Verify campaign RLS policies and admin-only writes
+        env:
+          PGPASSWORD: postgres
+        run: |
+          set -euo pipefail
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/campaigns_rls_fixture.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261128011000_reconcile_campaigns_rls_policies.sql
+          psql -h localhost -U postgres -d malachite_test -v ON_ERROR_STOP=1 -f supabase/tests/campaigns_rls_checks.sql

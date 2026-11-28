@@ -1,10 +1,12 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
+const ALLOWED_ORIGIN = "https://famousnadroj-sys.github.io";
 const cors = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Content-Type": "application/json",
+  "Vary": "Origin",
 };
 function reply(status: number, body: Record<string, unknown>) {
   return new Response(JSON.stringify(body), { status, headers: cors });
@@ -22,7 +24,9 @@ async function sha256(value: string): Promise<string> {
   return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 Deno.serve(async (req: Request) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+  const origin = req.headers.get("Origin");
+  if (origin && origin !== ALLOWED_ORIGIN) return reply(403, { error: "origin_not_allowed" });
+  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
   if (req.method !== "POST") return reply(405, { error: "Méthode non autorisée." });
   const url = Deno.env.get("SUPABASE_URL") ?? "";
   const secret = keyFromEnv("SUPABASE_SECRET_KEYS", "SUPABASE_SERVICE_ROLE_KEY");
@@ -35,6 +39,18 @@ Deno.serve(async (req: Request) => {
 
   const admin = createClient(url, secret, { auth: { persistSession: false, autoRefreshToken: false } });
   if (body.action === "check") {
+    const checkIp = req.headers.get("cf-connecting-ip")?.trim();
+    if (!checkIp) return reply(503, { error: "Protection anti-abus indisponible." });
+    const checkHash = await sha256("username-check:" + checkIp);
+    const checkThrottle = await admin.rpc("consume_username_login_attempt", {
+      p_ip_hash: checkHash,
+      p_window_seconds: 60,
+      p_max_attempts: 60,
+    });
+    if (checkThrottle.error || typeof checkThrottle.data !== "boolean") {
+      return reply(503, { error: "Protection anti-abus indisponible." });
+    }
+    if (!checkThrottle.data) return reply(429, { error: "Trop de vérifications. Réessaie dans une minute." });
     const found = await admin.from("login_names").select("user_id").ilike("username", username).maybeSingle();
     if (found.error) return reply(503, { error: "Vérification indisponible." });
     let callerId: string | null = null;
@@ -49,16 +65,26 @@ Deno.serve(async (req: Request) => {
 
   const password = String(body.password ?? "");
   if (!password || password.length > 256) return reply(400, { error: "Identifiants incorrects." });
-  const ip = req.headers.get("cf-connecting-ip") ?? req.headers.get("x-real-ip") ??
-    (req.headers.get("x-forwarded-for") ?? "unknown").split(",")[0].trim();
-  const ipHash = await sha256(ip || "unknown");
-  const since = new Date(Date.now() - 15 * 60 * 1000).toISOString();
-  const rate = await admin.from("username_login_attempts").select("id", { count: "exact", head: true }).eq("ip_hash", ipHash).gte("attempted_at", since);
-  if (rate.error) return reply(503, { error: "Service temporairement indisponible." });
-  if ((rate.count ?? 0) >= 15) return reply(429, { error: "Trop de tentatives. Réessaie dans 15 minutes." });
-  const logged = await admin.from("username_login_attempts").insert({ ip_hash: ipHash });
-  if (logged.error) return reply(503, { error: "Service temporairement indisponible." });
-  await admin.from("username_login_attempts").delete().lt("attempted_at", new Date(Date.now() - 86400000).toISOString());
+  // Trust only Cloudflare's edge-provided client IP. Never fall back to
+  // caller-controlled forwarding headers, which would let clients spoof the key.
+  const ip = req.headers.get("cf-connecting-ip")?.trim();
+  if (!ip) return reply(503, { error: "Protection anti-abus indisponible." });
+  const ipHash = await sha256(ip);
+  const throttle = await admin.rpc("consume_username_login_attempt", {
+    p_ip_hash: ipHash,
+    p_window_seconds: 900,
+    p_max_attempts: 15,
+  });
+  if (throttle.error || typeof throttle.data !== "boolean") {
+    return reply(503, { error: "Protection anti-abus indisponible." });
+  }
+  if (!throttle.data) {
+    return reply(429, { error: "Trop de tentatives. Réessaie dans 15 minutes." });
+  }
+  // Opportunistic cleanup; a cleanup failure must not weaken the rate limit.
+  await admin.from("username_login_attempts")
+    .delete()
+    .lt("attempted_at", new Date(Date.now() - 86400000).toISOString());
 
   const match = await admin.from("login_names").select("user_id").ilike("username", username).maybeSingle();
   if (match.error || !match.data?.user_id) return reply(400, { error: "Nom d’utilisateur ou mot de passe incorrect." });

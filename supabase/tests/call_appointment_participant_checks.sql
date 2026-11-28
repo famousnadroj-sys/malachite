@@ -21,11 +21,12 @@ begin
   if public.call_provider_is_enabled() then
     raise exception 'call_provider_must_default_to_disabled';
   end if;
-  if has_function_privilege('anon','public.call_provider_is_enabled()','EXECUTE') then
-    raise exception 'anon_must_not_read_call_provider_state';
+  if has_function_privilege('anon','public.call_provider_is_enabled()','EXECUTE')
+     or has_function_privilege('authenticated','public.call_provider_is_enabled()','EXECUTE') then
+    raise exception 'provider_state_rpc_must_not_be_client_executable';
   end if;
-  if not has_function_privilege('authenticated','public.call_provider_is_enabled()','EXECUTE') then
-    raise exception 'authenticated_provider_check_missing';
+  if not has_function_privilege('service_role','public.call_provider_is_enabled()','EXECUTE') then
+    raise exception 'service_role_provider_check_missing';
   end if;
 end
 $provider$;
@@ -33,16 +34,14 @@ set local role authenticated;
 select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000001',true);
 do $disabled$
 begin
-  if public.call_provider_is_enabled() then
-    raise exception 'call_provider_enabled_before_setup';
-  end if;
   begin
     perform * from public.start_call_session(
       '90000000-0000-0000-0000-000000000004',
       '20000000-0000-0000-0000-000000000001',
       'provider-disabled-room','audio',now()+interval '1 minute');
     raise exception 'disabled_call_provider_created_session';
-  exception when sqlstate 'P0001' then
+  exception when others then
+    if sqlerrm = 'disabled_call_provider_created_session' then raise; end if;
     if sqlerrm <> 'secure_call_provider_unavailable' then raise; end if;
   end;
 end
@@ -62,18 +61,18 @@ do $call$ begin
  perform public.start_call_session(
   '90000000-0000-0000-0000-000000000001',
   '20000000-0000-0000-0000-000000000001',
-  'valid-room-12345','audio',now()+interval '1 minute'
+  'Malachite-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa','audio',now()+interval '1 minute'
  );
  begin
   insert into public.call_sessions(id,caller_id,callee_id,room,mode,status,expires_at)
-  values ('90000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000001','direct-room-12345','audio','pending',now()+interval '1 minute');
+  values ('90000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000001','Malachite-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb','audio','pending',now()+interval '1 minute');
   raise exception 'direct_call_session_insert_allowed';
  exception when insufficient_privilege then null; end;
  begin
   perform public.start_call_session(
    '90000000-0000-0000-0000-000000000003',
    '30000000-0000-0000-0000-000000000001',
-   'suspended-room-123','audio',now()+interval '1 minute'
+   'Malachite-cccccccccccccccccccccccccccccccc','audio',now()+interval '1 minute'
   );
   raise exception 'suspended_callee_call_insert_allowed';
  exception when others then if sqlerrm='suspended_callee_call_insert_allowed' then raise; end if; end;
@@ -112,10 +111,13 @@ do $accepted$ begin
     or has_column_privilege('authenticated','public.call_sessions','mode','UPDATE') then
    raise exception 'call_session_identity_or_expiry_mutable';
  end if;
- if not has_column_privilege('authenticated','public.call_sessions','status','UPDATE') then
-   raise exception 'call_session_status_update_missing';
+ if has_column_privilege('authenticated','public.call_sessions','status','UPDATE') then
+   raise exception 'call_session_status_direct_update_must_be_revoked';
  end if;
- update public.call_sessions set status='accepted' where id='90000000-0000-0000-0000-000000000001' and callee_id=auth.uid();
+ if not has_function_privilege('authenticated','public.update_my_call_session_status(uuid,text)','EXECUTE') then
+   raise exception 'participant_status_rpc_missing';
+ end if;
+ perform public.update_my_call_session_status('90000000-0000-0000-0000-000000000001','accepted');
  if not exists(select 1 from public.call_sessions where status='accepted') then raise exception 'callee_status_update_failed'; end if;
  if (select count(*) from public.rendez_vous)<>1 then raise exception 'invitee_cannot_read_appointment'; end if;
  update public.rendez_vous set statut='confirme' where a=auth.uid();

@@ -1,10 +1,13 @@
-do $$
+do $roles$
 begin
   if not exists (select 1 from pg_roles where rolname = 'authenticated') then
     create role authenticated nologin;
   end if;
+  if not exists (select 1 from pg_roles where rolname = 'anon') then
+    create role anon nologin;
+  end if;
 end
-$$;
+$roles$;
 
 create schema if not exists auth;
 create schema if not exists private;
@@ -25,6 +28,7 @@ create table public.suspensions (
 create table public.profiles (
   id uuid primary key references auth.users(id),
   prenom text not null,
+  username text,
   age integer,
   genre text,
   commune text,
@@ -86,7 +90,7 @@ using (bucket_id = 'profile-photos' and not private.is_blocked_with(((storage.fo
 create policy "profile photos read published paths" on storage.objects for select to authenticated
 using (bucket_id = 'profile-photos');
 
-grant usage on schema public, auth, private, storage to authenticated;
+grant usage on schema public, auth, private, storage to authenticated, anon;
 grant execute on function auth.uid() to authenticated;
 grant execute on function private.is_blocked_with(uuid) to authenticated;
 grant execute on function private.is_suspended(uuid) to authenticated;

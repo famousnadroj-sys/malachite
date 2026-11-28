@@ -31,6 +31,11 @@ begin
     raise exception 'direct_private_or_login_write_still_granted';
   end if;
 
+  if not (select p.prosecdef and coalesce(array_to_string(p.proconfig,','),'') like '%search_path=""%'
+          from pg_proc p where p.oid='public.save_my_profile(jsonb,jsonb)'::regprocedure) then
+    raise exception 'profile_save_rpc_must_be_security_definer_with_empty_search_path';
+  end if;
+
   if not has_function_privilege('authenticated','public.save_my_profile(jsonb,jsonb)','EXECUTE')
      or has_function_privilege('anon','public.save_my_profile(jsonb,jsonb)','EXECUTE')
      or not has_function_privilege('authenticated','public.update_my_preferences(jsonb)','EXECUTE')
@@ -84,6 +89,53 @@ begin
   end;
 end
 $direct_profile_update$;
+
+-- A valid private age must not mask an invalid public age.
+do $profile_age_rpc$
+begin
+  begin
+    perform public.save_my_profile(
+      '{"id":"30000000-0000-0000-0000-000000000001","username":"adult_user","prenom":"Adulte","age":17,"profile_private":false}'::jsonb,
+      '{"nom_complet":"Adulte","profile_age":25,"prefs":{}}'::jsonb
+    );
+    raise exception 'underage_public_profile_age_was_accepted';
+  exception when others then
+    if sqlerrm = 'underage_public_profile_age_was_accepted' then raise; end if;
+    if sqlerrm <> 'Âge public invalide : Malachite est réservé aux personnes de 18 à 100 ans'
+       and sqlerrm <> 'Les informations d’âge ne correspondent pas' then
+      raise exception 'unexpected_public_profile_age_error: %', sqlerrm;
+    end if;
+  end;
+end
+$profile_age_rpc$;
+
+-- Profile creation/update must apply the same strict avatar validation
+-- as the dedicated avatar RPC and must never persist a signed image URL.
+do $profile_save_avatar_validation$
+begin
+  begin
+    perform public.save_my_profile(
+      '{"id":"30000000-0000-0000-0000-000000000001","username":"adult_user","prenom":"Adulte","age":25,"profile_private":false,"avatar":{"type":"humanforge-3d","version":1,"config":{},"imagePath":"40000000-0000-0000-0000-000000000001/avatar-12345.png"}}'::jsonb,
+      '{"nom_complet":"Adulte","profile_age":25,"prefs":{}}'::jsonb
+    );
+    raise exception 'foreign_profile_save_avatar_path_was_accepted';
+  exception when others then
+    if sqlerrm = 'foreign_profile_save_avatar_path_was_accepted' then raise; end if;
+    if sqlerrm <> 'Avatar 3D invalide' then
+      raise exception 'unexpected_profile_save_avatar_error: %', sqlerrm;
+    end if;
+  end;
+
+  perform public.save_my_profile(
+    '{"id":"30000000-0000-0000-0000-000000000001","username":"adult_user","prenom":"Adulte","age":25,"profile_private":false,"avatar":{"type":"humanforge-3d","version":1,"config":{},"imagePath":"30000000-0000-0000-0000-000000000001/avatar-54321.png","imageUrl":"https://example.invalid/signed?token=secret"}}'::jsonb,
+    '{"nom_complet":"Adulte","profile_age":25,"prefs":{}}'::jsonb
+  );
+  if (select avatar ? 'imageUrl' from public.profiles
+      where id='30000000-0000-0000-0000-000000000001') then
+    raise exception 'profile_save_persisted_signed_avatar_url';
+  end if;
+end
+$profile_save_avatar_validation$;
 
 -- Avatar writes go through an owner-scoped validator; only last-seen
 -- remains a narrow direct update for the existing frontend.

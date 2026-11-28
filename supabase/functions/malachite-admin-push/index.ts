@@ -2,6 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 import webpush from "npm:web-push@3.6.7";
 
 const ALLOWED_ORIGIN = "https://famousnadroj-sys.github.io";
+const VAPID_SUBJECT = "https://famousnadroj-sys.github.io/malachite/";
 const json = (status: number, body: Record<string, unknown>, origin?: string | null) => {
   const headers: Record<string, string> = { "Content-Type": "application/json", "Cache-Control": "no-store", "Vary": "Origin" };
   if (origin === ALLOWED_ORIGIN) headers["Access-Control-Allow-Origin"] = ALLOWED_ORIGIN;
@@ -55,7 +56,7 @@ Deno.serve(async (req: Request) => {
       const publicKey = String(secrets.malachite_vapid_public || "");
       const privateKey = String(secrets.malachite_vapid_private || "");
       if (!publicKey || !privateKey) return json(503, { error: "vapid_keys_missing" }, origin);
-      webpush.setVapidDetails("mailto:admin@malachite.app", publicKey, privateKey);
+      webpush.setVapidDetails(VAPID_SUBJECT, publicKey, privateKey);
       const payload = JSON.stringify({
         title: "Nouveau paiement Malachite",
         body: "Une nouvelle demande de paiement vient d’être soumise. Ouvre Malachite pour la vérifier.",
@@ -97,7 +98,7 @@ Deno.serve(async (req: Request) => {
     const publicKey = String(secrets.malachite_vapid_public || "");
     const privateKey = String(secrets.malachite_vapid_private || "");
     if (!publicKey || !privateKey) return json(503, { error: "vapid_keys_missing" }, origin);
-    webpush.setVapidDetails("mailto:admin@malachite.app", publicKey, privateKey);
+    webpush.setVapidDetails(VAPID_SUBJECT, publicKey, privateKey);
     const payload = JSON.stringify({
       title: "Paiements Malachite à vérifier",
       body: batch.length + " nouveau(x) paiement(s) attend(ent) ta vérification. Ouvre Malachite pour les traiter.",
@@ -148,7 +149,7 @@ Deno.serve(async (req: Request) => {
       .select("id,endpoint,p256dh,auth_key").eq("admin_user_id", auth.user.id).is("revoked_at", null);
     if (devicesError) return json(503, { error: "subscriptions_lookup_failed" }, origin);
     if (!devices?.length) return json(409, { error: "no_registered_devices" }, origin);
-    webpush.setVapidDetails("mailto:admin@malachite.app", String(secrets.malachite_vapid_public), String(secrets.malachite_vapid_private));
+    webpush.setVapidDetails(VAPID_SUBJECT, String(secrets.malachite_vapid_public), String(secrets.malachite_vapid_private));
     const payload = JSON.stringify({ title: "Test Malachite réussi", body: "Les alertes de paiement sont actives sur cet appareil.", tag: "malachite-push-test-" + Date.now(), url: "./" });
     let sent = 0, failed = 0;
     await Promise.all(devices.map(async (device: any) => {

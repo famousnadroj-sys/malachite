@@ -649,6 +649,7 @@
     var user = currentUser();
     var status = window.st && user && window.st[user.id] ? window.st[user.id] : {};
     var premiumActive = !!(status.premium_until && new Date(status.premium_until).getTime() > Date.now());
+    var callsAvailable = window.CALL_PROVIDER_ENABLED === true;
     var airtel = window.NUM || '';
     var orange = window.ORANGE || '';
     var steps = '<div class="mal-offer-steps">' +
@@ -663,34 +664,38 @@
     if (offerPage === 1) {
       body = '<div class="mal-offer-grid">' +
         '<article class="mal-offer-card"><h3>Gratuit <span class="price">0 USD</span></h3><p>Découvrir, aimer et discuter avec tes matchs.</p></article>' +
-        '<article class="mal-offer-card featured"><h3>Premium <span class="price">2 USD / 30 jours</span></h3><p>Messages sans quota, rendez-vous illimités et appels audio/vidéo inclus.</p></article>' +
+        '<article class="mal-offer-card featured"><h3>Premium <span class="price">2 USD / 30 jours</span></h3><p>Messages sans quota et rendez-vous illimités. ' + (callsAvailable ? 'Les appels audio et vidéo sont inclus.' : 'Les appels seront inclus après la réactivation du service sécurisé.') + '</p></article>' +
         '<article class="mal-offer-card"><h3>Boost <span class="price">0,50 USD / 24 h</span></h3><p>Ton profil remonte en priorité dans Découvrir.</p></article>' +
-        '<article class="mal-offer-card"><h3>Déblocage contact <span class="price">1 USD</span></h3><p>Accès aux coordonnées après un match réciproque. Inclus avec Premium.</p></article>' +
-        (premiumActive ? '<article class="mal-offer-card"><h3>Appels audio et vidéo</h3><p>Déjà inclus dans ton Premium actif.</p></article>' : '<article class="mal-offer-card"><h3>Pass Appels <span class="price">1 USD / 7 jours</span></h3><p>Appels audio et vidéo avec tes matchs pendant 7 jours.</p></article>') +
+        (callsAvailable ? (premiumActive ? '<article class="mal-offer-card"><h3>Appels audio et vidéo</h3><p>Inclus dans ton Premium actif.</p></article>' : '<article class="mal-offer-card"><h3>Pass Appels <span class="price">1 USD / 7 jours</span></h3><p>Appels audio et vidéo avec tes matchs pendant 7 jours.</p></article>') : '<article class="mal-offer-card"><h3>Appels audio et vidéo</h3><p>Service temporairement indisponible pendant la sécurisation des salles privées. Aucun Pass Appels ne peut être acheté avant la réactivation.</p></article>') +
         '</div><button type="button" class="mal-offer-next" onclick="malSetOfferPage(2)">Comparer les avantages →</button>';
     } else if (offerPage === 2) {
       body = '<div class="mal-offer-card"><table class="mal-offer-table"><thead><tr><th>Avantage</th><th>Gratuit</th><th>Premium</th></tr></thead><tbody>' +
         '<tr><td>Découvrir et aimer</td><td class="yes">✓</td><td class="yes">✓</td></tr>' +
         '<tr><td>Nouvelles conversations</td><td>15 / jour</td><td class="yes">Illimitées</td></tr>' +
         '<tr><td>Rendez-vous</td><td>1 / semaine</td><td class="yes">Illimités</td></tr>' +
-        '<tr><td>Appels audio et vidéo</td><td class="no">Pass séparé</td><td class="yes">Inclus</td></tr>' +
+        '<tr><td>Appels audio et vidéo</td><td class="no">' + (callsAvailable ? 'Pass séparé' : 'Temporairement suspendus') + '</td><td>' + (callsAvailable ? 'Inclus' : 'Inclus après réactivation sécurisée') + '</td></tr>' +
         '<tr><td>Boost de visibilité</td><td>Option payante</td><td>Option payante</td></tr>' +
-        '</tbody></table></div><div class="mal-offer-card"><h3>Options à la carte</h3><p>Boost : 0,50 USD / 24 h · Contact : 1 USD / personne · Pass Appels : 1 USD / 7 jours (inutile avec Premium actif).</p></div>' +
+        '</tbody></table></div><div class="mal-offer-card"><h3>Options à la carte</h3><p>Boost : 0,50 USD / 24 h' + (callsAvailable && !premiumActive ? ' · Pass Appels : 1 USD / 7 jours' : '') + (callsAvailable ? '' : '. Les appels reviendront après validation du fournisseur sécurisé ; aucun paiement d’appel n’est accepté pour le moment.') + '</p></div>' +
         '<button type="button" class="mal-offer-next" onclick="malSetOfferPage(3)">Choisir et payer →</button>';
     } else {
-      var callOption = premiumActive ? '' : '<option value="Appels">Pass Appels — 1 USD / 7 jours</option>';
-      body = '<div class="mal-offer-pay"><div class="mal-offer-card"><h3>Numéro destinataire</h3>' +
-        '<p id="malPayNumber">Airtel Money : ' + (airtel ? esc(airtel) : 'Numéro non configuré') + '</p>' +
-        '<p class="note">Le numéro change selon le réseau choisi.</p>' +
-        '</div><div class="box list"><label>Offre<select id="of"><option value="Premium">Premium — 2 USD / 30 jours</option>' + callOption +
-        '<option value="Boost">Boost — 0,50 USD / 24 h</option></select></label>' +
-        '<label>Moyen de paiement<select id="malOperator" onchange="malSetPaymentNumber()"><option value="airtel">Airtel Money</option><option value="orange">Orange Money</option></select></label>' +
-        '<p class="note">Effectue le transfert au numéro affiché, puis saisis la référence exacte du SMS et joins le reçu.</p>' +
-        '<label>Référence du transfert<input id="cd" maxlength="100" autocomplete="off" placeholder="Référence exacte du SMS"></label>' +
-        '<label>Capture du SMS de confirmation de paiement<input id="malReceipt" type="file" accept="image/jpeg,image/png,image/webp"></label><p class="note">Après le paiement : ouvrez le SMS de confirmation et faites une capture d’écran où l’on voit clairement que le paiement a réussi, le montant et la référence. Envoyez uniquement cette image ici — aucun autre document n’est nécessaire. Si la confirmation apparaît dans votre application de paiement plutôt que par SMS, faites une capture de ce message. Image JPEG, PNG ou WebP, 5 Mo maximum.</p>' +
-        '<button class="b1 big" id="malSubmitPayment" type="button" onclick="pay()">Soumettre ma demande</button>' +
-        '<div class="note" id="pm" aria-live="polite">Activation après vérification du paiement.</div></div>' +
-        '<section id="malPaymentHistory"><h3>Suivi de mes demandes</h3><p class="note">Chargement…</p></section></div>';
+      if (!airtel && !orange) {
+        body = '<section class="card"><h3>💳 Paiements temporairement suspendus</h3><p class="note">Les moyens de paiement sont en cours de confirmation. N’effectue aucun transfert et ne communique aucun code avant la réactivation officielle des paiements.</p></section>';
+      } else {
+        var paymentMethods = (airtel ? '<option value="airtel">Airtel Money</option>' : '') + (orange ? '<option value="orange">Orange Money</option>' : '');
+        var callOption = callsAvailable && !premiumActive ? '<option value="Appels">Pass Appels — 1 USD / 7 jours</option>' : '';
+        body = '<div class="mal-offer-pay"><div class="mal-offer-card"><h3>Numéro destinataire</h3>' +
+          '<p id="malPayNumber">' + (airtel ? 'Airtel Money : ' + esc(airtel) : 'Orange Money : ' + esc(orange)) + '</p>' +
+          '<p class="note">Le numéro change selon le réseau choisi.</p>' +
+          '</div><div class="box list"><label>Offre<select id="of"><option value="Premium">Premium — 2 USD / 30 jours</option>' + callOption +
+          '<option value="Boost">Boost — 0,50 USD / 24 h</option></select></label>' +
+          '<label>Moyen de paiement<select id="malOperator" onchange="malSetPaymentNumber()">' + paymentMethods + '</select></label>' +
+          '<p class="note">Effectue le transfert au numéro affiché, puis saisis la référence exacte du SMS et joins le reçu.</p>' +
+          '<label>Référence du transfert<input id="cd" maxlength="100" autocomplete="off" placeholder="Référence exacte du SMS"></label>' +
+          '<label>Capture du SMS de confirmation de paiement<input id="malReceipt" type="file" accept="image/jpeg,image/png,image/webp"></label><p class="note">Après le paiement : ouvre le SMS de confirmation et fais une capture où l’on voit clairement la réussite, le montant et la référence. Image JPEG, PNG ou WebP, 5 Mo maximum.</p>' +
+          '<button class="b1 big" id="malSubmitPayment" type="button" onclick="pay()">Soumettre ma demande</button>' +
+          '<div class="note" id="pm" aria-live="polite">Activation après vérification du paiement.</div></div>' +
+          '<section id="malPaymentHistory"><h3>Suivi de mes demandes</h3><p class="note">Chargement…</p></section></div>';
+      }
     }
     return '<section class="mal-offer-wizard">' + intro + steps + body +
       (offerPage > 1 ? '<button type="button" class="mal-offer-back" onclick="malSetOfferPage(' + (offerPage - 1) + ')">← Retour</button>' : '') +

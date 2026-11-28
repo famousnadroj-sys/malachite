@@ -1,16 +1,20 @@
 (function () {
   "use strict";
 
-  var attempts = 0;
-  var timer = window.setInterval(function () {
-    attempts += 1;
-    if (typeof window.founderDashboard !== "function" || !window.sb || typeof window.sb.rpc !== "function") {
-      if (attempts >= 240) window.clearInterval(timer);
-      return;
-    }
-    window.clearInterval(timer);
+  if (typeof window.founderDashboard === "function" && window.sb && typeof window.sb.rpc === "function") {
     installFinanceDashboard();
-  }, 250);
+  } else {
+    var attempts = 0;
+    var timer = window.setInterval(function () {
+      attempts += 1;
+      if (typeof window.founderDashboard === "function" && window.sb && typeof window.sb.rpc === "function") {
+        window.clearInterval(timer);
+        installFinanceDashboard();
+      } else if (attempts >= 12) {
+        window.clearInterval(timer);
+      }
+    }, 250);
+  }
 
   function escapeHtml(value) {
     return String(value == null ? "" : value).replace(/[&<>"']/g, function (char) {

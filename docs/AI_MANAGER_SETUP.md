@@ -33,3 +33,10 @@ Ne jamais placer la clé dans le navigateur, GitHub ou une conversation. Vérifi
 7. Vérifier que `public.ai_manager_audit` ne contient que les métadonnées attendues.
 
 Ne jamais saisir de mots de passe, OTP, coordonnées privées, conversations ou justificatifs de paiement dans les prompts.
+
+
+## Protection anti-rejeu du worker IA
+
+La migration 20261125170000 empêche la réutilisation d'un corps HMAC capturé : chaque requête cron doit contenir un request_id UUID unique, consommé atomiquement en base. Le worker limite le corps à 8 Kio et rejette les UTF-8 invalides.
+
+Avant application, configurer séparément dans Vault de chaque environnement les secrets malachite_ai_worker_url et malachite_ai_worker_project_ref. Ils doivent désigner le même projet. En l'absence ou divergence, la migration retire le cron historique et laisse le worker non planifié (fail closed). Prévoir l'arrêt temporaire du worker et valider le nouveau cron nonce-aware avant de considérer l'automatisation active.

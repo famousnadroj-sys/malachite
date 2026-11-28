@@ -17,7 +17,8 @@ begin
   if position('premium_until > now()' in v_definition)=0
      or position('verified_until > now()' in v_definition)=0
      or position('boost_until > now()' in v_definition)=0
-     or position('private.is_suspended' in v_definition)=0
+     or position('private.is_suspended(s.user_id)' in v_definition)=0
+     or position('private.is_suspended((select auth.uid()))' in v_definition)=0
      or position('private.is_blocked_with' in v_definition)=0
      or position('profile_private = false' in v_definition)=0 then
     raise exception 'public_status_badges_must_return_only_safe_public_active_flags';
